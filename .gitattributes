@@ -1,0 +1,8 @@
+* text=auto
+
+# Unity YAML assets: merge as text, keep Unity's line endings
+*.unity text eol=lf
+*.prefab text eol=lf
+*.asset text eol=lf
+*.mat text eol=lf
+*.meta text eol=lf
