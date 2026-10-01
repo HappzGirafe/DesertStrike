@@ -1,0 +1,1296 @@
+{
+    "skins": [
+        {
+            "weapon": "ak47",
+            "id": "Default",
+            "folder": "Skins/AK-47/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "ak47",
+            "id": "Arctic",
+            "folder": "Skins/AK-47/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "ak47",
+            "id": "Desert Camo",
+            "folder": "Skins/AK-47/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "ak47",
+            "id": "Gold",
+            "folder": "Skins/AK-47/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "ak47",
+            "id": "Jungle",
+            "folder": "Skins/AK-47/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "ak47",
+            "id": "Urban Digital",
+            "folder": "Skins/AK-47/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "awp",
+            "id": "Default",
+            "folder": "Skins/AWP/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "awp",
+            "id": "Arctic",
+            "folder": "Skins/AWP/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "awp",
+            "id": "Desert Camo",
+            "folder": "Skins/AWP/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "awp",
+            "id": "Gold",
+            "folder": "Skins/AWP/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "awp",
+            "id": "Jungle",
+            "folder": "Skins/AWP/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "awp",
+            "id": "Urban Digital",
+            "folder": "Skins/AWP/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "deagle",
+            "id": "Default",
+            "folder": "Skins/Desert Eagle/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "deagle",
+            "id": "Arctic",
+            "folder": "Skins/Desert Eagle/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "deagle",
+            "id": "Desert Camo",
+            "folder": "Skins/Desert Eagle/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "deagle",
+            "id": "digle",
+            "folder": "Skins/Desert Eagle/digle",
+            "hasModel": true,
+            "hasMain": true,
+            "hasGrip": true,
+            "hasDetail": false,
+            "info": {
+                "name": "digle",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "deagle",
+            "id": "Gold",
+            "folder": "Skins/Desert Eagle/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "deagle",
+            "id": "Jungle",
+            "folder": "Skins/Desert Eagle/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "deagle",
+            "id": "Urban Digital",
+            "folder": "Skins/Desert Eagle/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "glock",
+            "id": "Default",
+            "folder": "Skins/Glock-18/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "glock",
+            "id": "Arctic",
+            "folder": "Skins/Glock-18/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "glock",
+            "id": "Desert Camo",
+            "folder": "Skins/Glock-18/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "glock",
+            "id": "Gold",
+            "folder": "Skins/Glock-18/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "glock",
+            "id": "Jungle",
+            "folder": "Skins/Glock-18/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "glock",
+            "id": "Pink Scribble",
+            "folder": "Skins/Glock-18/Pink Scribble",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": true,
+            "hasDetail": false,
+            "info": {
+                "name": "Pink Scribble",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "glock",
+            "id": "Urban Digital",
+            "folder": "Skins/Glock-18/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "Default",
+            "folder": "Skins/Knife/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "Arctic",
+            "folder": "Skins/Knife/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "Desert Camo",
+            "folder": "Skins/Knife/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "Gold",
+            "folder": "Skins/Knife/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "Jungle",
+            "folder": "Skins/Knife/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "nogektestskin",
+            "folder": "Skins/Knife/nogektestskin",
+            "hasModel": true,
+            "hasMain": true,
+            "hasGrip": true,
+            "hasDetail": true,
+            "info": {
+                "name": "nogektestskin",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "Urban Digital",
+            "folder": "Skins/Knife/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m1911",
+            "id": "Default",
+            "folder": "Skins/M1911/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m1911",
+            "id": "Arctic",
+            "folder": "Skins/M1911/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m1911",
+            "id": "Desert Camo",
+            "folder": "Skins/M1911/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m1911",
+            "id": "Gold",
+            "folder": "Skins/M1911/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "m1911",
+            "id": "Jungle",
+            "folder": "Skins/M1911/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m1911",
+            "id": "Urban Digital",
+            "folder": "Skins/M1911/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m4a1",
+            "id": "Default",
+            "folder": "Skins/M4A1/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m4a1",
+            "id": "Arctic",
+            "folder": "Skins/M4A1/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m4a1",
+            "id": "Desert Camo",
+            "folder": "Skins/M4A1/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m4a1",
+            "id": "Gold",
+            "folder": "Skins/M4A1/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "m4a1",
+            "id": "Jungle",
+            "folder": "Skins/M4A1/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "m4a1",
+            "id": "Urban Digital",
+            "folder": "Skins/M4A1/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "mp5",
+            "id": "Default",
+            "folder": "Skins/MP5/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "mp5",
+            "id": "Arctic",
+            "folder": "Skins/MP5/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "mp5",
+            "id": "Desert Camo",
+            "folder": "Skins/MP5/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "mp5",
+            "id": "Gold",
+            "folder": "Skins/MP5/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "mp5",
+            "id": "Jungle",
+            "folder": "Skins/MP5/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "mp5",
+            "id": "Urban Digital",
+            "folder": "Skins/MP5/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "shotgun",
+            "id": "Default",
+            "folder": "Skins/Pump Shotgun/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "shotgun",
+            "id": "Arctic",
+            "folder": "Skins/Pump Shotgun/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "shotgun",
+            "id": "Desert Camo",
+            "folder": "Skins/Pump Shotgun/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "shotgun",
+            "id": "Gold",
+            "folder": "Skins/Pump Shotgun/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "shotgun",
+            "id": "Jungle",
+            "folder": "Skins/Pump Shotgun/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "shotgun",
+            "id": "Urban Digital",
+            "folder": "Skins/Pump Shotgun/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "rpg",
+            "id": "Default",
+            "folder": "Skins/RPG/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "rpg",
+            "id": "Arctic",
+            "folder": "Skins/RPG/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "rpg",
+            "id": "Desert Camo",
+            "folder": "Skins/RPG/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "rpg",
+            "id": "Gold",
+            "folder": "Skins/RPG/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "rpg",
+            "id": "Jungle",
+            "folder": "Skins/RPG/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "rpg",
+            "id": "Urban Digital",
+            "folder": "Skins/RPG/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "tec9",
+            "id": "Default",
+            "folder": "Skins/TEC-DC9/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "tec9",
+            "id": "Arctic",
+            "folder": "Skins/TEC-DC9/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "tec9",
+            "id": "Desert Camo",
+            "folder": "Skins/TEC-DC9/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "tec9",
+            "id": "Gold",
+            "folder": "Skins/TEC-DC9/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "tec9",
+            "id": "Jungle",
+            "folder": "Skins/TEC-DC9/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "tec9",
+            "id": "Urban Digital",
+            "folder": "Skins/TEC-DC9/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "usp",
+            "id": "Default",
+            "folder": "Skins/USP/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "usp",
+            "id": "Arctic",
+            "folder": "Skins/USP/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "usp",
+            "id": "Desert Camo",
+            "folder": "Skins/USP/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "usp",
+            "id": "Gold",
+            "folder": "Skins/USP/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421
+            }
+        },
+        {
+            "weapon": "usp",
+            "id": "Jungle",
+            "folder": "Skins/USP/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "usp",
+            "id": "Pink Scribble",
+            "folder": "Skins/USP/Pink Scribble",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": true,
+            "hasDetail": false,
+            "info": {
+                "name": "Pink Scribble",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "usp",
+            "id": "Urban Digital",
+            "folder": "Skins/USP/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        }
+    ]
+}

@@ -52,6 +52,7 @@ public static class DesertStrikeSetup
     {
         if (!File.Exists(ScenePath)) CreateScene();
         EnsureMaterials();
+        SkinIndexBuilder.Build();
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {
             scenes = new[] { ScenePath },

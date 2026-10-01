@@ -11,6 +11,9 @@
 /[Bb]uild/
 /[Bb]uilds/
 
+# Blender automatic backups
+*.blend1
+
 # IDE files
 .vs/
 .vscode/

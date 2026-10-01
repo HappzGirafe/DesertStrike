@@ -50,6 +50,7 @@ public class BotController : MonoBehaviour
     Transform visual;
     Transform gunMount;
     Skill skill;
+    int skinSeed;   // bots show off random (but consistent) skins
 
     // Round plan
     readonly List<Vector3> route = new List<Vector3>();
@@ -96,6 +97,7 @@ public class BotController : MonoBehaviour
     {
         Self = GetComponent<Combatant>();
         skill = SkillFor(difficulty);
+        skinSeed = Random.Range(0, 1000);
 
         body = gameObject.AddComponent<CapsuleCollider>();
         body.center = new Vector3(0f, 0.9f, 0f);
@@ -558,7 +560,7 @@ public class BotController : MonoBehaviour
     {
         for (int i = gunMount.childCount - 1; i >= 0; i--) Destroy(gunMount.GetChild(i).gameObject);
         if (Self.Current == null) return;
-        WeaponModels.Build(Self.Current.Data, gunMount, true, out var muzzle);
+        WeaponModels.Build(Self.Current.Data, gunMount, true, out var muzzle, WeaponSkins.Pick(Self.Current.Data, skinSeed));
         Self.Muzzle = muzzle;
         agent.speed = Self.Current.Data.MoveSpeed * 0.92f;
     }

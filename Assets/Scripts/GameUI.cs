@@ -27,12 +27,30 @@ public class GameUI : MonoBehaviour
     float width;
     float scale;
 
+    // Inventory screen
+    SkinPreview preview;
+    bool inventoryOpen;
+    WeaponData inventoryWeapon = WeaponData.Glock;
+    WeaponSkin previewSkin;   // shown instead of the equipped skin (set by -ds-inventory for screenshots)
+
     public static Color TeamColor(Team team) => team == Team.Terrorists ? TerroristColor : SwatColor;
 
     void Awake()
     {
         gm = GetComponent<GameManager>();
         scopeMask = BuildScopeMask(512);
+        preview = gameObject.AddComponent<SkinPreview>();
+
+        // -ds-inventory [weapon id] [skin id] opens the inventory at startup (used for smoke-test screenshots).
+        var args = Environment.GetCommandLineArgs();
+        int index = Array.IndexOf(args, "-ds-inventory");
+        if (index >= 0)
+        {
+            inventoryOpen = true;
+            if (index + 1 < args.Length)
+                inventoryWeapon = WeaponData.Find(args[index + 1]) ?? WeaponData.Glock;
+            if (index + 2 < args.Length) previewSkin = WeaponSkins.For(inventoryWeapon).Find(s => s.Id == args[index + 2]);
+        }
     }
 
     void OnGUI()
@@ -43,7 +61,8 @@ public class GameUI : MonoBehaviour
 
         if (gm.State == MatchState.Menu)
         {
-            DrawMainMenu();
+            if (inventoryOpen) DrawInventory();
+            else DrawMainMenu();
             return;
         }
 
@@ -73,9 +92,98 @@ public class GameUI : MonoBehaviour
         y = OptionRow(x, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, gm.RoundsToWin), i => gm.RoundsToWin = rounds[i]);
 
         y = SensitivitySlider(x + 40f, y, w - 80f);
-        if (Button(new Rect(x + 40f, y, w - 80f, 70f), "START MATCH", true, true, 32)) gm.StartMatch();
+        if (Button(new Rect(x + 40f, y, w - 330f, 70f), "START MATCH", true, true, 32)) gm.StartMatch();
+        if (Button(new Rect(x + w - 270f, y, 230f, 70f), "INVENTORY", false, true, 26)) inventoryOpen = true;
         y += 95f;
         Label(new Rect(x + 20f, y, w - 40f, 100f), ControlsHelp, 17, Dim, TextAnchor.UpperCenter);
+    }
+
+    void DrawInventory()
+    {
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+        {
+            CloseInventory();
+            return;
+        }
+
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
+        float w = 1240f, h = 820f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        Fill(new Rect(x, y, w, h), PanelColor);
+        Label(new Rect(x, y + 15f, w, 60f), "INVENTORY", 48, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 68f, w, 30f), "Pick a skin for each weapon. Hover to preview, click to equip. Your choice is saved.", 20, Dim, TextAnchor.MiddleCenter);
+
+        // Weapon list on the left.
+        float top = y + 115f;
+        var weapons = WeaponSkins.SkinnableWeapons;
+        if (Array.IndexOf(weapons, inventoryWeapon) < 0 && weapons.Length > 0) inventoryWeapon = weapons[0];
+        for (int i = 0; i < weapons.Length; i++)
+        {
+            if (Button(new Rect(x + 30f, top + i * 48f, 210f, 42f), weapons[i].Name, weapons[i] == inventoryWeapon, true, 20))
+            {
+                inventoryWeapon = weapons[i];
+                previewSkin = null;
+            }
+        }
+        if (weapons.Length == 0)
+        {
+            Label(new Rect(x, top, w, 40f), "No skins found in Assets/Resources/Skins.", 22, Danger, TextAnchor.MiddleCenter);
+            if (Button(new Rect(x + w / 2f - 150f, y + h - 80f, 300f, 56f), "BACK")) CloseInventory();
+            return;
+        }
+
+        var previewRect = new Rect(x + 260f, top, 576f, 360f);
+        float listX = previewRect.xMax + 20f, listWidth = x + w - 30f - listX;
+        var equipped = WeaponSkins.Equipped(inventoryWeapon);
+
+        // Skin list on the right (hovering a skin previews it).
+        WeaponSkin hovered = null;
+        float rowY = top;
+        foreach (var skin in WeaponSkins.For(inventoryWeapon))
+        {
+            var row = new Rect(listX, rowY, listWidth, 56f);
+            if (row.Contains(Event.current.mousePosition)) hovered = skin;
+            bool isEquipped = skin == equipped;
+            if (Button(row, isEquipped ? $"{skin.Name}\nEQUIPPED" : skin.Name, isEquipped, true, 20))
+            {
+                WeaponSkins.Equip(inventoryWeapon, skin);
+                previewSkin = null;
+                SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+            }
+            DrawSwatch(new Rect(row.x + 10f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Main));
+            DrawSwatch(new Rect(row.x + 40f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Grip));
+            rowY += 64f;
+        }
+
+        var shown = previewSkin ?? hovered ?? equipped;
+        preview.Show(inventoryWeapon, shown);
+        GUI.DrawTexture(previewRect, preview.Texture);
+        Label(new Rect(previewRect.x, previewRect.yMax + 10f, previewRect.width, 36f), $"{inventoryWeapon.Name}   |   {shown.Name}", 26, Color.white, TextAnchor.MiddleCenter);
+        Label(new Rect(previewRect.x, previewRect.yMax + 50f, previewRect.width, 60f),
+              "Add your own: make a folder in Assets/Resources/Skins/<weapon>/<skin name>/\nwith main.png, grip.png, detail.png (and model.fbx or skin.json if you like)",
+              15, Dim, TextAnchor.UpperCenter);
+
+        if (Button(new Rect(x + w / 2f - 150f, y + h - 80f, 300f, 56f), "BACK")) CloseInventory();
+    }
+
+    void CloseInventory()
+    {
+        inventoryOpen = false;
+        previewSkin = null;
+        preview.Hide();
+    }
+
+    /// <summary>Small square showing a skin part; an empty dark square means the part keeps its normal look.</summary>
+    static void DrawSwatch(Rect rect, Material material)
+    {
+        Fill(new Rect(rect.x - 2f, rect.y - 2f, rect.width + 4f, rect.height + 4f), new Color(0f, 0f, 0f, 0.6f));
+        if (material == null) Fill(rect, new Color(0.25f, 0.25f, 0.27f));
+        else if (material.mainTexture != null)
+        {
+            GUI.color = material.color;
+            GUI.DrawTexture(rect, material.mainTexture, ScaleMode.ScaleAndCrop);
+            GUI.color = Color.white;
+        }
+        else Fill(rect, material.color);
     }
 
     float OptionRow(float x, float y, string title, string[] options, int selected, Action<int> onSelect)

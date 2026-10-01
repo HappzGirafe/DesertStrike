@@ -135,4 +135,17 @@ public class WeaponData
         MoveSpread = 3f, Recoil = 6f, Explosive = true, BlastRadius = 6.5f, ProjectileSpeed = 40f,
         ArmorPenetration = 0.85f, MoveSpeed = 4.8f, KillReward = 100,
     };
+
+    // Declared after the weapons above so they are already initialized.
+    public static readonly WeaponData[] All = { Knife, Glock, Usp, TecDc9, M1911, Deagle, Mp5, Shotgun, Ak47, M4a1, Awp, Rpg };
+
+    /// <summary>Finds a weapon by id ("ak47") or display name ("AK-47"), ignoring case.</summary>
+    public static WeaponData Find(string idOrName)
+    {
+        foreach (var weapon in All)
+            if (string.Equals(weapon.Id, idOrName, System.StringComparison.OrdinalIgnoreCase)
+                || string.Equals(weapon.Name, idOrName, System.StringComparison.OrdinalIgnoreCase))
+                return weapon;
+        return null;
+    }
 }

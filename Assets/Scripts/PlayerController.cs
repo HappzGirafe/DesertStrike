@@ -277,7 +277,7 @@ public class PlayerController : MonoBehaviour
         for (int i = viewModel.childCount - 1; i >= 0; i--) Destroy(viewModel.GetChild(i).gameObject);
         IsScoped = false;
         if (Self.Current == null) return;
-        WeaponModels.Build(Self.Current.Data, viewModel, false, out var muzzle);
+        WeaponModels.Build(Self.Current.Data, viewModel, false, out var muzzle, WeaponSkins.Equipped(Self.Current.Data));
         Self.Muzzle = muzzle;
     }
 

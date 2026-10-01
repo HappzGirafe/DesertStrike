@@ -39,6 +39,62 @@ bot difficulty and the number of rounds to win.
 | RPG | Both | $10000 | 1/14 | Rocket with splash damage (your own rocket hurts you at half damage) |
 | Kevlar / + Helmet | Both | $650 / $1000 | | |
 
+## Inventory and skins
+
+**INVENTORY** in the main menu lets you pick a skin for every weapon, with a turning 3D preview.
+Hover a skin to preview it and click to equip it; the choice is saved. Bots carry random skins.
+
+Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
+The Glock-18 and USP also have Pink Scribble, and the knife has nogektestskin (its own model).
+
+### Skin folders
+
+Each skin is its own folder: `Assets/Resources/Skins/<weapon name>/<skin name>/`
+
+```
+Assets/Resources/Skins/
+  AK-47/
+    Default/        skin.json
+    Desert Camo/    main.png  skin.json
+    Gold/           skin.json
+    ...
+  Knife/
+    nogektestskin/  model.fbx  main.png  grip.png  detail.png
+  ...
+```
+
+A skin folder can hold any of these:
+
+| File | What it does |
+| --- | --- |
+| `main.png` | Texture for the main part: slide, body or blade |
+| `grip.png` | Texture for the grip, stock or handle |
+| `detail.png` | Texture for the rest: barrel, magazine, scope, guard, silencer |
+| `model.fbx` | A model that replaces the weapon's own (like the knife skin) |
+| `skin.json` | Optional settings, e.g. `{ "name": "Gold", "main": "#D4AF37", "grip": "#141414", "detail": "#8A6E22", "smoothness": 0.75, "metallic": 0.9 }` |
+
+Colors in `skin.json` tint the texture of that part, or paint it when there is no texture. Parts with neither
+keep their normal look. The weapon folder must be named like the weapon in the shop (`AK-47`, `Glock-18`,
+`Desert Eagle`, `Knife`, ...). The `Default` folder is the weapon's default skin.
+
+To add a skin, create a new folder: Unity updates `Skins/index.json` by itself, and the skin shows up in the inventory.
+(If it does not, use the menu **Desert Strike > Rebuild Skin Index**.)
+
+### Blender models
+
+- Sources: `Art/Blender/*.blend`, with their textures in `Art/Textures`
+- The Glock-18 and USP models: `Assets/Resources/Models/*.fbx`
+- A skin's own model: `model.fbx` in its skin folder
+
+After editing a model in Blender, re-export it (Blender must be installed):
+
+```
+blender -b Art/Blender/Glock18.blend --python Tools/export_gun_fbx.py -- Assets/Resources/Models/Glock18.fbx
+```
+
+The exporter names the parts by the texture they use: `peredr...` = guard, `ruchka`/`rychka` = grip,
+`nogen` = knife blade, `skin` = pistol slide, and an untextured mesh (like the USP silencer) is a detail part.
+
 ## Rules
 
 - Win a round by eliminating the other team. If time runs out, SWAT wins.
@@ -59,4 +115,5 @@ All in `Assets/Scripts`:
 | `WeaponData.cs` | Weapon stats and prices |
 | `GameUI.cs` | Menus, HUD, buy menu, scoreboard (IMGUI) |
 | `Rocket.cs` | RPG rocket flight and explosion damage |
+| `WeaponSkins.cs`, `SkinPreview.cs` | Pistol skins, the equipped choice, and the inventory's 3D preview |
 | `Ballistics.cs`, `Effects.cs`, `SoundFX.cs`, `WeaponModels.cs` | Hitscan, visuals, generated sounds, gun models |

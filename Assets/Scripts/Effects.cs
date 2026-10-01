@@ -23,6 +23,14 @@ public static class Effects
         return material;
     }
 
+    public static Material SkinMaterial(Color tint, Texture2D texture, float smoothness, float metallic)
+    {
+        var material = new Material(Template()) { color = tint, mainTexture = texture };
+        material.SetFloat("_Glossiness", smoothness);
+        material.SetFloat("_Metallic", metallic);
+        return material;
+    }
+
     public static Material Glow(Color color)
     {
         if (!glowMaterials.TryGetValue(color, out var material))
