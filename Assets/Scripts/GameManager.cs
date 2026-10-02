@@ -89,8 +89,9 @@ public class GameManager : MonoBehaviour
     bool clientMatch;
 
     // Command-line automation (used for smoke tests): -ds-autostart, -ds-side, -ds-money, -ds-quit-after,
-    // -ds-capture, -ds-timescale, -ds-host, -ds-join <ip>, -ds-find, -ds-name <name>, -ds-client-fire
-    bool autoStart, autoHost, autoFind, clientFireTest;
+    // -ds-capture, -ds-timescale, -ds-host, -ds-join <ip>, -ds-find, -ds-name <name>, -ds-client-fire,
+    // -ds-perf (logs FPS and drawn bodies), -ds-nocull, -ds-quality <low|medium|high>, -ds-fps <limit>
+    bool autoStart, autoHost, autoFind, clientFireTest, perfLog;
     string autoJoin;
     int startMoney = StartMoney;
     float timeScale = 1f;
@@ -98,15 +99,19 @@ public class GameManager : MonoBehaviour
     string captureDirectory;
     float nextCaptureAt, nextTestShot;
     int captureIndex;
+    float perfSince = -1f;
+    int perfFrames, perfDrawn, perfInView;
 
     void Awake()
     {
         Instance = this;
+        GameSettings.Load();
         SoundFX.Init();
         SetupLighting();
         Map = new MapBuilder();
         Map.Build(transform);
         MainCamera = CreateCamera();
+        gameObject.AddComponent<VisibilityCuller>();
         Net = gameObject.AddComponent<NetSession>();
         Bomb = gameObject.AddComponent<BombManager>();
         if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();
@@ -275,6 +280,7 @@ public class GameManager : MonoBehaviour
         if (!IsClient) RunRound();
         UpdateCursor();
         RunAutomation();
+        if (perfLog) LogPerformance();
     }
 
     void RunRound()
@@ -699,7 +705,7 @@ public class GameManager : MonoBehaviour
             go.AddComponent<AudioListener>();
         }
         cam.nearClipPlane = 0.03f;
-        cam.farClipPlane = 500f;
+        cam.farClipPlane = 300f;   // the fog is solid from 260 m
         cam.fieldOfView = 75f;
         cam.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.62f, 0.75f, 0.9f);
@@ -786,7 +792,7 @@ public class GameManager : MonoBehaviour
         RenderSettings.fogColor = new Color(0.84f, 0.77f, 0.64f);
         RenderSettings.fogStartDistance = 60f;
         RenderSettings.fogEndDistance = 260f;
-        QualitySettings.shadowDistance = 120f;
+        // Shadow distance and quality are set by GameSettings.
     }
 
     static List<T> Shuffled<T>(IEnumerable<T> items)
@@ -847,9 +853,37 @@ public class GameManager : MonoBehaviour
                 case "-ds-find":
                     autoFind = true;
                     break;
+                case "-ds-perf":
+                    perfLog = true;
+                    break;
+                case "-ds-nocull":
+                    VisibilityCuller.Disabled = true;
+                    break;
+                case "-ds-quality" when hasValue:
+                    if (Enum.TryParse(args[++i], true, out GraphicsQuality quality)) GameSettings.Override(quality, GameSettings.FrameLimit);
+                    break;
+                case "-ds-fps" when hasValue:
+                    GameSettings.Override(GameSettings.Quality, int.Parse(args[++i], CultureInfo.InvariantCulture));
+                    break;
             }
         }
         if (Side != PlayerSide.Spectate) Net.PreferredTeam = Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat;
+    }
+
+    // Every 5 seconds: frames per second, and how many of the bodies inside the view were actually drawn.
+    void LogPerformance()
+    {
+        float now = Time.realtimeSinceStartup;
+        if (perfSince < 0f) perfSince = now;
+        perfFrames++;
+        perfInView += VisibilityCuller.InView;
+        perfDrawn += VisibilityCuller.Drawn;
+        if (now - perfSince < 5f) return;
+        Debug.Log($"[perf] {State} {GameSettings.Quality} limit {GameSettings.FrameLimit}: {perfFrames / (now - perfSince):0.0} fps, " +
+                  $"bodies in view {perfInView / (float)perfFrames:0.0}, drawn {perfDrawn / (float)perfFrames:0.0}" +
+                  (VisibilityCuller.Disabled ? " (culling off)" : ""));
+        perfSince = now;
+        perfFrames = perfInView = perfDrawn = 0;
     }
 
     void RunAutomation()

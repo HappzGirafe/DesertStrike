@@ -28,11 +28,14 @@ public class Rocket : MonoBehaviour
         var flame = Effects.Shape(PrimitiveType.Sphere, go.transform, new Vector3(0f, 0f, -0.32f), new Vector3(0.12f, 0.12f, 0.3f), Color.white);
         flame.GetComponent<Renderer>().sharedMaterial = Effects.Glow(new Color(1f, 0.6f, 0.2f));
 
-        var light = go.AddComponent<Light>();
-        light.type = LightType.Point;
-        light.color = new Color(1f, 0.6f, 0.25f);
-        light.intensity = 2f;
-        light.range = 5f;
+        if (GameSettings.DynamicLights)
+        {
+            var light = go.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.6f, 0.25f);
+            light.intensity = 2f;
+            light.range = 5f;
+        }
 
         var rocket = go.AddComponent<Rocket>();
         rocket.shooter = shooter;

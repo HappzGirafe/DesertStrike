@@ -76,6 +76,9 @@ public class MapBuilder
         DefinePoints();
         BuildRadar();
         BakeNavMesh();
+        // The map never moves: merging its few hundred blocks into one mesh per colour turns hundreds of
+        // draw calls into a handful, which is most of the CPU time a frame costs.
+        StaticBatchingUtility.Combine(Root.gameObject);
     }
 
     void CarveLayout()

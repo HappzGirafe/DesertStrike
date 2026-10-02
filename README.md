@@ -31,6 +31,30 @@ Both files are in the [`Builds`](Builds) folder of this repository, and every ve
 The main menu lets you pick your team (Terrorists, SWAT, or watch the bots), team size (1v1 to 5v5),
 bot difficulty, the number of rounds to win and friendly fire.
 
+### Settings and performance (laptops, MacBook Air)
+
+**SETTINGS** (main menu, or Esc during a match) is saved between sessions:
+
+| Setting | Options | |
+| --- | --- | --- |
+| Graphics | Low / Medium / High | Low: no shadows or lights, half-size textures. Medium: simple shadows close by. High: everything. Macs start on **Medium**, PCs on High. |
+| Frame limit | 30 / 60 / 120 FPS | Default 60. The game never draws more frames than this, so the computer is not at full load all the time. On a MacBook Air, 30 or 60 keeps it much cooler. |
+| Show FPS counter | Off / On | Shown under the radar |
+| Mouse sensitivity | 0.3 – 8 | |
+
+What the game does to stay light:
+
+- **Players behind walls are not drawn.** Right before every frame, a few line tests go from the camera to each
+  player's head, shoulders, hips, feet and gun. Anyone fully behind a wall is skipped (body, gun and shadow); the
+  moment any part comes into view they are drawn again in that same frame, so they never pop in late.
+- The map's blocks are merged into a few big meshes when it is built (hundreds of draw calls become a handful).
+- Tracers, muzzle flashes, blood, bullet holes and sounds are reused instead of being created for every shot;
+  sounds too far away to hear are not played at all.
+- The Mac version draws at normal resolution instead of Retina (a quarter of the pixels).
+
+Measured on a laptop with Intel UHD 620 graphics, 5v5 bots, no frame limit: High ~147 FPS (~125 without the wall
+culling), Medium ~190, Low ~320. With the 60 FPS limit the graphics chip is idle most of each frame.
+
 ### LAN multiplayer (same WiFi)
 
 1. On one PC: **LAN GAME > HOST A GAME**, choose your team and the match settings.
@@ -65,7 +89,7 @@ The game uses UDP ports 27015 (game) and 27016 (finding games).
 | E | Plant the bomb (Terrorists, on site A or B) / defuse it (SWAT) — hold |
 | G | Drop the bomb |
 | Tab | Scoreboard |
-| Esc | Pause (menu only, in a LAN game) |
+| Esc | Pause (menu only, in a LAN game) and settings |
 
 ## Shop
 
@@ -186,3 +210,10 @@ All in `Assets/Scripts`:
 | `Rocket.cs` | RPG rocket flight and explosion damage |
 | `WeaponSkins.cs`, `SkinPreview.cs` | Pistol skins, the equipped choice, and the inventory's 3D preview |
 | `Ballistics.cs`, `Effects.cs`, `SoundFX.cs`, `WeaponModels.cs` | Hitscan, visuals, generated sounds, gun models |
+| `GameSettings.cs` | Graphics quality, frame limit, FPS counter, sensitivity (saved) |
+| `VisibilityCuller.cs` | Skips drawing players hidden behind walls, tested right before each frame |
+| `EffectPool.cs` | Reuses effect and sound objects instead of creating new ones per shot |
+
+Test options for the built game: `-ds-perf` logs FPS and how many players in view were drawn every 5 s,
+`-ds-nocull` turns the wall culling off for comparing, `-ds-quality low|medium|high` and `-ds-fps <limit>` set
+graphics for one run without saving, `-ds-autostart -ds-side spectate` starts a bots-only match.

@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
 /// <summary>Procedurally generated sound effects, so the project needs no audio files.</summary>
@@ -52,19 +51,29 @@ public static class SoundFX
     public static void Play(AudioClip clip, Vector3 position, float volume, float pitch = 1f, bool spatial = true, float maxDistance = 60f)
     {
         if (clip == null) return;
-        var go = new GameObject("Sfx");
+        // Too far away to be heard at all (linear roll-off reaches zero at maxDistance): nothing to play.
+        var listener = Camera.main;
+        if (spatial && listener != null && (listener.transform.position - position).sqrMagnitude > maxDistance * maxDistance) return;
+
+        var go = EffectPool.Take("sfx", () =>
+        {
+            var sfx = new GameObject("Sfx");
+            var created = sfx.AddComponent<AudioSource>();
+            created.rolloffMode = AudioRolloffMode.Linear;
+            created.minDistance = 2f;
+            created.dopplerLevel = 0f;
+            created.playOnAwake = false;
+            return sfx;
+        });
         go.transform.position = position;
-        var source = go.AddComponent<AudioSource>();
+        var source = go.GetComponent<AudioSource>();
         source.clip = clip;
         source.volume = volume;
         source.pitch = pitch;
         source.spatialBlend = spatial ? 1f : 0f;
-        source.rolloffMode = AudioRolloffMode.Linear;
-        source.minDistance = 2f;
         source.maxDistance = maxDistance;
-        source.dopplerLevel = 0f;
         source.Play();
-        Object.Destroy(go, clip.length / Mathf.Max(0.1f, pitch) + 0.1f);
+        EffectPool.ReturnAfter(go, "sfx", clip.length / Mathf.Max(0.1f, pitch) + 0.1f);
     }
 
     static float Noise() => (float)(noise.NextDouble() * 2.0 - 1.0);

@@ -67,50 +67,61 @@ public static class Effects
         from += delta / length * Mathf.Min(1.5f, length * 0.5f);
         delta = to - from;
         length = delta.magnitude;
-        var go = Shape(PrimitiveType.Cube, null, from + delta * 0.5f, new Vector3(0.012f, 0.012f, length), Color.white);
-        go.transform.rotation = Quaternion.LookRotation(delta);
-        var renderer = go.GetComponent<Renderer>();
-        renderer.sharedMaterial = Glow(new Color(0.9f, 0.7f, 0.35f));
-        renderer.shadowCastingMode = ShadowCastingMode.Off;
-        Object.Destroy(go, 0.04f);
+        var go = EffectPool.Take("tracer", () =>
+        {
+            var tracer = Shape(PrimitiveType.Cube, null, Vector3.zero, Vector3.one, Color.white);
+            var renderer = tracer.GetComponent<Renderer>();
+            renderer.sharedMaterial = Glow(new Color(0.9f, 0.7f, 0.35f));
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            return tracer;
+        });
+        go.transform.SetPositionAndRotation(from + delta * 0.5f, Quaternion.LookRotation(delta));
+        go.transform.localScale = new Vector3(0.012f, 0.012f, length);
+        EffectPool.ReturnAfter(go, "tracer", 0.04f);
     }
 
     public static void MuzzleFlash(Vector3 position)
     {
-        var go = new GameObject("MuzzleFlash");
+        var go = EffectPool.Take("flash", () =>
+        {
+            var root = new GameObject("MuzzleFlash");
+            var light = root.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.8f, 0.5f);
+            light.intensity = 3f;
+            light.range = 6f;
+            var sphere = Shape(PrimitiveType.Sphere, root.transform, Vector3.zero, Vector3.one * 0.1f, Color.white);
+            sphere.GetComponent<Renderer>().sharedMaterial = Glow(new Color(1f, 0.75f, 0.35f));
+            sphere.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+            return root;
+        });
         go.transform.position = position;
-        var light = go.AddComponent<Light>();
-        light.type = LightType.Point;
-        light.color = new Color(1f, 0.8f, 0.5f);
-        light.intensity = 3f;
-        light.range = 6f;
-        var flash = Shape(PrimitiveType.Sphere, go.transform, Vector3.zero, Vector3.one * 0.1f, Color.white);
-        flash.GetComponent<Renderer>().sharedMaterial = Glow(new Color(1f, 0.75f, 0.35f));
-        flash.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
-        Object.Destroy(go, 0.05f);
+        // A real light makes everything near it draw again, so only High quality uses one.
+        go.GetComponent<Light>().enabled = GameSettings.DynamicLights;
+        EffectPool.ReturnAfter(go, "flash", 0.05f);
     }
 
     public static void BulletHole(Vector3 point, Vector3 normal)
     {
-        var go = Shape(PrimitiveType.Cube, null, point + normal * 0.005f, new Vector3(0.09f, 0.09f, 0.01f),
-                       new Color(0.12f, 0.1f, 0.08f));
-        go.transform.rotation = Quaternion.LookRotation(normal);
-        go.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
-        bulletHoles.Enqueue(go);
-        while (bulletHoles.Count > MaxBulletHoles)
+        // At the limit the oldest hole moves to the new spot instead of making a new object.
+        GameObject go = null;
+        if (bulletHoles.Count >= MaxBulletHoles) go = bulletHoles.Dequeue();
+        if (go == null)
         {
-            var oldest = bulletHoles.Dequeue();
-            if (oldest != null) Object.Destroy(oldest);
+            go = EffectPool.Take("hole", () =>
+            {
+                var hole = Shape(PrimitiveType.Cube, null, Vector3.zero, new Vector3(0.09f, 0.09f, 0.01f), new Color(0.12f, 0.1f, 0.08f));
+                hole.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+                return hole;
+            });
         }
+        go.transform.SetPositionAndRotation(point + normal * 0.005f, Quaternion.LookRotation(normal));
+        bulletHoles.Enqueue(go);
     }
 
     public static void ClearDecals()
     {
-        while (bulletHoles.Count > 0)
-        {
-            var hole = bulletHoles.Dequeue();
-            if (hole != null) Object.Destroy(hole);
-        }
+        while (bulletHoles.Count > 0) EffectPool.Return(bulletHoles.Dequeue(), "hole");
     }
 
     public static void Explosion(Vector3 position, float radius)
@@ -151,9 +162,15 @@ public static class Effects
 
     public static void Blood(Vector3 point)
     {
-        var go = Shape(PrimitiveType.Sphere, null, point, Vector3.one * 0.22f, new Color(0.55f, 0.03f, 0.03f));
-        go.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
-        go.AddComponent<ShrinkAndDie>();
+        var go = EffectPool.Take("blood", () =>
+        {
+            var puff = Shape(PrimitiveType.Sphere, null, Vector3.zero, Vector3.one, new Color(0.55f, 0.03f, 0.03f));
+            puff.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+            puff.AddComponent<ShrinkAndDie>().PoolKind = "blood";
+            return puff;
+        });
+        go.transform.position = point;
+        go.GetComponent<ShrinkAndDie>().Restart(Vector3.one * 0.22f);
     }
 
     // Builds strip shaders that no saved material uses, so the base materials live in Resources

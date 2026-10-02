@@ -37,6 +37,12 @@ public class GameUI : MonoBehaviour
     bool lanOpen;
     string joinAddress = "";
 
+    // Settings screen and FPS counter
+    bool settingsOpen;
+    int fpsFrames;
+    float fpsTime;
+    float fps;
+
     const string NameKey = "DesertStrike.name";
 
     public static Color TeamColor(Team team) => team == Team.Terrorists ? TerroristColor : SwatColor;
@@ -44,10 +50,13 @@ public class GameUI : MonoBehaviour
     void Awake()
     {
         gm = GetComponent<GameManager>();
+        useGUILayout = false;   // everything is placed by hand; skips IMGUI's layout pass every frame
         scopeMask = BuildScopeMask(512);
         preview = gameObject.AddComponent<SkinPreview>();
         gm.Net.PlayerName = PlayerPrefs.GetString(NameKey, Environment.UserName);
         lanOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-find") >= 0;   // smoke test: search the network
+        settingsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-settings") >= 0;   // smoke-test screenshots
+        if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-showfps") >= 0) GameSettings.ShowFpsThisRun();
 
         // -ds-inventory [weapon id] [skin id] opens the inventory at startup (used for smoke-test screenshots).
         var args = Environment.GetCommandLineArgs();
@@ -77,16 +86,21 @@ public class GameUI : MonoBehaviour
             else if (gm.Net.IsHost) DrawHostLobby();
             else if (gm.Net.IsClient) DrawClientLobby();
             else if (lanOpen) DrawLanMenu();
+            else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
+            DrawFps(20f, 20f);
             return;
         }
 
         DrawNameTags();
         DrawHud();
+        DrawFps(20f, 268f);
         if (gm.BuyMenuOpen) DrawBuyMenu();
         if (gm.State == MatchState.MatchOver) DrawMatchOver();
         else if (Input.GetKey(KeyCode.Tab)) DrawScoreboard(170f);
-        if (gm.IsPaused) DrawPauseMenu();
+        if (!gm.IsPaused) settingsOpen = false;
+        else if (settingsOpen) DrawSettings();
+        else DrawPauseMenu();
     }
 
     // ----------------------------------------------------------------- menus
@@ -103,10 +117,10 @@ public class GameUI : MonoBehaviour
         y = TeamRow(x, y, allowSpectate: true);
         y = MatchSettingsRows(x, y);
 
-        y = SensitivitySlider(x + 40f, y, w - 80f);
-        if (Button(new Rect(x + 40f, y, 320f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
-        if (Button(new Rect(x + 375f, y, 175f, 66f), "LAN GAME", false, true, 22)) OpenLan();
-        if (Button(new Rect(x + 565f, y, 175f, 66f), "INVENTORY", false, true, 22)) inventoryOpen = true;
+        if (Button(new Rect(x + 40f, y, 280f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
+        if (Button(new Rect(x + 330f, y, 130f, 66f), "LAN GAME", false, true, 20)) OpenLan();
+        if (Button(new Rect(x + 470f, y, 130f, 66f), "INVENTORY", false, true, 20)) inventoryOpen = true;
+        if (Button(new Rect(x + 610f, y, 130f, 66f), "SETTINGS", false, true, 20)) settingsOpen = true;
         y += 82f;
         if (!string.IsNullOrEmpty(gm.MenuNotice))
         {
@@ -377,8 +391,59 @@ public class GameUI : MonoBehaviour
     float SensitivitySlider(float x, float y, float w)
     {
         Label(new Rect(x, y, w, 34f), $"Mouse sensitivity   {PlayerController.MouseSensitivity:0.0}", 22, Color.white);
-        PlayerController.MouseSensitivity = GUI.HorizontalSlider(new Rect(x, y + 42f, w, 24f), PlayerController.MouseSensitivity, 0.3f, 8f);
+        float sensitivity = GUI.HorizontalSlider(new Rect(x, y + 42f, w, 24f), PlayerController.MouseSensitivity, 0.3f, 8f);
+        if (!Mathf.Approximately(sensitivity, PlayerController.MouseSensitivity)) GameSettings.SetSensitivity(sensitivity);
         return y + 85f;
+    }
+
+    // ----------------------------------------------------------------- settings
+
+    static readonly string[] QualityHelp =
+    {
+        "Low: no shadows, no lights, half-size textures. Coolest and quietest for laptops.",
+        "Medium: simple shadows close by, no extra lights. Recommended for MacBook Air.",
+        "High: soft shadows far away, gun-flash lights, smoothed edges.",
+    };
+
+    void DrawSettings()
+    {
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
+        float w = 780f, x = (width - w) / 2f, y = 110f;
+        Fill(new Rect(x, y, w, 820f), PanelColor);
+        Label(new Rect(x, y + 20f, w, 60f), "SETTINGS", 50, Gold, TextAnchor.MiddleCenter);
+        y += 110f;
+
+        y = OptionRow(x, y, "Graphics", new[] { "Low", "Medium", "High" }, (int)GameSettings.Quality,
+                      i => GameSettings.SetQuality((GraphicsQuality)i));
+        Label(new Rect(x + 40f, y - 14f, 700f, 26f), QualityHelp[(int)GameSettings.Quality], 17, Dim);
+        y += 24f;
+        y = OptionRow(x, y, "Frame limit (lower = cooler and longer battery)", new[] { "30 FPS", "60 FPS", "120 FPS" },
+                      Array.IndexOf(GameSettings.FrameLimits, GameSettings.FrameLimit), i => GameSettings.SetFrameLimit(GameSettings.FrameLimits[i]));
+        y = OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1));
+        SensitivitySlider(x + 40f, y, w - 80f);
+
+        if (Button(new Rect(x + w / 2f - 150f, 110f + 820f - 80f, 300f, 56f), "BACK")) settingsOpen = false;
+    }
+
+    void Update()
+    {
+        // Frames counted over half a second, for the FPS counter.
+        fpsFrames++;
+        fpsTime += Time.unscaledDeltaTime;
+        if (fpsTime >= 0.5f)
+        {
+            fps = fpsFrames / fpsTime;
+            fpsFrames = 0;
+            fpsTime = 0f;
+        }
+    }
+
+    void DrawFps(float x, float y)
+    {
+        if (!GameSettings.ShowFps) return;
+        Fill(new Rect(x, y, 110f, 30f), PanelColor);
+        Label(new Rect(x + 10f, y, 100f, 30f), $"{Mathf.RoundToInt(fps)} FPS", 20,
+              fps >= GameSettings.FrameLimit * 0.9f ? MoneyGreen : fps >= 30f ? Gold : Danger);
     }
 
     void DrawPauseMenu()
@@ -404,9 +469,9 @@ public class GameUI : MonoBehaviour
         }
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) gm.ReturnToMenu();
         y += 70f;
+        if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SETTINGS")) settingsOpen = true;
+        y += 70f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
-        y += 80f;
-        SensitivitySlider(x + 40f, y, w - 80f);
     }
 
     void DrawMatchOver()

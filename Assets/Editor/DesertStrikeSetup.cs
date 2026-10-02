@@ -59,6 +59,8 @@ public static class DesertStrikeSetup
     public static void BuildMac()
     {
         SetMacArchitecture("x64ARM64");
+        // Retina would draw 4 times the pixels (2560x1600 on a MacBook Air), which is what heats it up most.
+        PlayerSettings.macRetinaSupport = false;
         Build(BuildTarget.StandaloneOSX, "Builds/macOS/DesertStrike.app");
     }
 

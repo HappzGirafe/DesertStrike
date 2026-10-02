@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +9,9 @@ using UnityEngine;
 [RequireComponent(typeof(Combatant))]
 public class CharacterBody : MonoBehaviour
 {
+    /// <summary>Every body in the scene, for the <see cref="VisibilityCuller"/>.</summary>
+    public static readonly List<CharacterBody> All = new List<CharacterBody>();
+
     public Combatant Self { get; private set; }
 
     CapsuleCollider capsule;
@@ -17,6 +21,9 @@ public class CharacterBody : MonoBehaviour
     float diedAt = -1f;
     Vector3 lastPosition;
     float stepTimer;
+    Renderer[] renderers = new Renderer[0];
+    bool renderersDirty = true;
+    bool culled;
 
     public void Setup()
     {
@@ -52,6 +59,32 @@ public class CharacterBody : MonoBehaviour
     {
         if (bombOnBack.gameObject.activeSelf != show) bombOnBack.gameObject.SetActive(show);
     }
+
+    /// <summary>A box around the body standing or lying, for the view test.</summary>
+    public Bounds ViewBounds => new Bounds(transform.position + Vector3.up, new Vector3(4f, 2.4f, 4f));
+
+    public bool IsLying => diedAt >= 0f;
+
+    public Vector3 GunTip => Self.Muzzle != null ? Self.Muzzle.position : gunMount.position;
+
+    /// <summary>Stops (or starts again) drawing the body, gun and bomb, shadows included.</summary>
+    public void SetCulled(bool hide)
+    {
+        if (visual == null) return;
+        if (hide == culled && !renderersDirty) return;
+        if (renderersDirty)
+        {
+            renderers = visual.GetComponentsInChildren<Renderer>(true);
+            renderersDirty = false;
+        }
+        culled = hide;
+        foreach (var r in renderers)
+            if (r != null) r.forceRenderingOff = hide;
+    }
+
+    void OnEnable() => All.Add(this);
+
+    void OnDisable() => All.Remove(this);
 
     void OnDied()
     {
@@ -136,6 +169,7 @@ public class CharacterBody : MonoBehaviour
 
     void RefreshGun()
     {
+        renderersDirty = true;
         for (int i = gunMount.childCount - 1; i >= 0; i--) Destroy(gunMount.GetChild(i).gameObject);
         if (Self.Current == null) return;
         var weapon = Self.Current.Data;
