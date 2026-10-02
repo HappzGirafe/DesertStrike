@@ -36,6 +36,7 @@ public class WeaponData
     public float ArmorPenetration = 0.5f; // share of damage that still reaches health through armor
     public float MoveSpeed = 5.6f;
     public int KillReward = 300;
+    public int RoundAmmoBonus;            // free reserve ammo at the start of every round after the first
     public Team? TeamOnly;
     public float ShotPitch = 1f;
 
@@ -50,7 +51,7 @@ public class WeaponData
 
     public static readonly WeaponData Glock = new WeaponData
     {
-        Id = "glock", Name = "Glock-18", Slot = WeaponSlot.Secondary, Price = 200, Damage = 25,
+        Id = "glock", Name = "Glock-18", RoundAmmoBonus = 20, Slot = WeaponSlot.Secondary, Price = 200, Damage = 25,
         FireInterval = 0.15f, MagSize = 20, ReserveAmmo = 120, ReloadTime = 2.2f, Spread = 1.0f,
         MoveSpread = 2.5f, Recoil = 0.8f, ArmorPenetration = 0.47f, MoveSpeed = 6f,
         TeamOnly = Team.Terrorists, ShotPitch = 1.3f,
@@ -58,7 +59,7 @@ public class WeaponData
 
     public static readonly WeaponData Usp = new WeaponData
     {
-        Id = "usp", Name = "USP", Slot = WeaponSlot.Secondary, Price = 200, Damage = 34,
+        Id = "usp", Name = "USP", RoundAmmoBonus = 20, Slot = WeaponSlot.Secondary, Price = 200, Damage = 34,
         FireInterval = 0.17f, MagSize = 12, ReserveAmmo = 100, ReloadTime = 2.4f, Spread = 0.8f,
         MoveSpread = 2.5f, Recoil = 1.2f, ArmorPenetration = 0.5f, MoveSpeed = 6f,
         TeamOnly = Team.Swat, ShotPitch = 1.25f,
@@ -66,7 +67,7 @@ public class WeaponData
 
     public static readonly WeaponData TecDc9 = new WeaponData
     {
-        Id = "tec9", Name = "TEC-DC9", Slot = WeaponSlot.Secondary, Price = 500, Damage = 26,
+        Id = "tec9", Name = "TEC-DC9", RoundAmmoBonus = 20, Slot = WeaponSlot.Secondary, Price = 500, Damage = 26,
         FireInterval = 0.09f, MagSize = 12, ReserveAmmo = 24, ReloadTime = 2f, Spread = 1.1f,
         MoveSpread = 2.5f, Recoil = 0.9f, SelectFire = true, AutoSpread = 1f, ArmorPenetration = 0.6f,
         MoveSpeed = 6f, TeamOnly = Team.Terrorists, ShotPitch = 1.2f,
@@ -74,7 +75,7 @@ public class WeaponData
 
     public static readonly WeaponData M1911 = new WeaponData
     {
-        Id = "m1911", Name = "M1911", Slot = WeaponSlot.Secondary, Price = 500, Damage = 34,
+        Id = "m1911", Name = "M1911", RoundAmmoBonus = 20, Slot = WeaponSlot.Secondary, Price = 500, Damage = 34,
         FireInterval = 0.12f, MagSize = 10, ReserveAmmo = 30, ReloadTime = 2.1f, Spread = 0.9f,
         MoveSpread = 2.5f, Recoil = 1.2f, SelectFire = true, AutoSpread = 1f, ArmorPenetration = 0.55f,
         MoveSpeed = 6f, TeamOnly = Team.Swat, ShotPitch = 1.1f,
@@ -82,14 +83,14 @@ public class WeaponData
 
     public static readonly WeaponData Deagle = new WeaponData
     {
-        Id = "deagle", Name = "Desert Eagle", Slot = WeaponSlot.Secondary, Price = 700, Damage = 54,
+        Id = "deagle", Name = "Desert Eagle", RoundAmmoBonus = 20, Slot = WeaponSlot.Secondary, Price = 700, Damage = 54,
         FireInterval = 0.3f, MagSize = 7, ReserveAmmo = 35, ReloadTime = 2.2f, Spread = 1.2f,
         MoveSpread = 4f, Recoil = 3f, ArmorPenetration = 0.93f, MoveSpeed = 5.9f, ShotPitch = 0.9f,
     };
 
     public static readonly WeaponData Mp5 = new WeaponData
     {
-        Id = "mp5", Name = "MP5", Slot = WeaponSlot.Primary, Price = 1500, Damage = 26,
+        Id = "mp5", Name = "MP5", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 1500, Damage = 26,
         FireInterval = 0.08f, MagSize = 30, ReserveAmmo = 120, ReloadTime = 2.6f, Spread = 1.6f,
         MoveSpread = 2f, Recoil = 0.6f, Automatic = true, ArmorPenetration = 0.6f, MoveSpeed = 5.9f,
         ShotPitch = 1.15f,
@@ -97,7 +98,7 @@ public class WeaponData
 
     public static readonly WeaponData Shotgun = new WeaponData
     {
-        Id = "shotgun", Name = "Pump Shotgun", Slot = WeaponSlot.Primary, Price = 1700, Damage = 22,
+        Id = "shotgun", Name = "Pump Shotgun", RoundAmmoBonus = 8, Slot = WeaponSlot.Primary, Price = 1700, Damage = 22,
         FireInterval = 0.9f, MagSize = 8, ReserveAmmo = 32, ReloadTime = 3.2f, Spread = 4.5f,
         MoveSpread = 1f, Recoil = 4f, Range = 30f, Pellets = 9, ArmorPenetration = 0.75f,
         MoveSpeed = 5.5f, ShotPitch = 0.7f,
@@ -105,7 +106,7 @@ public class WeaponData
 
     public static readonly WeaponData Ak47 = new WeaponData
     {
-        Id = "ak47", Name = "AK-47", Slot = WeaponSlot.Primary, Price = 2500, Damage = 36,
+        Id = "ak47", Name = "AK-47", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 2500, Damage = 36,
         FireInterval = 0.1f, MagSize = 30, ReserveAmmo = 90, ReloadTime = 2.5f, Spread = 0.6f,
         MoveSpread = 4.5f, Recoil = 1.1f, Automatic = true, ArmorPenetration = 0.77f, MoveSpeed = 5.5f,
         TeamOnly = Team.Terrorists, ShotPitch = 0.95f,
@@ -113,7 +114,7 @@ public class WeaponData
 
     public static readonly WeaponData M4a1 = new WeaponData
     {
-        Id = "m4a1", Name = "M4A1", Slot = WeaponSlot.Primary, Price = 3100, Damage = 33,
+        Id = "m4a1", Name = "M4A1", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 3100, Damage = 33,
         FireInterval = 0.09f, MagSize = 30, ReserveAmmo = 90, ReloadTime = 3.1f, Spread = 0.45f,
         MoveSpread = 4.5f, Recoil = 0.9f, Automatic = true, ArmorPenetration = 0.7f, MoveSpeed = 5.6f,
         TeamOnly = Team.Swat, ShotPitch = 1.05f,
@@ -121,7 +122,7 @@ public class WeaponData
 
     public static readonly WeaponData Awp = new WeaponData
     {
-        Id = "awp", Name = "AWP", Slot = WeaponSlot.Primary, Price = 4750, Damage = 115,
+        Id = "awp", Name = "AWP", RoundAmmoBonus = 5, Slot = WeaponSlot.Primary, Price = 4750, Damage = 115,
         FireInterval = 1.45f, MagSize = 10, ReserveAmmo = 30, ReloadTime = 3.7f, Spread = 0.05f,
         MoveSpread = 6f, Recoil = 5f, ZoomFov = 20f, ArmorPenetration = 0.97f, MoveSpeed = 5f,
         KillReward = 100, ShotPitch = 0.6f,
@@ -130,7 +131,7 @@ public class WeaponData
     /// <summary>Damage is the blast damage at the center; it falls off to zero at the blast radius.</summary>
     public static readonly WeaponData Rpg = new WeaponData
     {
-        Id = "rpg", Name = "RPG", Slot = WeaponSlot.Primary, Price = 10000, Damage = 220,
+        Id = "rpg", Name = "RPG", RoundAmmoBonus = 5, Slot = WeaponSlot.Primary, Price = 10000, Damage = 220,
         FireInterval = 1f, MagSize = 1, ReserveAmmo = 14, ReloadTime = 3f, Spread = 0.6f,
         MoveSpread = 3f, Recoil = 6f, Explosive = true, BlastRadius = 6.5f, ProjectileSpeed = 40f,
         ArmorPenetration = 0.85f, MoveSpeed = 4.8f, KillReward = 100,

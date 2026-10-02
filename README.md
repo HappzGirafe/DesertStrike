@@ -45,7 +45,8 @@ bot difficulty and the number of rounds to win.
 Hover a skin to preview it and click to equip it; the choice is saved. Bots carry random skins.
 
 Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
-The Glock-18 and USP also have Pink Scribble, and the knife has nogektestskin (its own model).
+Custom skins: Pink Scribble (Glock-18, USP), and skins with their own model: nogektestskin (knife),
+digle (Desert Eagle) and AWPSkin (AWP).
 
 ### Skin folders
 
@@ -100,6 +101,8 @@ The exporter names the parts by the texture they use: `peredr...` = guard, `ruch
 - Win a round by eliminating the other team. If time runs out, SWAT wins.
 - Money: start $800, win $3250, loss $1400 (+$500 per loss in a row), kill $300 (AWP $100, knife $1500).
 - Survivors keep their weapons and armor for the next round.
+- Free ammo at the start of every round (from round 2): pistols +20, MP5 / AK-47 / M4A1 +40, pump shotgun +8,
+  AWP and RPG +5 reserve ammo (set per weapon by `RoundAmmoBonus` in `WeaponData.cs`).
 
 ## Code
 

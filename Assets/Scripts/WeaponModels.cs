@@ -108,19 +108,54 @@ public static class WeaponModels
             model.localRotation = Quaternion.Inverse(Quaternion.LookRotation(forward, up)) * model.localRotation;
             main = LocalBounds(root, mains);
         }
+        else
+        {
+            // No grip (e.g. a rifle): keep Blender's up, and the barrel is the side the model sticks out furthest.
+            Bounds overall = LocalBounds(root, all);
+            int axis = LongestAxis(main.size);
+            var forward = Vector3.zero;
+            forward[axis] = overall.center[axis] >= main.center[axis] ? 1f : -1f;
+            Vector3 up = axis == 1 ? Vector3.forward : Vector3.up;
+            model.localRotation = Quaternion.Inverse(Quaternion.LookRotation(forward, up)) * model.localRotation;
+            main = LocalBounds(root, mains);
+        }
 
-        float size = weapon.Id == "deagle" ? 1.25f : 1f;   // same scale as the box Desert Eagle
-        model.localScale *= MainLength * size / Mathf.Max(0.0001f, main.size.z);
-        main = LocalBounds(root, mains);
-        bool knife = weapon.IsMelee;
-        float y = knife ? -main.center.y : PistolSlideTop * size - main.max.y;
-        float z = (knife ? KnifeBladeBack : PistolSlideBack * size) - main.min.z;
-        model.localPosition += new Vector3(-main.center.x, y, z);
+        if (weapon.Slot == WeaponSlot.Primary)
+        {
+            // Rifles and other primaries take the length and place of the weapon's box model.
+            Bounds target = BoxModelBounds(weapon, root);
+            Bounds whole = LocalBounds(root, all);
+            model.localScale *= target.size.z / Mathf.Max(0.0001f, whole.size.z);
+            whole = LocalBounds(root, all);
+            model.localPosition += new Vector3(target.center.x - whole.center.x, target.center.y - whole.center.y, target.min.z - whole.min.z);
+        }
+        else
+        {
+            // Pistols and knives: the slide or blade gets the box model's length and place.
+            float size = weapon.Id == "deagle" ? 1.25f : 1f;   // same scale as the box Desert Eagle
+            model.localScale *= MainLength * size / Mathf.Max(0.0001f, main.size.z);
+            main = LocalBounds(root, mains);
+            bool knife = weapon.IsMelee;
+            float y = knife ? -main.center.y : PistolSlideTop * size - main.max.y;
+            float z = (knife ? KnifeBladeBack : PistolSlideBack * size) - main.min.z;
+            model.localPosition += new Vector3(-main.center.x, y, z);
+        }
 
         main = LocalBounds(root, mains);
-        Bounds whole = LocalBounds(root, all);
-        muzzlePosition = new Vector3(0f, main.center.y, whole.max.z + 0.005f);
+        Bounds fitted = LocalBounds(root, all);
+        muzzlePosition = new Vector3(0f, main.center.y, fitted.max.z + 0.005f);
         return true;
+    }
+
+    /// <summary>Bounds of the weapon's box model, measured by building it briefly under <paramref name="root"/>.</summary>
+    static Bounds BoxModelBounds(WeaponData weapon, Transform root)
+    {
+        var measure = new GameObject("Measure").transform;
+        measure.SetParent(root, false);
+        BuildFromBoxes(weapon, new Painter(measure, null));
+        Bounds bounds = LocalBounds(root, new List<MeshFilter>(measure.GetComponentsInChildren<MeshFilter>()));
+        Object.DestroyImmediate(measure.gameObject);
+        return bounds;
     }
 
     static int LongestAxis(Vector3 v) => v.x >= v.y && v.x >= v.z ? 0 : v.y >= v.z ? 1 : 2;

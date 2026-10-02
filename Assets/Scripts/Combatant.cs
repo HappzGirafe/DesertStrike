@@ -81,6 +81,22 @@ public class Combatant : MonoBehaviour
         Equip(BestSlot(), instant: true);
     }
 
+    /// <summary>
+    /// Free ammo at the start of a round: each carried gun gets its <see cref="WeaponData.RoundAmmoBonus"/>
+    /// added to its reserve. Returns what was added, e.g. "+20 Glock-18, +40 AK-47" (empty if nothing).
+    /// </summary>
+    public string AddRoundAmmo()
+    {
+        string added = "";
+        foreach (var weapon in new[] { Primary, Secondary })
+        {
+            if (weapon == null || weapon.Data.RoundAmmoBonus <= 0) continue;
+            weapon.Reserve += weapon.Data.RoundAmmoBonus;
+            added += (added.Length > 0 ? ", " : "") + $"+{weapon.Data.RoundAmmoBonus} {weapon.Data.Name}";
+        }
+        return added;
+    }
+
     public WeaponInstance Get(WeaponSlot slot)
     {
         switch (slot)

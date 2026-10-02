@@ -344,7 +344,11 @@ public class GameUI : MonoBehaviour
         }
 
         if (gm.State == MatchState.Freeze)
+        {
             Label(new Rect(0f, 300f, width, 60f), $"ROUND {gm.Round}   -   GET READY  {Mathf.CeilToInt(gm.StateEndsAt - Time.time)}", 40, Color.white, TextAnchor.MiddleCenter);
+            if (!string.IsNullOrEmpty(gm.PlayerAmmoResupply))
+                Label(new Rect(0f, 360f, width, 36f), $"Free ammo:  {gm.PlayerAmmoResupply}", 24, Gold, TextAnchor.MiddleCenter);
+        }
         if (gm.State == MatchState.RoundEnd && gm.Banner != null)
             Label(new Rect(0f, 280f, width, 80f), gm.Banner, 56, gm.LastWinner.HasValue ? TeamColor(gm.LastWinner.Value) : Color.white, TextAnchor.MiddleCenter);
     }

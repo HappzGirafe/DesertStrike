@@ -138,6 +138,23 @@
         },
         {
             "weapon": "awp",
+            "id": "AWPSkin",
+            "folder": "Skins/AWP/AWPSkin",
+            "hasModel": true,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "info": {
+                "name": "AWPSkin",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0
+            }
+        },
+        {
+            "weapon": "awp",
             "id": "Desert Camo",
             "folder": "Skins/AWP/Desert Camo",
             "hasModel": false,

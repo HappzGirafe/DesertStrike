@@ -65,6 +65,7 @@ public class GameManager : MonoBehaviour
     public bool HitMarkerHeadshot { get; private set; }
     public bool HitMarkerKill { get; private set; }
     public float DamageFlashTime { get; private set; } = -1f;
+    public string PlayerAmmoResupply { get; private set; }   // what the free round-start ammo gave the player
 
     public bool SpectatingNow => State != MatchState.Menu && (Player == null || !Player.Self.IsAlive);
     public float BuyTimeLeft => BuyTime - (Time.time - roundStartedAt);
@@ -159,10 +160,20 @@ public class GameManager : MonoBehaviour
         var terroristSpawns = Shuffled(Map.TerroristSpawns);
         var swatSpawns = Shuffled(Map.SwatSpawns);
         int ti = 0, si = 0;
+        PlayerAmmoResupply = null;
         foreach (var c in Combatants)
         {
             bool keepGear = Round > 1 && c.IsAlive;
             c.ResetForRound(keepGear);
+            if (Round > 1)
+            {
+                string added = c.AddRoundAmmo();
+                if (c.IsPlayer && added.Length > 0)
+                {
+                    PlayerAmmoResupply = added;
+                    Debug.Log($"[DesertStrike] Ammo resupply for {c.DisplayName}: {added}");
+                }
+            }
             bool terrorist = c.Team == Team.Terrorists;
             Vector3 position = terrorist ? terroristSpawns[ti++ % terroristSpawns.Count] : swatSpawns[si++ % swatSpawns.Count];
             float yaw = terrorist ? 0f : 180f;
