@@ -10,7 +10,7 @@ public enum BotDifficulty { Easy, Normal, Hard }
 /// weapons and rules as the player.
 /// </summary>
 [RequireComponent(typeof(Combatant))]
-public class BotController : MonoBehaviour
+public class BotController : MonoBehaviour, ICombatantController
 {
     struct Skill
     {
@@ -46,11 +46,8 @@ public class BotController : MonoBehaviour
     public Combatant Self { get; private set; }
 
     NavMeshAgent agent;
-    CapsuleCollider body;
-    Transform visual;
-    Transform gunMount;
+    CharacterBody body;
     Skill skill;
-    int skinSeed;   // bots show off random (but consistent) skins
 
     // Round plan
     readonly List<Vector3> route = new List<Vector3>();
@@ -75,8 +72,6 @@ public class BotController : MonoBehaviour
     float holdFireUntil;
     Vector3 strafeDirection;
     float strafeChangeAt;
-    float stepTimer;
-    float diedAt = -1f;
 
     bool HoldingAngle => routeIndex >= route.Count && !hunting;
 
@@ -97,12 +92,10 @@ public class BotController : MonoBehaviour
     {
         Self = GetComponent<Combatant>();
         skill = SkillFor(difficulty);
-        skinSeed = Random.Range(0, 1000);
+        Self.SkinSeed = Random.Range(0, 1000);   // bots show off random (but consistent) skins
 
-        body = gameObject.AddComponent<CapsuleCollider>();
-        body.center = new Vector3(0f, 0.9f, 0f);
-        body.height = 1.8f;
-        body.radius = 0.35f;
+        body = gameObject.AddComponent<CharacterBody>();
+        body.Setup();
 
         agent = gameObject.AddComponent<NavMeshAgent>();
         agent.radius = 0.35f;
@@ -118,22 +111,18 @@ public class BotController : MonoBehaviour
         eye.localPosition = new Vector3(0f, 1.62f, 0f);
         Self.Eye = eye;
 
-        BuildBody();
-        Self.WeaponChanged += RefreshGun;
+        Self.WeaponChanged += () => agent.speed = Self.Current != null ? Self.Current.Data.MoveSpeed * 0.92f : 5f;
         Self.Damaged += OnDamaged;
         Self.Died += OnDied;
     }
 
     // ----------------------------------------------------------------- round setup
 
-    public void Respawn(Vector3 position, Quaternion rotation)
+    public void Respawn(Vector3 position, float yaw)
     {
-        diedAt = -1f;
-        visual.localPosition = Vector3.zero;
-        visual.localRotation = Quaternion.identity;
-        body.enabled = true;
+        body.Revive();
         agent.enabled = false;
-        transform.SetPositionAndRotation(position, rotation);
+        transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
         agent.enabled = true;
         agent.Warp(position);
 
@@ -181,6 +170,7 @@ public class BotController : MonoBehaviour
 
         if (me.Money >= WeaponData.KevlarHelmetPrice) me.TryBuyArmor(true);
         else if (me.Money >= WeaponData.KevlarPrice) me.TryBuyArmor(false);
+        if (me.Money >= WeaponData.DefuseKitPrice + 500) me.TryBuyDefuseKit();
         me.Equip(me.BestSlot(), instant: true);
     }
 
@@ -204,13 +194,8 @@ public class BotController : MonoBehaviour
 
     void Update()
     {
-        if (!Self.IsAlive)
-        {
-            AnimateDeath();
-            return;
-        }
+        if (!Self.IsAlive || Time.timeScale == 0f) return;
         var gm = GameManager.Instance;
-        if (gm.IsPaused) return;
         if (gm.State != MatchState.Live && gm.State != MatchState.RoundEnd)
         {
             Halt();
@@ -225,15 +210,84 @@ public class BotController : MonoBehaviour
 
         if (target != null && target.IsAlive && targetVisible) Fight();
         else if (target != null && target.IsAlive && Time.time - lastSeenTime < 5f) Chase();
-        else if (Time.time < alertUntil) Investigate();
+        else if (Time.time < alertUntil && !BombIsUrgent()) Investigate();
         else
         {
             target = null;
-            FollowRoute();
+            if (!PlayBomb()) FollowRoute();
         }
 
         ManageAmmo();
-        Footsteps();
+    }
+
+    // ----------------------------------------------------------------- the bomb
+
+    /// <summary>Planted bomb: SWAT drop everything to defuse it, and Terrorists stay to guard it.</summary>
+    bool BombIsUrgent() => GameManager.Instance.Bomb.State == BombState.Planted;
+
+    /// <summary>Bomb jobs that override the round plan. Returns false when there is nothing to do.</summary>
+    bool PlayBomb()
+    {
+        var gm = GameManager.Instance;
+        var bomb = gm.Bomb;
+        if (gm.State != MatchState.Live) return false;
+
+        if (Self.Team == Team.Swat)
+        {
+            if (bomb.State != BombState.Planted) return false;
+            agent.updateRotation = true;
+            if (FlatDistance(transform.position, bomb.Position) > BombManager.DefuseRadius * 0.6f)
+            {
+                MoveTo(bomb.Position);
+                return true;
+            }
+            Halt();
+            bomb.HoldUse(Self);
+            return true;
+        }
+
+        switch (bomb.State)
+        {
+            case BombState.Carried when bomb.Carrier == Self:
+                // Plant as soon as we stand on a site; otherwise the round plan walks us to one.
+                if (gm.Map.SiteAt(transform.position) == null)
+                {
+                    if (routeIndex < route.Count || Time.time < startMovingAt) return false;
+                    MoveTo(gm.Map.Point(Random.value < 0.5f ? "ASite" : "BSite"));
+                    return true;
+                }
+                Halt();
+                bomb.HoldUse(Self);
+                return true;
+
+            case BombState.Dropped when IsClosestTerroristTo(bomb.Position):
+                agent.updateRotation = true;
+                MoveTo(bomb.Position);
+                return true;
+
+            case BombState.Planted:
+                // Guard: stay within a few metres of the bomb and watch around it.
+                if (FlatDistance(transform.position, bomb.Position) > 9f)
+                {
+                    agent.updateRotation = true;
+                    MoveTo(bomb.Position);
+                    return true;
+                }
+                Halt();
+                TurnTowards(transform.position + Quaternion.Euler(0f, Time.time * 25f + GetInstanceID(), 0f) * Vector3.forward, 120f);
+                return true;
+        }
+        return false;
+    }
+
+    bool IsClosestTerroristTo(Vector3 position)
+    {
+        float mine = FlatDistance(transform.position, position);
+        foreach (var other in GameManager.Instance.Combatants)
+            if (other != Self && other.IsAlive && other.Team == Team.Terrorists && !other.IsHuman
+                && FlatDistance(other.transform.position, position) < mine)
+                return false;
+        return true;
     }
 
     public void HearNoise(Vector3 position)
@@ -445,15 +499,6 @@ public class BotController : MonoBehaviour
             Self.StartReload();
     }
 
-    void Footsteps()
-    {
-        if (!agent.isOnNavMesh || agent.velocity.sqrMagnitude < 9f) return;
-        stepTimer -= Time.deltaTime;
-        if (stepTimer > 0f) return;
-        stepTimer = 0.36f;
-        SoundFX.Play(SoundFX.Step, transform.position, 0.7f, Random.Range(0.85f, 1.1f), true, 28f);
-    }
-
     // ----------------------------------------------------------------- events
 
     void OnDamaged(Combatant attacker, int amount)
@@ -470,19 +515,10 @@ public class BotController : MonoBehaviour
 
     void OnDied(Combatant killer)
     {
-        diedAt = Time.time;
         Halt();
         agent.enabled = false;
-        body.enabled = false;
         target = null;
         targetVisible = false;
-    }
-
-    void AnimateDeath()
-    {
-        float t = Mathf.Clamp01((Time.time - diedAt) / 0.45f);
-        visual.localRotation = Quaternion.Euler(-88f * t * t, 0f, 0f);
-        visual.localPosition = new Vector3(0f, 0.12f * t, 0f);
     }
 
     // ----------------------------------------------------------------- helpers
@@ -519,49 +555,5 @@ public class BotController : MonoBehaviour
     {
         Vector3 candidate = point + new Vector3(Random.Range(-1.2f, 1.2f), 0f, Random.Range(-1.2f, 1.2f));
         return NavMesh.SamplePosition(candidate, out var hit, 2.5f, NavMesh.AllAreas) ? hit.position : point;
-    }
-
-    void BuildBody()
-    {
-        visual = new GameObject("Body").transform;
-        visual.SetParent(transform, false);
-
-        bool terrorist = Self.Team == Team.Terrorists;
-        Color outfit = terrorist ? new Color(0.55f, 0.45f, 0.3f) : new Color(0.12f, 0.16f, 0.25f);
-        Color trousers = terrorist ? new Color(0.4f, 0.34f, 0.24f) : new Color(0.1f, 0.12f, 0.18f);
-        Color vest = terrorist ? new Color(0.33f, 0.29f, 0.21f) : new Color(0.06f, 0.07f, 0.09f);
-        Color skin = new Color(0.86f, 0.68f, 0.52f);
-
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(-0.12f, 0.42f, 0f), new Vector3(0.18f, 0.84f, 0.22f), trousers);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0.12f, 0.42f, 0f), new Vector3(0.18f, 0.84f, 0.22f), trousers);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0f, 1.15f, 0f), new Vector3(0.5f, 0.62f, 0.3f), outfit);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0f, 1.18f, 0f), new Vector3(0.54f, 0.45f, 0.34f), vest);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(-0.27f, 1.25f, 0.18f), new Vector3(0.13f, 0.13f, 0.45f), outfit, euler: new Vector3(10f, 20f, 0f));
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0.27f, 1.25f, 0.18f), new Vector3(0.13f, 0.13f, 0.45f), outfit, euler: new Vector3(10f, -20f, 0f));
-        Effects.Shape(PrimitiveType.Sphere, visual, new Vector3(0f, 1.63f, 0f), new Vector3(0.3f, 0.32f, 0.3f), skin);
-        if (terrorist)
-        {
-            // Red bandana
-            Effects.Shape(PrimitiveType.Sphere, visual, new Vector3(0f, 1.69f, -0.01f), new Vector3(0.32f, 0.24f, 0.32f), new Color(0.62f, 0.1f, 0.08f));
-        }
-        else
-        {
-            // Helmet and goggles
-            Effects.Shape(PrimitiveType.Sphere, visual, new Vector3(0f, 1.7f, -0.01f), new Vector3(0.36f, 0.26f, 0.36f), new Color(0.05f, 0.06f, 0.08f));
-            Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0f, 1.64f, 0.14f), new Vector3(0.24f, 0.07f, 0.04f), new Color(0.15f, 0.18f, 0.2f));
-        }
-
-        gunMount = new GameObject("Gun").transform;
-        gunMount.SetParent(visual, false);
-        gunMount.localPosition = new Vector3(0f, 1.3f, 0.36f);
-    }
-
-    void RefreshGun()
-    {
-        for (int i = gunMount.childCount - 1; i >= 0; i--) Destroy(gunMount.GetChild(i).gameObject);
-        if (Self.Current == null) return;
-        WeaponModels.Build(Self.Current.Data, gunMount, true, out var muzzle, WeaponSkins.Pick(Self.Current.Data, skinSeed));
-        Self.Muzzle = muzzle;
-        agent.speed = Self.Current.Data.MoveSpeed * 0.92f;
     }
 }

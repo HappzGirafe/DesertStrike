@@ -37,6 +37,13 @@ public class MapBuilder
 
     public Transform Root { get; private set; }
     public Texture2D Radar { get; private set; }
+    public Bounds SiteA { get; private set; }
+    public Bounds SiteB { get; private set; }
+    public Bounds TerroristBuyZone { get; private set; }
+    public Bounds SwatBuyZone { get; private set; }
+
+    /// <summary>"A" or "B" when the position is on a bombsite, otherwise null.</summary>
+    public string SiteAt(Vector3 position) => SiteA.Contains(position) ? "A" : SiteB.Contains(position) ? "B" : null;
     public readonly List<Vector3> TerroristSpawns = new List<Vector3>();
     public readonly List<Vector3> SwatSpawns = new List<Vector3>();
     public readonly List<Vector3> KeyPoints = new List<Vector3>();
@@ -90,6 +97,20 @@ public class MapBuilder
         Carve(Area.Floor, 2, 9, 9, 11);         // tunnel entrance hall
         Carve(Area.Floor, 6, 2, 9, 8);          // outside tunnels
         Carve(Area.Floor, 5, 14, 13, 15);       // lower tunnels
+
+        SiteA = Zone(21, 24, 29, 29, 0f);
+        SiteB = Zone(2, 23, 9, 29, 0f);
+        TerroristBuyZone = Zone(10, 1, 21, 6, 1f);
+        SwatBuyZone = Zone(11, 25, 19, 30, 1f);
+    }
+
+    /// <summary>World-space box over a block of cells, grown by <paramref name="grow"/> metres sideways.</summary>
+    static Bounds Zone(int x0, int z0, int x1, int z1, float grow)
+    {
+        var bounds = new Bounds();
+        bounds.SetMinMax(CellCenter(x0, z0) - new Vector3(Cell / 2f + grow, 1f, Cell / 2f + grow),
+                         CellCenter(x1, z1) + new Vector3(Cell / 2f + grow, 8f, Cell / 2f + grow));
+        return bounds;
     }
 
     void Carve(Area area, int x0, int z0, int x1, int z1)

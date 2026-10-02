@@ -1,9 +1,12 @@
 using UnityEngine;
 using UnityEngine.AI;
 
-/// <summary>First-person controls: movement, mouse look, shooting, recoil, scope and the view model.</summary>
+/// <summary>
+/// First-person controls: movement, mouse look, shooting, recoil, scope, the view model, and the bomb
+/// (E to plant or defuse, G to drop it). In a LAN game as a client the shots and actions go to the host.
+/// </summary>
 [RequireComponent(typeof(CharacterController), typeof(Combatant))]
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, ICombatantController
 {
     public static float MouseSensitivity = 2f;
 
@@ -17,6 +20,7 @@ public class PlayerController : MonoBehaviour
     public Combatant Self { get; private set; }
     public bool IsScoped { get; private set; }
     public float CurrentSpread { get; private set; }
+    public bool UseHeld { get; private set; }   // E: plant or defuse
 
     CharacterController controller;
     Transform head;
@@ -83,12 +87,17 @@ public class PlayerController : MonoBehaviour
     {
         controller.enabled = false;
         IsScoped = false;
+        UseHeld = false;
         viewModel.gameObject.SetActive(false);
         cam.transform.SetParent(null, true);
     }
 
+    /// <summary>Joined a LAN game during a round: spectate until the next one.</summary>
+    public void ForceDead() => OnDied(null);
+
     void Update()
     {
+        UseHeld = false;
         if (!Self.IsAlive) return;
         var gm = GameManager.Instance;
         if (gm.IsPaused) return;
@@ -99,11 +108,24 @@ public class PlayerController : MonoBehaviour
 
         if (hasControl) Look();
         ApplyView();
-        Move(canAct);
+        if (canAct) HandleBomb(gm);
+        // Planting or defusing keeps you in place (looking around is fine).
+        Move(canAct && gm.Bomb.User != Self);
         if (canAct) HandleWeapons();
         CurrentSpread = ComputeSpread(Self.Current);
         Recover();
         UpdateViewModel();
+    }
+
+    void HandleBomb(GameManager gm)
+    {
+        UseHeld = Input.GetKey(KeyCode.E);
+        if (UseHeld && !Self.IsMirror) gm.Bomb.HoldUse(Self);
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            if (Self.IsMirror) gm.Net.SendAction(NetAction.DropBomb, 0);
+            else gm.Bomb.Drop(Self);
+        }
     }
 
     void Look()
@@ -192,8 +214,14 @@ public class PlayerController : MonoBehaviour
             {
                 weapon.AutoMode = !weapon.AutoMode;
                 SoundFX.Play(SoundFX.DryFire, transform.position, 0.5f, 1.4f, false);
+                if (Self.IsMirror)
+                {
+                    Self.HoldPrediction();
+                    GameManager.Instance.Net.SendAction(NetAction.AutoMode, weapon.AutoMode ? 1 : 0);
+                }
             }
         }
+        Self.Scoped = IsScoped;   // the state this frame's shot is fired in (for "noscope")
         if (rescopeAt > 0f && Time.time >= rescopeAt)
         {
             rescopeAt = -1f;

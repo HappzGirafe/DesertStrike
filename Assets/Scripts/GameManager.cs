@@ -19,8 +19,11 @@ public class KillFeedEntry
 }
 
 /// <summary>
-/// Runs the match: builds the map, spawns both teams, and handles rounds, money, the kill feed
+/// Runs the match: builds the map, spawns both teams, and handles rounds, the bomb, money, the kill feed
 /// and the spectator camera. Put it on an empty GameObject in a scene and press Play.
+///
+/// In a LAN game the host's GameManager runs everything as usual (other players are RemotePlayerControllers);
+/// a client's GameManager runs nothing and only mirrors what the host sends (see NetSession).
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -35,18 +38,22 @@ public class GameManager : MonoBehaviour
     public const int WinReward = 3250;
     public const int LossReward = 1400;
     public const int LossBonusStep = 500;
+    public const int PlantedLossBonus = 800;   // Terrorists who planted but still lost
 
     static readonly string[] TerroristNames = { "Viper", "Jackal", "Cobra", "Scorpion", "Raven", "Wolf", "Dagger", "Ghost" };
     static readonly string[] SwatNames = { "Hawk", "Falcon", "Ranger", "Bishop", "Echo", "Titan", "Sentinel", "Patriot" };
 
-    // Match settings, chosen in the main menu.
+    // Match settings, chosen in the main menu (in a LAN game the host's count).
     public PlayerSide Side = PlayerSide.Terrorists;
     public int TeamSize = 5;
     public BotDifficulty Difficulty = BotDifficulty.Normal;
     public int RoundsToWin = 8;
+    public bool FriendlyFire;
 
     public MatchState State { get; private set; } = MatchState.Menu;
     public MapBuilder Map { get; private set; }
+    public NetSession Net { get; private set; }
+    public BombManager Bomb { get; private set; }
     public Camera MainCamera { get; private set; }
     public PlayerController Player { get; private set; }
     public Combatant Spectated { get; private set; }
@@ -66,21 +73,30 @@ public class GameManager : MonoBehaviour
     public bool HitMarkerKill { get; private set; }
     public float DamageFlashTime { get; private set; } = -1f;
     public string PlayerAmmoResupply { get; private set; }   // what the free round-start ammo gave the player
+    public string Message { get; private set; }              // short center-screen news, e.g. the bomb was planted
+    public float MessageUntil { get; private set; }
+    public string MenuNotice { get; set; }                   // shown in the menu, e.g. why a LAN game ended
 
+    /// <summary>This PC is a network client in a running match: the host decides everything.</summary>
+    public bool IsClient => clientMatch && Net.IsClient;
     public bool SpectatingNow => State != MatchState.Menu && (Player == null || !Player.Self.IsAlive);
     public float BuyTimeLeft => BuyTime - (Time.time - roundStartedAt);
 
     readonly List<BotController> bots = new List<BotController>();
     float roundStartedAt;
     int terroristLossStreak, swatLossStreak;
+    int nextNetId = 1;
+    bool clientMatch;
 
-    // Command-line automation (used for smoke tests): -ds-autostart, -ds-side, -ds-money, -ds-quit-after, -ds-capture
-    bool autoStart;
+    // Command-line automation (used for smoke tests): -ds-autostart, -ds-side, -ds-money, -ds-quit-after,
+    // -ds-capture, -ds-timescale, -ds-host, -ds-join <ip>, -ds-find, -ds-name <name>, -ds-client-fire
+    bool autoStart, autoHost, autoFind, clientFireTest;
+    string autoJoin;
     int startMoney = StartMoney;
     float timeScale = 1f;
     float quitAt = -1f;
     string captureDirectory;
-    float nextCaptureAt;
+    float nextCaptureAt, nextTestShot;
     int captureIndex;
 
     void Awake()
@@ -91,47 +107,72 @@ public class GameManager : MonoBehaviour
         Map = new MapBuilder();
         Map.Build(transform);
         MainCamera = CreateCamera();
+        Net = gameObject.AddComponent<NetSession>();
+        Bomb = gameObject.AddComponent<BombManager>();
         if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();
         ReadCommandLine();
     }
 
     void Start()
     {
-        if (autoStart) StartMatch();
+        if (autoHost) Net.StartHost();
+        if (autoJoin != null) Net.Join(autoJoin);
+        if (autoStart && !autoHost && autoJoin == null) StartMatch();
     }
 
     // ----------------------------------------------------------------- match flow
 
     public void StartMatch()
     {
+        if (Net.IsClient) return;
         ClearMatch();
         Round = 0;
         TerroristWins = SwatWins = 0;
         terroristLossStreak = swatLossStreak = 0;
+        int terroristHumans = 0, swatHumans = 0;
 
         if (Side != PlayerSide.Spectate)
-            SpawnPlayer(Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat);
+        {
+            var team = Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat;
+            SpawnPlayer(team, Net.IsHost ? Net.PlayerName : "You");
+            if (team == Team.Terrorists) terroristHumans++; else swatHumans++;
+        }
+        foreach (var peer in Net.Peers)
+        {
+            AddRemotePlayer(peer, midRound: false);
+            if (peer.Team == Team.Terrorists) terroristHumans++; else swatHumans++;
+        }
 
+        // Bots fill the rest of each team.
         var terroristNames = new Queue<string>(Shuffled(TerroristNames));
         var swatNames = new Queue<string>(Shuffled(SwatNames));
-        int terroristBots = TeamSize - (Side == PlayerSide.Terrorists ? 1 : 0);
-        int swatBots = TeamSize - (Side == PlayerSide.Swat ? 1 : 0);
-        for (int i = 0; i < terroristBots; i++) SpawnBot(Team.Terrorists, terroristNames.Dequeue());
-        for (int i = 0; i < swatBots; i++) SpawnBot(Team.Swat, swatNames.Dequeue());
+        for (int i = terroristHumans; i < TeamSize; i++) SpawnBot(Team.Terrorists, terroristNames.Dequeue());
+        for (int i = swatHumans; i < TeamSize; i++) SpawnBot(Team.Swat, swatNames.Dequeue());
 
         foreach (var c in Combatants) c.Money = startMoney;
-        Debug.Log($"[DesertStrike] Match started: {Side}, {TeamSize}v{TeamSize}, {Difficulty}, first to {RoundsToWin}");
+        Debug.Log($"[DesertStrike] Match started: {Side}, {TeamSize}v{TeamSize}, {Difficulty}, first to {RoundsToWin}, friendly fire {(FriendlyFire ? "on" : "off")}, {Net.Peers.Count} remote players");
         StartRound();
     }
 
     public void ReturnToMenu()
     {
         ClearMatch();
+        Net.Stop();
+        clientMatch = false;
         State = MatchState.Menu;
+    }
+
+    /// <summary>A LAN game ended (the host quit, or the connection was lost).</summary>
+    public void OnNetworkGameEnded(string reason)
+    {
+        Debug.Log("[Net] " + reason);
+        ReturnToMenu();
+        MenuNotice = reason;
     }
 
     public void QuitGame()
     {
+        Net.Stop();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -139,12 +180,17 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
+    /// <summary>The pause menu. In a LAN game the match keeps running behind it.</summary>
     public void SetPaused(bool paused)
     {
         IsPaused = paused;
-        Time.timeScale = paused ? 0f : timeScale;
-        AudioListener.pause = paused;
+        bool freezeTime = paused && Net.Role == NetSession.Mode.Off;
+        Time.timeScale = freezeTime ? 0f : timeScale;
+        AudioListener.pause = freezeTime;
     }
+
+    public string MatchDescription() =>
+        $"{TeamSize}v{TeamSize}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}";
 
     void StartRound()
     {
@@ -153,6 +199,7 @@ public class GameManager : MonoBehaviour
         roundStartedAt = Time.time;
         StateEndsAt = Time.time + FreezeTime;
         Banner = null;
+        Message = null;
         BuyMenuOpen = false;
         Spectated = null;
         Effects.ClearDecals();
@@ -176,18 +223,18 @@ public class GameManager : MonoBehaviour
             }
             bool terrorist = c.Team == Team.Terrorists;
             Vector3 position = terrorist ? terroristSpawns[ti++ % terroristSpawns.Count] : swatSpawns[si++ % swatSpawns.Count];
-            float yaw = terrorist ? 0f : 180f;
-            if (c.IsPlayer) Player.Respawn(position, yaw);
-            else c.GetComponent<BotController>().Respawn(position, Quaternion.Euler(0f, yaw, 0f));
+            c.SpawnCount++;
+            c.GetComponent<ICombatantController>().Respawn(position, terrorist ? 0f : 180f);
         }
 
         foreach (var bot in bots) bot.BuyGear();
         var terroristBots = bots.FindAll(b => b.Self.Team == Team.Terrorists);
         var swatBots = Shuffled(bots.FindAll(b => b.Self.Team == Team.Swat));
         BotController.PlanRound(terroristBots, swatBots, Map, Time.time + FreezeTime);
+        Bomb.ResetForRound();
 
         SoundFX.Play(SoundFX.RoundStart, Vector3.zero, 0.4f, 1f, false);
-        Debug.Log($"[DesertStrike] Round {Round} started (T {TerroristWins} - {SwatWins} SWAT)");
+        Debug.Log($"[DesertStrike] Round {Round} started (T {TerroristWins} - {SwatWins} SWAT), bomb carried by {(Bomb.Carrier != null ? Bomb.Carrier.DisplayName : "nobody")}");
     }
 
     void EndRound(Team winner, string reason)
@@ -215,7 +262,9 @@ public class GameManager : MonoBehaviour
         foreach (var c in Combatants)
         {
             int streak = c.Team == Team.Terrorists ? terroristLossStreak : swatLossStreak;
-            AddMoney(c, c.Team == winner ? WinReward : LossReward + LossBonusStep * (streak - 1));
+            int reward = c.Team == winner ? WinReward : LossReward + LossBonusStep * (streak - 1);
+            if (c.Team == Team.Terrorists && winner != Team.Terrorists && Bomb.WasPlanted) reward += PlantedLossBonus;
+            AddMoney(c, reward);
         }
         Debug.Log($"[DesertStrike] Round {Round}: {reason} (T {TerroristWins} - {SwatWins} SWAT)");
     }
@@ -223,6 +272,13 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         HandleInput();
+        if (!IsClient) RunRound();
+        UpdateCursor();
+        RunAutomation();
+    }
+
+    void RunRound()
+    {
         switch (State)
         {
             case MatchState.Freeze:
@@ -233,7 +289,8 @@ public class GameManager : MonoBehaviour
                 }
                 break;
             case MatchState.Live:
-                if (Time.time >= StateEndsAt) EndRound(Team.Swat, "TIME IS UP - SWAT WIN");
+                // Once the bomb is planted the round clock stops; the bomb decides.
+                if (Time.time >= StateEndsAt && Bomb.State != BombState.Planted) EndRound(Team.Swat, "TIME IS UP - SWAT WIN");
                 break;
             case MatchState.RoundEnd:
                 if (Time.time >= StateEndsAt)
@@ -248,8 +305,6 @@ public class GameManager : MonoBehaviour
                 break;
         }
         KillFeed.RemoveAll(k => Time.time - k.Time > 6f);
-        UpdateCursor();
-        RunAutomation();
     }
 
     void LateUpdate()
@@ -279,10 +334,50 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // ----------------------------------------------------------------- called by combatants
+    void ShowMessage(string text, float seconds)
+    {
+        Message = text;
+        MessageUntil = Time.time + seconds;
+    }
+
+    // ----------------------------------------------------------------- buying (only in your spawn, during buy time)
+
+    public bool InBuyZone(Combatant c) =>
+        (c.Team == Team.Terrorists ? Map.TerroristBuyZone : Map.SwatBuyZone).Contains(c.transform.position + Vector3.up * 0.5f);
 
     public bool CanBuy(Combatant c) =>
-        c != null && c.IsAlive && (State == MatchState.Freeze || (State == MatchState.Live && BuyTimeLeft > 0f));
+        c != null && c.IsAlive && InBuyZone(c)
+        && (State == MatchState.Freeze || (State == MatchState.Live && BuyTimeLeft > 0f));
+
+    public bool TryBuyWeapon(Combatant c, WeaponData weapon) => weapon != null && CanBuy(c) && c.TryBuy(weapon);
+
+    public bool TryBuyArmor(Combatant c, bool helmet) => CanBuy(c) && c.TryBuyArmor(helmet);
+
+    public bool TryBuyDefuseKit(Combatant c) => CanBuy(c) && c.TryBuyDefuseKit();
+
+    /// <summary>The buy menu: buys for the player here (asking the host in a LAN game).</summary>
+    public void BuyWeapon(WeaponData weapon)
+    {
+        if (IsClient) Net.SendAction(NetAction.BuyWeapon, WeaponData.IndexOf(weapon));
+        else if (Player == null || !TryBuyWeapon(Player.Self, weapon)) return;
+        SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+    }
+
+    public void BuyArmor(bool helmet)
+    {
+        if (IsClient) Net.SendAction(NetAction.BuyArmor, helmet ? 1 : 0);
+        else if (Player == null || !TryBuyArmor(Player.Self, helmet)) return;
+        SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+    }
+
+    public void BuyDefuseKit()
+    {
+        if (IsClient) Net.SendAction(NetAction.BuyDefuseKit, 0);
+        else if (Player == null || !TryBuyDefuseKit(Player.Self)) return;
+        SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+    }
+
+    // ----------------------------------------------------------------- called by combatants and the bomb
 
     public int AliveCount(Team team)
     {
@@ -302,8 +397,8 @@ public class GameManager : MonoBehaviour
             KillerTeam = killer != null ? killer.Team : victim.Team,
             VictimTeam = victim.Team,
             Headshot = headshot,
-            // The player drops out of the scope only after the shot resolves, so this is the state it was fired in.
-            Noscope = weapon.ZoomFov > 0f && killer != null && killer.IsPlayer && !Player.IsScoped,
+            // People drop out of the scope only after the shot resolves, so this is the state it was fired in.
+            Noscope = weapon.ZoomFov > 0f && killer != null && killer.IsHuman && !killer.Scoped,
             Time = Time.time,
         });
         if (KillFeed.Count > 6) KillFeed.RemoveAt(0);
@@ -315,9 +410,34 @@ public class GameManager : MonoBehaviour
         }
         if (victim.IsPlayer) Spectated = killer != null && killer.IsAlive ? killer : null;
         Debug.Log($"[DesertStrike] {(killer != null ? killer.DisplayName : "?")} killed {victim.DisplayName} with {weapon.Name}{(headshot ? " (headshot)" : "")}");
+        CheckElimination();
+    }
 
-        if (AliveCount(Team.Terrorists) == 0) EndRound(Team.Swat, "SWAT WIN");
-        else if (AliveCount(Team.Swat) == 0) EndRound(Team.Terrorists, "TERRORISTS WIN");
+    void CheckElimination()
+    {
+        if (State != MatchState.Live && State != MatchState.Freeze) return;
+        if (AliveCount(Team.Swat) == 0) EndRound(Team.Terrorists, "TERRORISTS WIN");
+        // With the bomb planted, SWAT still have to defuse it even after killing every Terrorist.
+        else if (AliveCount(Team.Terrorists) == 0 && Bomb.State != BombState.Planted) EndRound(Team.Swat, "SWAT WIN");
+    }
+
+    public void OnBombPlanted(Combatant planter, string site)
+    {
+        ShowMessage($"BOMB HAS BEEN PLANTED ON {site}", 3f);
+        ReportNoise(Bomb.Position, planter.Team, 200f);
+        Debug.Log($"[DesertStrike] {planter.DisplayName} planted the bomb on {site}");
+    }
+
+    public void OnBombDefused(Combatant defuser)
+    {
+        Debug.Log($"[DesertStrike] {defuser.DisplayName} defused the bomb");
+        EndRound(Team.Swat, "BOMB DEFUSED - SWAT WIN");
+    }
+
+    public void OnBombExploded()
+    {
+        Debug.Log("[DesertStrike] The bomb exploded");
+        EndRound(Team.Terrorists, "TARGET BOMBED - TERRORISTS WIN");
     }
 
     /// <summary>Gunshots and running footsteps alert enemy bots within <paramref name="radius"/>.</summary>
@@ -329,6 +449,14 @@ public class GameManager : MonoBehaviour
                 bot.HearNoise(position);
     }
 
+    /// <summary>A shot or rocket hit someone: show the hit marker to whoever fired it.</summary>
+    public void ReportHit(Combatant shooter, bool headshot, bool kill)
+    {
+        if (shooter == null) return;
+        if (shooter.IsPlayer) ShowHitMarker(headshot, kill);
+        else if (shooter.IsHuman) Net.RecordHitMarker(shooter, headshot, kill);
+    }
+
     public void ShowHitMarker(bool headshot, bool kill)
     {
         HitMarkerTime = Time.time;
@@ -337,19 +465,31 @@ public class GameManager : MonoBehaviour
         SoundFX.Play(headshot ? SoundFX.Headshot : SoundFX.HitMarker, Vector3.zero, 0.5f, 1f, false);
     }
 
+    public Combatant FindByNetId(int netId)
+    {
+        if (netId == 0) return null;
+        foreach (var c in Combatants)
+            if (c.NetId == netId) return c;
+        return null;
+    }
+
     static void AddMoney(Combatant c, int amount) => c.Money = Mathf.Min(MaxMoney, c.Money + amount);
 
     // ----------------------------------------------------------------- spawning
 
-    void SpawnPlayer(Team team)
+    void SpawnPlayer(Team team, string playerName, bool mirror = false, int netId = 0)
     {
         var go = new GameObject("Player") { layer = Ballistics.CharacterLayer };
         go.transform.position = (team == Team.Terrorists ? Map.TerroristSpawns : Map.SwatSpawns)[0];
         go.AddComponent<CharacterController>();
         var combatant = go.AddComponent<Combatant>();
-        combatant.DisplayName = "You";
+        combatant.DisplayName = playerName;
         combatant.Team = team;
         combatant.IsPlayer = true;
+        combatant.IsHuman = true;
+        combatant.IsMirror = mirror;
+        combatant.NetId = netId != 0 ? netId : nextNetId++;
+        combatant.SkinChoices = WeaponSkins.EquippedChoices();
         combatant.Damaged += (attacker, amount) =>
         {
             DamageFlashTime = Time.time;
@@ -367,10 +507,46 @@ public class GameManager : MonoBehaviour
         var combatant = go.AddComponent<Combatant>();
         combatant.DisplayName = botName;
         combatant.Team = team;
+        combatant.NetId = nextNetId++;
         var bot = go.AddComponent<BotController>();
         bot.Setup(Difficulty);
         Combatants.Add(combatant);
         bots.Add(bot);
+    }
+
+    /// <summary>Host: give a player on another PC a combatant. Mid-round they wait for the next round.</summary>
+    public void AddRemotePlayer(NetSession.Peer peer, bool midRound)
+    {
+        var go = new GameObject("Remote " + peer.Name) { layer = Ballistics.CharacterLayer };
+        go.transform.position = (peer.Team == Team.Terrorists ? Map.TerroristSpawns : Map.SwatSpawns)[0];
+        var combatant = go.AddComponent<Combatant>();
+        combatant.DisplayName = peer.Name;
+        combatant.Team = peer.Team;
+        combatant.IsHuman = true;
+        combatant.NetId = nextNetId++;
+        combatant.SkinChoices = peer.SkinChoices;
+        combatant.Money = startMoney;
+        var remote = go.AddComponent<RemotePlayerController>();
+        remote.Setup(peer);
+        peer.Player = remote;
+        Combatants.Add(combatant);
+        if (midRound)
+        {
+            combatant.ResetForRound(false);
+            remote.SitOutRound();
+        }
+    }
+
+    /// <summary>Host: a player on another PC left.</summary>
+    public void RemoveRemotePlayer(NetSession.Peer peer)
+    {
+        if (peer.Player == null) return;
+        var combatant = peer.Player.Self;
+        Bomb.ReleaseFrom(combatant);
+        Combatants.Remove(combatant);
+        Destroy(combatant.gameObject);
+        peer.Player = null;
+        CheckElimination();
     }
 
     void ClearMatch()
@@ -384,8 +560,131 @@ public class GameManager : MonoBehaviour
         Player = null;
         Spectated = null;
         BuyMenuOpen = false;
+        Message = null;
+        Bomb.Clear();
         Effects.ClearDecals();
         SetPaused(false);
+    }
+
+    // ----------------------------------------------------------------- network client: mirror the host
+
+    public void BeginClientMatch()
+    {
+        ClearMatch();
+        clientMatch = true;
+        MenuNotice = null;
+        Debug.Log("[Net] The host started the match");
+    }
+
+    public void ApplyNetMatch(NetMatchState match, string resupply)
+    {
+        if (match.Round != Round) Debug.Log($"[Net] Round {match.Round} (T {match.TerroristWins} - {match.SwatWins} SWAT)");
+        if (match.State != State && match.State == MatchState.Freeze) SoundFX.Play(SoundFX.RoundStart, Vector3.zero, 0.4f, 1f, false);
+        State = match.State;
+        Round = match.Round;
+        TerroristWins = match.TerroristWins;
+        SwatWins = match.SwatWins;
+        RoundsToWin = match.RoundsToWin;
+        StateEndsAt = Time.time + match.Remaining;
+        roundStartedAt = Time.time - (BuyTime - match.BuyTimeLeft);
+        Banner = string.IsNullOrEmpty(match.Banner) ? null : match.Banner;
+        LastWinner = match.LastWinner;
+        FriendlyFire = match.FriendlyFire;
+        Message = string.IsNullOrEmpty(match.Message) ? null : match.Message;
+        MessageUntil = Time.time + match.MessageLeft;
+        PlayerAmmoResupply = string.IsNullOrEmpty(resupply) ? null : resupply;
+        if (State == MatchState.MatchOver || State == MatchState.RoundEnd) BuyMenuOpen = false;
+    }
+
+    public void ApplyNetCombatant(NetCombatantState s, int myId)
+    {
+        var c = FindByNetId(s.NetId);
+        bool me = s.NetId == myId;
+        bool created = c == null;
+        if (created)
+        {
+            if (me)
+            {
+                SpawnPlayer(s.Team, s.Name, mirror: true, netId: s.NetId);
+                c = Player.Self;
+                Debug.Log($"[Net] Playing as {s.Name} ({NetSession.TeamName(s.Team)})");
+            }
+            else c = SpawnPuppet(s);
+            c.Health = s.Health;
+        }
+
+        c.DisplayName = s.Name;
+        c.Armor = s.Armor;
+        c.Helmet = s.Helmet;
+        c.HasDefuseKit = s.HasKit;
+        c.Money = s.Money;
+        c.Kills = s.Kills;
+        c.Deaths = s.Deaths;
+        if (!me)
+        {
+            c.Height = s.Height;
+            c.Scoped = s.Scoped;
+            var weapon = s.Slot == WeaponSlot.Primary ? s.Primary : s.Slot == WeaponSlot.Secondary ? s.Secondary : WeaponData.Knife;
+            if (weapon != null && !string.IsNullOrEmpty(s.Skin))
+            {
+                if (c.SkinChoices == null) c.SkinChoices = new Dictionary<string, string>();
+                c.SkinChoices[weapon.Id] = s.Skin;
+            }
+        }
+        c.ApplyNetLoadout(s.Primary, s.Secondary, s.Slot, s.Mag, s.Reserve, s.Reload, s.AutoMode);
+        if (!created) c.ApplyNetHealth(s.Health);
+
+        if (me)
+        {
+            // We move ourselves; the host only places us when it respawns us.
+            if (created || s.SpawnCount != (c.SpawnCount & 0xFF))
+            {
+                c.SpawnCount = s.SpawnCount;
+                if (c.IsAlive) Player.Respawn(s.Position, s.Yaw);
+                else Player.ForceDead();
+            }
+        }
+        else c.GetComponent<PuppetController>().ApplyState(s.Position, s.Yaw, s.SpawnCount);
+    }
+
+    Combatant SpawnPuppet(NetCombatantState s)
+    {
+        var go = new GameObject("Net " + s.Name) { layer = Ballistics.CharacterLayer };
+        go.transform.SetPositionAndRotation(s.Position, Quaternion.Euler(0f, s.Yaw, 0f));
+        var combatant = go.AddComponent<Combatant>();
+        combatant.DisplayName = s.Name;
+        combatant.Team = s.Team;
+        combatant.IsHuman = s.IsHuman;
+        combatant.IsMirror = true;
+        combatant.NetId = s.NetId;
+        combatant.SkinSeed = s.SkinSeed;
+        combatant.Health = s.Health;
+        go.AddComponent<PuppetController>().Setup();
+        Combatants.Add(combatant);
+        return combatant;
+    }
+
+    public void RemoveNetCombatantsExcept(HashSet<int> keep)
+    {
+        for (int i = Combatants.Count - 1; i >= 0; i--)
+        {
+            var c = Combatants[i];
+            if (keep.Contains(c.NetId)) continue;
+            if (Player != null && c == Player.Self)
+            {
+                MainCamera.transform.SetParent(null, true);
+                Player = null;
+            }
+            if (Spectated == c) Spectated = null;
+            Combatants.RemoveAt(i);
+            Destroy(c.gameObject);
+        }
+    }
+
+    public void ApplyNetKillFeed(List<KillFeedEntry> feed)
+    {
+        KillFeed.Clear();
+        KillFeed.AddRange(feed);
     }
 
     // ----------------------------------------------------------------- camera
@@ -411,6 +710,7 @@ public class GameManager : MonoBehaviour
     {
         float angle = Time.unscaledTime * 0.05f;
         var t = MainCamera.transform;
+        t.SetParent(null, true);
         t.position = new Vector3(Mathf.Cos(angle) * 75f, 55f, Mathf.Sin(angle) * 75f);
         t.LookAt(Vector3.zero);
         MainCamera.fieldOfView = 60f;
@@ -529,13 +829,46 @@ public class GameManager : MonoBehaviour
                     Directory.CreateDirectory(captureDirectory);
                     nextCaptureAt = 5f;
                     break;
+                case "-ds-host":
+                    autoHost = true;
+                    break;
+                case "-ds-join" when hasValue:
+                    autoJoin = args[++i];
+                    break;
+                case "-ds-name" when hasValue:
+                    Net.PlayerName = args[++i];
+                    break;
+                case "-ds-friendly-fire":
+                    FriendlyFire = true;
+                    break;
+                case "-ds-client-fire":
+                    clientFireTest = true;
+                    break;
+                case "-ds-find":
+                    autoFind = true;
+                    break;
             }
         }
+        if (Side != PlayerSide.Spectate) Net.PreferredTeam = Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat;
     }
 
     void RunAutomation()
     {
         float now = Time.realtimeSinceStartup;
+        // Hosting test: start the match once a client has joined.
+        if (autoHost && autoStart && State == MatchState.Menu && Net.Peers.Count > 0) StartMatch();
+        // Discovery test: join the first game found on the network.
+        if (autoFind && Net.Role == NetSession.Mode.Off && Net.FoundHosts.Count > 0)
+        {
+            autoFind = false;
+            Net.Join(Net.FoundHosts[0].Address);
+        }
+        // Client test: shoot straight ahead now and then, to check that shots reach the host.
+        if (clientFireTest && IsClient && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTestShot)
+        {
+            nextTestShot = now + 1f;
+            Player.Self.TryFire(Player.transform.forward, 0f);
+        }
         if (captureDirectory != null && now >= nextCaptureAt)
         {
             nextCaptureAt = now + 8f;

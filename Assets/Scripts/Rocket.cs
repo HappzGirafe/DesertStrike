@@ -1,6 +1,9 @@
 using UnityEngine;
 
-/// <summary>RPG rocket: flies straight and explodes on impact (or after a few seconds) with splash damage.</summary>
+/// <summary>
+/// RPG rocket: flies straight and explodes on impact (or after a few seconds) with splash damage.
+/// On a network client rockets are visual only; the host's rocket does the damage.
+/// </summary>
 public class Rocket : MonoBehaviour
 {
     const float Lifetime = 4f;
@@ -10,9 +13,12 @@ public class Rocket : MonoBehaviour
     WeaponData weapon;
     Vector3 velocity;
     float explodeAt;
+    bool visualOnly;
 
-    public static void Launch(Combatant shooter, Vector3 position, Vector3 direction, WeaponData weapon)
+    public static void Launch(Combatant shooter, Vector3 position, Vector3 direction, WeaponData weapon, bool visualOnly = false)
     {
+        if (!visualOnly) GameManager.Instance.Net.RecordRocket(shooter, position, direction, weapon);
+
         var go = new GameObject("Rocket");
         go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(direction));
         Effects.Shape(PrimitiveType.Cylinder, go.transform, Vector3.zero, new Vector3(0.09f, 0.25f, 0.09f),
@@ -33,6 +39,7 @@ public class Rocket : MonoBehaviour
         rocket.weapon = weapon;
         rocket.velocity = direction * weapon.ProjectileSpeed;
         rocket.explodeAt = Time.time + Lifetime;
+        rocket.visualOnly = visualOnly;
     }
 
     void Update()
@@ -52,7 +59,8 @@ public class Rocket : MonoBehaviour
         Destroy(gameObject);
         Effects.Explosion(point, weapon.BlastRadius);
         SoundFX.Play(SoundFX.Explosion, point, 1f, Random.Range(0.9f, 1.05f), true, 150f);
-        if (shooter == null) return; // the match was restarted while the rocket was in the air
+        // Visual-only (network client), or the match was restarted while the rocket was in the air.
+        if (visualOnly || shooter == null) return;
 
         GameManager.Instance.ReportNoise(point, shooter.Team, 60f);
         foreach (var target in GameManager.Instance.Combatants)
@@ -67,7 +75,8 @@ public class Rocket : MonoBehaviour
             var result = target.TakeExplosion(shooter, weapon, damage);
             if (result == HitResult.None || target == shooter) continue;
             Effects.Blood(target.ChestPosition);
-            if (shooter.IsPlayer) GameManager.Instance.ShowHitMarker(false, result == HitResult.Kill);
+            GameManager.Instance.Net.RecordBlood(target.ChestPosition);
+            GameManager.Instance.ReportHit(shooter, false, result == HitResult.Kill);
         }
     }
 }

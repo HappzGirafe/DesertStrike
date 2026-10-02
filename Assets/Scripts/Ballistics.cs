@@ -22,6 +22,7 @@ public static class Ballistics
 
     public static void Fire(Combatant shooter, Vector3 origin, Vector3 direction, WeaponData weapon, Vector3 tracerFrom)
     {
+        var net = GameManager.Instance.Net;
         Vector3 end = origin + direction * weapon.Range;
         if (FirstHit(origin, direction, weapon.Range, shooter, out var hit))
         {
@@ -33,15 +34,21 @@ public static class Ballistics
                 if (result != HitResult.None)
                 {
                     Effects.Blood(hit.point);
-                    if (shooter.IsPlayer) GameManager.Instance.ShowHitMarker(headshot, result == HitResult.Kill);
+                    net.RecordBlood(hit.point);
+                    GameManager.Instance.ReportHit(shooter, headshot, result == HitResult.Kill);
                 }
             }
             else if (!weapon.IsMelee)
             {
                 Effects.BulletHole(hit.point, hit.normal);
+                net.RecordImpact(hit.point, hit.normal);
             }
         }
-        if (!weapon.IsMelee) Effects.Tracer(tracerFrom, end);
+        if (!weapon.IsMelee)
+        {
+            Effects.Tracer(tracerFrom, end);
+            net.RecordTracer(tracerFrom, end);
+        }
     }
 
     /// <summary>Nearest hit along the ray on any layer, skipping <paramref name="ignore"/>'s own colliders.</summary>

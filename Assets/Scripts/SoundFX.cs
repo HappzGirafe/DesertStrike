@@ -10,7 +10,7 @@ public static class SoundFX
     const float TwoPi = Mathf.PI * 2f;
 
     public static AudioClip Shot, KnifeSwing, Reload, Step, HitMarker, Headshot, Hurt, Buy, RoundStart, DryFire,
-                            RocketLaunch, Explosion;
+                            RocketLaunch, Explosion, Beep;
 
     static readonly System.Random noise = new System.Random(7);
 
@@ -36,6 +36,7 @@ public static class SoundFX
         RocketLaunch = Make("RocketLaunch", 0.6f, 0.15f, t => Noise() * Mathf.Exp(-t * 6f) * Mathf.Min(1f, t * 40f) * 0.9f);
         Explosion = Make("Explosion", 1.4f, 0.08f, t => Noise() * Mathf.Exp(-t * 3.5f) * 1.6f
                                                         + Mathf.Sin(t * TwoPi * 40f) * Mathf.Exp(-t * 4f) * 0.8f);
+        Beep = Make("Beep", 0.09f, 1f, t => Mathf.Sin(t * TwoPi * 2100f) * Mathf.Min(1f, (0.09f - t) * 60f) * 0.35f);
     }
 
     public static void PlayShot(WeaponData weapon, Vector3 position, bool own)

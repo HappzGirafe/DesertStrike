@@ -1,11 +1,12 @@
 using System.IO;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>Editor helpers: creates the game scene and builds a Windows version of the game.</summary>
+/// <summary>Editor helpers: creates the game scene and builds the Windows and macOS versions of the game.</summary>
 [InitializeOnLoad]
 public static class DesertStrikeSetup
 {
@@ -48,7 +49,20 @@ public static class DesertStrikeSetup
     }
 
     [MenuItem("Desert Strike/Build Windows Game")]
-    public static void BuildWindows()
+    public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Builds/Windows/DesertStrike.exe");
+
+    /// <summary>
+    /// Builds a macOS app (Intel and Apple Silicon) — needs Unity's "Mac Build Support" module. A Mac build made
+    /// on Windows is not code-signed; see README for the one Terminal command Mac players run once.
+    /// </summary>
+    [MenuItem("Desert Strike/Build macOS Game")]
+    public static void BuildMac()
+    {
+        SetMacArchitecture("x64ARM64");
+        Build(BuildTarget.StandaloneOSX, "Builds/macOS/DesertStrike.app");
+    }
+
+    static void Build(BuildTarget target, string path)
     {
         if (!File.Exists(ScenePath)) CreateScene();
         EnsureMaterials();
@@ -56,12 +70,27 @@ public static class DesertStrikeSetup
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {
             scenes = new[] { ScenePath },
-            locationPathName = "Builds/Windows/DesertStrike.exe",
-            target = BuildTarget.StandaloneWindows64,
+            locationPathName = path,
+            target = target,
             options = BuildOptions.None,
         });
         Debug.Log("[DesertStrike] Build " + report.summary.result + ": " + report.summary.outputPath);
         if (Application.isBatchMode && report.summary.result != BuildResult.Succeeded) EditorApplication.Exit(1);
+    }
+
+    // The setting lives in the Mac Build Support module's assembly, so it is set by name.
+    static void SetMacArchitecture(string architecture)
+    {
+        foreach (var assembly in System.AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var property = assembly.GetType("UnityEditor.OSXStandalone.UserBuildSettings")
+                ?.GetProperty("architecture", BindingFlags.Public | BindingFlags.Static);
+            if (property == null) continue;
+            property.SetValue(null, System.Enum.Parse(property.PropertyType, architecture));
+            Debug.Log("[DesertStrike] macOS architecture: " + architecture);
+            return;
+        }
+        Debug.LogWarning("[DesertStrike] Could not set the macOS architecture; Unity's default is used.");
     }
 
     /// <summary>

@@ -135,6 +135,20 @@ public static class Effects
         Object.Destroy(flash, 0.15f);
     }
 
+    /// <summary>The C4: a small olive block with a keypad and a red light (child named "Led").</summary>
+    public static Transform BombModel(Transform parent)
+    {
+        var root = new GameObject("Bomb").transform;
+        root.SetParent(parent, false);
+        Shape(PrimitiveType.Cube, root, new Vector3(0f, 0.06f, 0f), new Vector3(0.32f, 0.12f, 0.22f), new Color(0.3f, 0.33f, 0.2f));
+        Shape(PrimitiveType.Cube, root, new Vector3(0.04f, 0.125f, 0f), new Vector3(0.14f, 0.01f, 0.12f), new Color(0.1f, 0.12f, 0.1f));
+        var led = Shape(PrimitiveType.Sphere, root, new Vector3(-0.1f, 0.13f, 0.06f), Vector3.one * 0.03f, Color.white);
+        led.name = "Led";
+        led.GetComponent<Renderer>().sharedMaterial = Glow(new Color(1f, 0.1f, 0.05f));
+        foreach (var renderer in root.GetComponentsInChildren<Renderer>()) renderer.shadowCastingMode = ShadowCastingMode.Off;
+        return root;
+    }
+
     public static void Blood(Vector3 point)
     {
         var go = Shape(PrimitiveType.Sphere, null, point, Vector3.one * 0.22f, new Color(0.55f, 0.03f, 0.03f));

@@ -19,7 +19,7 @@ public class GameUI : MonoBehaviour
         "WASD move  ·  Mouse aim  ·  Left click shoot  ·  R reload  ·  Space jump\n" +
         "Right click: AWP scope  ·  TEC-DC9 / M1911 switch semi-auto and full-auto\n" +
         "1 / 2 / 3 weapons  ·  Q last weapon  ·  Ctrl crouch  ·  Shift walk (silent)\n" +
-        "B buy menu (start of round)  ·  Tab scoreboard  ·  Esc pause";
+        "E plant / defuse the bomb  ·  G drop the bomb  ·  B buy (in your spawn)  ·  Tab scores  ·  Esc pause";
 
     GameManager gm;
     Texture2D scopeMask;
@@ -33,6 +33,12 @@ public class GameUI : MonoBehaviour
     WeaponData inventoryWeapon = WeaponData.Glock;
     WeaponSkin previewSkin;   // shown instead of the equipped skin (set by -ds-inventory for screenshots)
 
+    // LAN screen
+    bool lanOpen;
+    string joinAddress = "";
+
+    const string NameKey = "DesertStrike.name";
+
     public static Color TeamColor(Team team) => team == Team.Terrorists ? TerroristColor : SwatColor;
 
     void Awake()
@@ -40,6 +46,8 @@ public class GameUI : MonoBehaviour
         gm = GetComponent<GameManager>();
         scopeMask = BuildScopeMask(512);
         preview = gameObject.AddComponent<SkinPreview>();
+        gm.Net.PlayerName = PlayerPrefs.GetString(NameKey, Environment.UserName);
+        lanOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-find") >= 0;   // smoke test: search the network
 
         // -ds-inventory [weapon id] [skin id] opens the inventory at startup (used for smoke-test screenshots).
         var args = Environment.GetCommandLineArgs();
@@ -61,7 +69,14 @@ public class GameUI : MonoBehaviour
 
         if (gm.State == MatchState.Menu)
         {
+            bool searching = lanOpen && !inventoryOpen && gm.Net.Role == NetSession.Mode.Off;
+            if (searching) gm.Net.StartDiscovery();
+            else gm.Net.StopDiscovery();
+
             if (inventoryOpen) DrawInventory();
+            else if (gm.Net.IsHost) DrawHostLobby();
+            else if (gm.Net.IsClient) DrawClientLobby();
+            else if (lanOpen) DrawLanMenu();
             else DrawMainMenu();
             return;
         }
@@ -85,17 +100,180 @@ public class GameUI : MonoBehaviour
         Label(new Rect(x, y + 95f, w, 30f), "Terrorists vs SWAT on de_dune, a Dust-style desert map", 22, Dim, TextAnchor.MiddleCenter);
         y += 150f;
 
-        y = OptionRow(x, y, "Your team", new[] { "Terrorists", "SWAT", "Watch bots" }, (int)gm.Side, i => gm.Side = (PlayerSide)i);
+        y = TeamRow(x, y, allowSpectate: true);
+        y = MatchSettingsRows(x, y);
+
+        y = SensitivitySlider(x + 40f, y, w - 80f);
+        if (Button(new Rect(x + 40f, y, 320f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
+        if (Button(new Rect(x + 375f, y, 175f, 66f), "LAN GAME", false, true, 22)) OpenLan();
+        if (Button(new Rect(x + 565f, y, 175f, 66f), "INVENTORY", false, true, 22)) inventoryOpen = true;
+        y += 82f;
+        if (!string.IsNullOrEmpty(gm.MenuNotice))
+        {
+            Label(new Rect(x, y - 6f, w, 26f), gm.MenuNotice, 18, Danger, TextAnchor.MiddleCenter);
+            y += 22f;
+        }
+        Label(new Rect(x + 20f, y, w - 40f, 100f), ControlsHelp, 16, Dim, TextAnchor.UpperCenter);
+    }
+
+    float TeamRow(float x, float y, bool allowSpectate)
+    {
+        string[] options = allowSpectate ? new[] { "Terrorists", "SWAT", "Watch bots" } : new[] { "Terrorists", "SWAT" };
+        int selected = (int)gm.Side;
+        if (!allowSpectate && gm.Side == PlayerSide.Spectate) selected = -1;
+        return OptionRow(x, y, "Your team", options, selected, i =>
+        {
+            gm.Side = (PlayerSide)i;
+            if (gm.Side != PlayerSide.Spectate) gm.Net.PreferredTeam = gm.Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat;
+        });
+    }
+
+    float MatchSettingsRows(float x, float y)
+    {
         y = OptionRow(x, y, "Players per team", new[] { "1v1", "2v2", "3v3", "4v4", "5v5" }, gm.TeamSize - 1, i => gm.TeamSize = i + 1);
         y = OptionRow(x, y, "Bot difficulty", new[] { "Easy", "Normal", "Hard" }, (int)gm.Difficulty, i => gm.Difficulty = (BotDifficulty)i);
         int[] rounds = { 3, 5, 8, 16 };
         y = OptionRow(x, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, gm.RoundsToWin), i => gm.RoundsToWin = rounds[i]);
+        return OptionRow(x, y, "Friendly fire (teammates can hurt each other)", new[] { "Off", "On" }, gm.FriendlyFire ? 1 : 0, i => gm.FriendlyFire = i == 1);
+    }
 
-        y = SensitivitySlider(x + 40f, y, w - 80f);
-        if (Button(new Rect(x + 40f, y, w - 330f, 70f), "START MATCH", true, true, 32)) gm.StartMatch();
-        if (Button(new Rect(x + w - 270f, y, 230f, 70f), "INVENTORY", false, true, 26)) inventoryOpen = true;
-        y += 95f;
-        Label(new Rect(x + 20f, y, w - 40f, 100f), ControlsHelp, 17, Dim, TextAnchor.UpperCenter);
+    void OpenLan()
+    {
+        lanOpen = true;
+        gm.MenuNotice = null;
+        if (gm.Side == PlayerSide.Spectate) gm.Side = PlayerSide.Terrorists;
+        gm.Net.PreferredTeam = gm.Side == PlayerSide.Swat ? Team.Swat : Team.Terrorists;
+    }
+
+    // ----------------------------------------------------------------- LAN game screens
+
+    void DrawLanMenu()
+    {
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
+        float w = 780f, x = (width - w) / 2f, y = 70f;
+        Fill(new Rect(x, y, w, 940f), PanelColor);
+        Label(new Rect(x, y + 20f, w, 60f), "LAN GAME", 50, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 78f, w, 28f), "Play together with PCs on the same WiFi or network", 20, Dim, TextAnchor.MiddleCenter);
+        y += 125f;
+
+        Label(new Rect(x + 40f, y, 200f, 40f), "Your name", 22, Color.white);
+        string name = GUI.TextField(new Rect(x + 220f, y + 2f, w - 260f, 36f), gm.Net.PlayerName ?? "", 16, InputStyle());
+        if (name != gm.Net.PlayerName)
+        {
+            gm.Net.PlayerName = name;
+            PlayerPrefs.SetString(NameKey, name);
+        }
+        y += 60f;
+        y = TeamRow(x, y, allowSpectate: false);
+
+        if (Button(new Rect(x + 40f, y, w - 80f, 60f), "HOST A GAME", true, true, 26))
+        {
+            gm.MenuNotice = null;
+            gm.Net.StartHost();
+        }
+        y += 80f;
+
+        Label(new Rect(x + 40f, y, w - 80f, 32f), "Games on your network", 22, Color.white);
+        y += 40f;
+        var hosts = gm.Net.FoundHosts;
+        if (hosts.Count == 0)
+        {
+            Label(new Rect(x + 40f, y, w - 80f, 30f), "Searching...  (start HOST A GAME on the other PC)", 18, Dim);
+            y += 40f;
+        }
+        foreach (var host in hosts)
+        {
+            Fill(new Rect(x + 40f, y, w - 80f, 50f), new Color(1f, 1f, 1f, 0.06f));
+            string state = host.InMatch ? "match running" : "in lobby";
+            Label(new Rect(x + 55f, y, w - 300f, 50f), $"{host.Name}   ({host.Players} players, {state})   {host.Address}", 20, Color.white);
+            if (Button(new Rect(x + w - 200f, y + 6f, 150f, 38f), "JOIN", false, true, 20)) gm.Net.Join(host.Address);
+            y += 58f;
+        }
+
+        y += 10f;
+        Label(new Rect(x + 40f, y, 220f, 40f), "Or join by IP", 22, Color.white);
+        joinAddress = GUI.TextField(new Rect(x + 220f, y + 2f, w - 430f, 36f), joinAddress, 40, InputStyle());
+        if (Button(new Rect(x + w - 200f, y, 160f, 40f), "JOIN", false, !string.IsNullOrWhiteSpace(joinAddress), 20)) gm.Net.Join(joinAddress);
+        y += 56f;
+
+        string notice = !string.IsNullOrEmpty(gm.Net.Status) ? gm.Net.Status : gm.MenuNotice;
+        if (!string.IsNullOrEmpty(notice))
+        {
+            Label(new Rect(x + 40f, y, w - 80f, 30f), notice, 17, Danger);
+            y += 34f;
+        }
+        Label(new Rect(x + 40f, y, w - 80f, 60f),
+              "Windows may ask whether Desert Strike may use the network: allow it (at least on private networks).",
+              15, Dim);
+
+        if (Button(new Rect(x + w / 2f - 150f, 70f + 940f - 80f, 300f, 56f), "BACK"))
+        {
+            lanOpen = false;
+            gm.MenuNotice = null;
+        }
+    }
+
+    void DrawHostLobby()
+    {
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
+        float w = 780f, x = (width - w) / 2f, y = 70f;
+        Fill(new Rect(x, y, w, 940f), PanelColor);
+        Label(new Rect(x, y + 20f, w, 60f), "HOSTING A LAN GAME", 44, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 75f, w, 28f), $"Other PCs find this game automatically. Your IP: {string.Join(", ", NetSession.LocalAddresses())}",
+              18, Dim, TextAnchor.MiddleCenter);
+        y += 120f;
+
+        Label(new Rect(x + 40f, y, w - 80f, 32f), "Players", 22, Color.white);
+        y += 36f;
+        if (gm.Side != PlayerSide.Spectate)
+        {
+            Label(new Rect(x + 60f, y, w - 120f, 30f), $"{gm.Net.PlayerName}  ({NetSession.TeamName(gm.Net.PreferredTeam)}, you)", 20, TeamColor(gm.Net.PreferredTeam));
+            y += 32f;
+        }
+        foreach (var peer in gm.Net.Peers)
+        {
+            Label(new Rect(x + 60f, y, w - 120f, 30f), $"{peer.Name}  ({NetSession.TeamName(peer.Team)})", 20, TeamColor(peer.Team));
+            y += 32f;
+        }
+        if (gm.Net.Peers.Count == 0)
+        {
+            Label(new Rect(x + 60f, y, w - 120f, 30f), "Waiting for someone to join...  (bots fill the empty places)", 18, Dim);
+            y += 32f;
+        }
+        y += 14f;
+
+        y = TeamRow(x, y, allowSpectate: true);
+        y = MatchSettingsRows(x, y);
+        if (Button(new Rect(x + 40f, y, w - 80f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
+        y += 80f;
+        if (Button(new Rect(x + w / 2f - 150f, y, 300f, 52f), "STOP HOSTING")) gm.Net.Stop();
+    }
+
+    void DrawClientLobby()
+    {
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
+        float w = 780f, h = 640f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        Fill(new Rect(x, y, w, h), PanelColor);
+        var net = gm.Net;
+        Label(new Rect(x, y + 20f, w, 60f), net.Connected ? $"JOINED {net.HostName.ToUpperInvariant()}" : "CONNECTING...", 40, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 75f, w, 28f), net.Connected ? net.LobbySettings : net.Status, 18, Dim, TextAnchor.MiddleCenter);
+        y += 125f;
+        foreach (var line in net.LobbyPlayers)
+        {
+            Label(new Rect(x + 60f, y, w - 120f, 30f), line, 20, Color.white);
+            y += 32f;
+        }
+        y += 20f;
+        if (net.Connected)
+            Label(new Rect(x, y, w, 30f), "Waiting for the host to start the match...", 22, Color.white, TextAnchor.MiddleCenter);
+        if (Button(new Rect(x + w / 2f - 150f, (RefHeight + h) / 2f - 80f, 300f, 56f), "LEAVE")) net.Stop();
+    }
+
+    GUIStyle InputStyle()
+    {
+        var style = new GUIStyle(GUI.skin.textField) { fontSize = 22, alignment = TextAnchor.MiddleLeft };
+        style.padding.left = 10;
+        return style;
     }
 
     void DrawInventory()
@@ -208,13 +386,23 @@ public class GameUI : MonoBehaviour
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.55f));
         float w = 440f, x = (width - w) / 2f, y = 260f;
         Fill(new Rect(x, y, w, 520f), PanelColor);
-        Label(new Rect(x, y + 15f, w, 60f), "PAUSED", 44, Gold, TextAnchor.MiddleCenter);
+        bool online = gm.Net.Role != NetSession.Mode.Off;
+        Label(new Rect(x, y + 15f, w, 60f), online ? "MENU" : "PAUSED", 44, Gold, TextAnchor.MiddleCenter);
+        if (online) Label(new Rect(x, y + 62f, w, 24f), "The LAN game keeps running", 16, Dim, TextAnchor.MiddleCenter);
         y += 90f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "RESUME")) gm.SetPaused(false);
         y += 70f;
-        if (Button(new Rect(x + 40f, y, w - 80f, 56f), "RESTART MATCH")) gm.StartMatch();
-        y += 70f;
-        if (Button(new Rect(x + 40f, y, w - 80f, 56f), "MAIN MENU")) gm.ReturnToMenu();
+        if (gm.IsClient)
+        {
+            if (Button(new Rect(x + 40f, y, w - 80f, 56f), "LEAVE GAME")) gm.ReturnToMenu();
+            y += 70f;
+        }
+        else
+        {
+            if (Button(new Rect(x + 40f, y, w - 80f, 56f), "RESTART MATCH")) gm.StartMatch();
+            y += 70f;
+        }
+        if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) gm.ReturnToMenu();
         y += 70f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
         y += 80f;
@@ -230,6 +418,12 @@ public class GameUI : MonoBehaviour
         Label(new Rect(0f, 120f, width, 40f), $"{gm.TerroristWins} : {gm.SwatWins}", 36, Color.white, TextAnchor.MiddleCenter);
         DrawScoreboard(180f);
         float center = width / 2f;
+        if (gm.IsClient)
+        {
+            Label(new Rect(0f, RefHeight - 190f, width, 40f), "Waiting for the host to play again...", 22, Dim, TextAnchor.MiddleCenter);
+            if (Button(new Rect(center - 120f, RefHeight - 130f, 240f, 60f), "LEAVE GAME")) gm.ReturnToMenu();
+            return;
+        }
         if (Button(new Rect(center - 260f, RefHeight - 130f, 240f, 60f), "PLAY AGAIN")) gm.StartMatch();
         if (Button(new Rect(center + 20f, RefHeight - 130f, 240f, 60f), "MAIN MENU")) gm.ReturnToMenu();
     }
@@ -263,8 +457,8 @@ public class GameUI : MonoBehaviour
                     if (!weapon.AvailableTo(me.Team)) continue;
                     bool owned = me.Get(weapon.Slot)?.Data == weapon;
                     string text = $"{weapon.Name}\n{(owned ? "OWNED" : "$" + weapon.Price)}";
-                    if (Button(new Rect(cx, cy, columnWidth, 80f), text, false, !owned && me.Money >= weapon.Price) && me.TryBuy(weapon))
-                        SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+                    if (Button(new Rect(cx, cy, columnWidth, 80f), text, false, !owned && me.Money >= weapon.Price))
+                        gm.BuyWeapon(weapon);
                     cy += 92f;
                 }
             }
@@ -272,14 +466,19 @@ public class GameUI : MonoBehaviour
             {
                 bool hasVest = me.Armor >= 100;
                 if (Button(new Rect(cx, cy, columnWidth, 80f), $"Kevlar Vest\n{(hasVest ? "OWNED" : "$" + WeaponData.KevlarPrice)}",
-                           false, !hasVest && me.Money >= WeaponData.KevlarPrice) && me.TryBuyArmor(false))
-                    SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+                           false, !hasVest && me.Money >= WeaponData.KevlarPrice))
+                    gm.BuyArmor(false);
                 cy += 92f;
                 bool full = hasVest && me.Helmet;
                 int helmetPrice = hasVest ? WeaponData.KevlarHelmetPrice - WeaponData.KevlarPrice : WeaponData.KevlarHelmetPrice;
                 if (Button(new Rect(cx, cy, columnWidth, 80f), $"Kevlar + Helmet\n{(full ? "OWNED" : "$" + helmetPrice)}",
-                           false, !full && me.Money >= helmetPrice) && me.TryBuyArmor(true))
-                    SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+                           false, !full && me.Money >= helmetPrice))
+                    gm.BuyArmor(true);
+                cy += 92f;
+                if (me.Team == Team.Swat
+                    && Button(new Rect(cx, cy, columnWidth, 80f), $"Defuse Kit\n{(me.HasDefuseKit ? "OWNED" : "$" + WeaponData.DefuseKitPrice)}",
+                              false, !me.HasDefuseKit && me.Money >= WeaponData.DefuseKitPrice))
+                    gm.BuyDefuseKit();
             }
         }
     }
@@ -333,6 +532,7 @@ public class GameUI : MonoBehaviour
             DrawVitals(player.Self);
             DrawAmmo(player.Self);
             DrawMoney(player.Self);
+            DrawBombHints(player.Self);
             DrawDamageFlash();
         }
         else if (gm.Spectated != null)
@@ -351,6 +551,39 @@ public class GameUI : MonoBehaviour
         }
         if (gm.State == MatchState.RoundEnd && gm.Banner != null)
             Label(new Rect(0f, 280f, width, 80f), gm.Banner, 56, gm.LastWinner.HasValue ? TeamColor(gm.LastWinner.Value) : Color.white, TextAnchor.MiddleCenter);
+        else if (gm.Message != null && Time.time < gm.MessageUntil)
+            Label(new Rect(0f, 220f, width, 60f), gm.Message, 42, Danger, TextAnchor.MiddleCenter);
+    }
+
+    void DrawBombHints(Combatant me)
+    {
+        var bomb = gm.Bomb;
+        if (bomb.User == me && bomb.UseProgress > 0f)
+        {
+            bool planting = bomb.State == BombState.Carried;
+            float w = 420f, x = (width - w) / 2f, y = RefHeight * 0.62f;
+            Label(new Rect(0f, y - 38f, width, 32f), planting ? "PLANTING THE BOMB..." : "DEFUSING THE BOMB...", 24, Gold, TextAnchor.MiddleCenter);
+            Fill(new Rect(x, y, w, 14f), new Color(0f, 0f, 0f, 0.6f));
+            Fill(new Rect(x, y, w * Mathf.Clamp01(bomb.UseProgress), 14f), planting ? TerroristColor : SwatColor);
+            return;
+        }
+        if (gm.State != MatchState.Live) return;
+
+        string hint = null;
+        Color color = Color.white;
+        if (bomb.State == BombState.Carried && bomb.Carrier == me)
+        {
+            string site = gm.Map.SiteAt(me.transform.position);
+            hint = site != null ? $"Hold E to plant the bomb on {site}" : "You have the bomb: plant it on site A or B   (G to drop it)";
+            color = TerroristColor;
+        }
+        else if (bomb.State == BombState.Planted && me.Team == Team.Swat
+                 && Vector3.Distance(me.transform.position, bomb.Position) < BombManager.DefuseRadius)
+        {
+            hint = me.HasDefuseKit ? "Hold E to defuse (5 s with your kit)" : "Hold E to defuse (10 s; a defuse kit makes it 5 s)";
+            color = SwatColor;
+        }
+        if (hint != null) Label(new Rect(0f, RefHeight - 180f, width, 30f), hint, 20, color, TextAnchor.MiddleCenter);
     }
 
     void DrawTopBar()
@@ -363,7 +596,15 @@ public class GameUI : MonoBehaviour
         float remaining = gm.State == MatchState.Live ? Mathf.Max(0f, gm.StateEndsAt - Time.time)
                         : gm.State == MatchState.Freeze ? GameManager.RoundTime : 0f;
         Color timerColor = gm.State == MatchState.Live && remaining < 15f ? Danger : Color.white;
-        Label(new Rect(x, 12f, w, 48f), $"{(int)remaining / 60}:{(int)remaining % 60:00}", 38, timerColor, TextAnchor.MiddleCenter);
+        string clock = $"{(int)remaining / 60}:{(int)remaining % 60:00}";
+        if (gm.Bomb.State == BombState.Planted && gm.State == MatchState.Live)
+        {
+            // The round clock stops once the bomb is planted; show the bomb's instead.
+            float fuse = gm.Bomb.TimeLeft;
+            clock = $"C4  {(int)fuse / 60}:{(int)fuse % 60:00}";
+            timerColor = Time.time % 1f < 0.5f ? Danger : Color.white;
+        }
+        Label(new Rect(x, 12f, w, 48f), clock, 38, timerColor, TextAnchor.MiddleCenter);
 
         Label(new Rect(x + 15f, 54f, 200f, 26f), $"{gm.AliveCount(Team.Terrorists)} alive", 18, Dim);
         Label(new Rect(x + w - 215f, 54f, 200f, 26f), $"{gm.AliveCount(Team.Swat)} alive", 18, Dim, TextAnchor.MiddleRight);
@@ -376,14 +617,29 @@ public class GameUI : MonoBehaviour
         Fill(area, new Color(0f, 0f, 0f, 0.45f));
         GUI.DrawTexture(area, gm.Map.Radar);
         var me = gm.Player != null ? gm.Player.Self : null;
+        var bomb = gm.Bomb;
+        bool terroristView = me == null || me.Team == Team.Terrorists;
         foreach (var c in gm.Combatants)
         {
             if (!c.IsAlive || (me != null && c.Team != me.Team)) continue;
-            Vector2 p = MapBuilder.ToRadar(c.transform.position);
-            float size = c.IsPlayer ? 10f : 8f;
-            var dot = new Rect(area.x + p.x * area.width - size / 2f, area.y + (1f - p.y) * area.height - size / 2f, size, size);
-            Fill(dot, c.IsPlayer ? Color.white : TeamColor(c.Team));
+            bool carrier = terroristView && bomb.State == BombState.Carried && bomb.Carrier == c;
+            float size = c.IsPlayer || carrier ? 10f : 8f;
+            Fill(RadarDot(area, c.transform.position, size), carrier ? Danger : c.IsPlayer ? Color.white : TeamColor(c.Team));
         }
+
+        // The planted bomb is shown to everyone; a dropped one only to the Terrorists.
+        bool showBomb = bomb.State == BombState.Planted || (bomb.State == BombState.Dropped && terroristView);
+        if (showBomb && (bomb.State != BombState.Planted || Time.time % 0.6f < 0.4f))
+        {
+            Fill(RadarDot(area, bomb.Position, 12f), Color.black);
+            Fill(RadarDot(area, bomb.Position, 9f), Danger);
+        }
+    }
+
+    static Rect RadarDot(Rect area, Vector3 world, float size)
+    {
+        Vector2 p = MapBuilder.ToRadar(world);
+        return new Rect(area.x + p.x * area.width - size / 2f, area.y + (1f - p.y) * area.height - size / 2f, size, size);
     }
 
     void DrawKillFeed()

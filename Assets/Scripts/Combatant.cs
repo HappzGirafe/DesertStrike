@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class WeaponInstance
@@ -21,9 +22,17 @@ public class WeaponInstance
 
 public enum HitResult { None, Hit, Kill }
 
+/// <summary>Drives a combatant: the player on this PC, a bot, or (on the host) a player on another PC.</summary>
+public interface ICombatantController
+{
+    void Respawn(Vector3 position, float yaw);
+}
+
 /// <summary>
 /// Health, armor, money, weapons and stats for anyone who fights.
-/// PlayerController and BotController both drive one of these, so both play by the same rules.
+/// PlayerController, BotController and RemotePlayerController all drive one of these, so everyone plays
+/// by the same rules. On a network client every combatant is a mirror: the host decides what happens to
+/// it and the client only shows it (and sends its own player's shots and actions to the host).
 /// </summary>
 public class Combatant : MonoBehaviour
 {
@@ -31,14 +40,23 @@ public class Combatant : MonoBehaviour
 
     public string DisplayName;
     public Team Team;
-    public bool IsPlayer;
+    public bool IsPlayer;          // the person playing on this PC
+    public bool IsHuman;           // a person (on this PC or another), not a bot
+    public bool IsMirror;          // network client copy of a combatant the host runs
+    public int NetId;
+    public int SpawnCount;         // goes up on every respawn, so network copies can tell
+    public int SkinSeed;           // picks the skins bots carry
+    public Dictionary<string, string> SkinChoices;   // weapon id -> skin id, for people
     public int Health;
     public int Armor;
     public bool Helmet;
+    public bool HasDefuseKit;
     public int Money;
     public int Kills;
     public int Deaths;
     public float Height = StandHeight;
+    public bool Scoped;            // looking through a scope right now (for "noscope" in the kill feed)
+    public string LastResupply;    // free ammo given at the start of this round
     public Transform Eye;
     public Transform Muzzle;
 
@@ -49,7 +67,7 @@ public class Combatant : MonoBehaviour
 
     public bool IsAlive => Health > 0;
     public bool IsReloading => reloadEndTime > 0f;
-    public float ReloadProgress => IsReloading ? 1f - (reloadEndTime - Time.time) / Current.Data.ReloadTime : 0f;
+    public float ReloadProgress => IsReloading ? Mathf.Clamp01(1f - (reloadEndTime - Time.time) / Current.Data.ReloadTime) : 0f;
 
     public Vector3 EyePosition => Eye != null ? Eye.position : transform.position + Vector3.up * (Height - 0.15f);
     public Vector3 HeadPosition => transform.position + Vector3.up * (Height - 0.17f);
@@ -62,16 +80,19 @@ public class Combatant : MonoBehaviour
     WeaponInstance previous;
     float nextFireTime;
     float reloadEndTime;
+    float predictUntil;   // client: keep our own guess of the weapon state until the host has caught up
 
     /// <summary>Heals for a new round. Survivors keep their gear; everyone else restarts with a pistol.</summary>
     public void ResetForRound(bool keepGear)
     {
         Health = 100;
         reloadEndTime = 0f;
+        LastResupply = null;
         if (!keepGear || Knife == null)
         {
             Armor = 0;
             Helmet = false;
+            HasDefuseKit = false;
             Knife = new WeaponInstance(WeaponData.Knife);
             Secondary = new WeaponInstance(Team == Team.Terrorists ? WeaponData.Glock : WeaponData.Usp);
             Primary = null;
@@ -94,6 +115,7 @@ public class Combatant : MonoBehaviour
             weapon.Reserve += weapon.Data.RoundAmmoBonus;
             added += (added.Length > 0 ? ", " : "") + $"+{weapon.Data.RoundAmmoBonus} {weapon.Data.Name}";
         }
+        LastResupply = added;
         return added;
     }
 
@@ -119,6 +141,11 @@ public class Combatant : MonoBehaviour
         var weapon = Get(slot);
         if (weapon == null || weapon == Current) return false;
         SetCurrent(weapon, instant ? 0f : 0.4f);
+        if (IsMirror)
+        {
+            HoldPrediction();
+            GameManager.Instance.Net.SendAction(NetAction.Equip, (int)slot);
+        }
         return true;
     }
 
@@ -156,27 +183,50 @@ public class Combatant : MonoBehaviour
         return true;
     }
 
+    public bool TryBuyDefuseKit()
+    {
+        if (Team != Team.Swat || HasDefuseKit || Money < WeaponData.DefuseKitPrice) return false;
+        Money -= WeaponData.DefuseKitPrice;
+        HasDefuseKit = true;
+        return true;
+    }
+
     public bool CanFire => IsAlive && Current != null && !IsReloading && Time.time >= nextFireTime
                            && (Current.Data.IsMelee || Current.Mag > 0);
 
-    public bool TryFire(Vector3 direction, float spreadDegrees)
+    /// <param name="ignoreFireRate">For shots from another PC, which already paced them.</param>
+    public bool TryFire(Vector3 direction, float spreadDegrees, bool ignoreFireRate = false)
     {
-        if (!CanFire) return false;
+        if (!IsAlive || Current == null || IsReloading) return false;
+        if (!ignoreFireRate && Time.time < nextFireTime) return false;
+        if (!Current.Data.IsMelee && Current.Mag <= 0) return false;
+
         var weapon = Current.Data;
         nextFireTime = Time.time + weapon.FireInterval;
         if (!weapon.IsMelee) Current.Mag--;
 
         Vector3 origin = EyePosition;
         Vector3 tracerFrom = Muzzle != null ? Muzzle.position : origin;
+        SoundFX.PlayShot(weapon, origin, IsPlayer);
+        if (!weapon.IsMelee) Effects.MuzzleFlash(tracerFrom);
+
+        var gm = GameManager.Instance;
+        if (IsMirror)
+        {
+            // Network client: the host does the actual shooting.
+            HoldPrediction();
+            gm.Net.SendFire(direction, spreadDegrees);
+            return true;
+        }
+
+        gm.Net.RecordFire(this, weapon, tracerFrom);
         if (weapon.Explosive)
             Rocket.Launch(this, origin, Ballistics.ApplySpread(direction, spreadDegrees), weapon);
         else
             for (int i = 0; i < weapon.Pellets; i++)
                 Ballistics.Fire(this, origin, Ballistics.ApplySpread(direction, spreadDegrees), weapon, tracerFrom);
 
-        SoundFX.PlayShot(weapon, origin, IsPlayer);
-        if (!weapon.IsMelee) Effects.MuzzleFlash(tracerFrom);
-        GameManager.Instance.ReportNoise(origin, Team, weapon.IsMelee ? 6f : 60f);
+        gm.ReportNoise(origin, Team, weapon.IsMelee ? 6f : 60f);
         return true;
     }
 
@@ -187,6 +237,11 @@ public class Combatant : MonoBehaviour
             return false;
         reloadEndTime = Time.time + weapon.Data.ReloadTime;
         SoundFX.Play(SoundFX.Reload, EyePosition, IsPlayer ? 0.5f : 0.4f, 1f, !IsPlayer, 25f);
+        if (IsMirror)
+        {
+            HoldPrediction();
+            GameManager.Instance.Net.SendAction(NetAction.Reload, 0);
+        }
         return true;
     }
 
@@ -206,9 +261,10 @@ public class Combatant : MonoBehaviour
     public HitResult TakeExplosion(Combatant attacker, WeaponData weapon, float damage) =>
         CanBeHurtBy(attacker) ? ApplyDamage(attacker, weapon, damage, false) : HitResult.None;
 
-    // No friendly fire, but your own rocket can still hurt you.
+    // Teammates can only hurt each other with friendly fire on; your own rocket always can.
     bool CanBeHurtBy(Combatant attacker) =>
-        IsAlive && (attacker == null || attacker == this || attacker.Team != Team);
+        IsAlive && !IsMirror
+        && (attacker == null || attacker == this || attacker.Team != Team || GameManager.Instance.FriendlyFire);
 
     HitResult ApplyDamage(Combatant attacker, WeaponData weapon, float damage, bool headshot)
     {
@@ -231,6 +287,48 @@ public class Combatant : MonoBehaviour
         return HitResult.Kill;
     }
 
+    // ----------------------------------------------------------------- network client copies
+
+    /// <summary>Client: keep our own guess of slot, ammo and reload for a moment after acting on them.</summary>
+    public void HoldPrediction() => predictUntil = Time.time + 0.35f;
+
+    public void ApplyNetLoadout(WeaponData primary, WeaponData secondary, WeaponSlot slot, int mag, int reserve,
+                                float reloadProgress, bool autoMode)
+    {
+        if (Knife == null) Knife = new WeaponInstance(WeaponData.Knife);
+        if (Primary?.Data != primary) Primary = primary != null ? new WeaponInstance(primary) : null;
+        if (Secondary?.Data != secondary) Secondary = secondary != null ? new WeaponInstance(secondary) : null;
+
+        bool predicting = Time.time < predictUntil;
+        var wanted = predicting && Current != null && Get(Current.Data.Slot) == Current ? Current : Get(slot) ?? Knife;
+        bool changed = wanted != Current;
+        if (changed)
+        {
+            previous = Current;
+            Current = wanted;
+        }
+        if (!predicting && Current.Data.Slot == slot)
+        {
+            Current.Mag = mag;
+            Current.Reserve = reserve;
+            Current.AutoMode = autoMode;
+            reloadEndTime = reloadProgress > 0f ? Time.time + (1f - reloadProgress) * Current.Data.ReloadTime : 0f;
+        }
+        if (changed) WeaponChanged?.Invoke();
+    }
+
+    public void ApplyNetHealth(int health)
+    {
+        int old = Health;
+        Health = health;
+        if (health < old) Damaged?.Invoke(null, old - health);
+        if (old > 0 && health <= 0)
+        {
+            reloadEndTime = 0f;
+            Died?.Invoke(null);
+        }
+    }
+
     void SetCurrent(WeaponInstance weapon, float drawDelay)
     {
         previous = Current;
@@ -245,6 +343,7 @@ public class Combatant : MonoBehaviour
         if (reloadEndTime > 0f && Time.time >= reloadEndTime)
         {
             reloadEndTime = 0f;
+            if (IsMirror) return;   // the host sends the new ammo counts
             int take = Mathf.Min(Current.Data.MagSize - Current.Mag, Current.Reserve);
             Current.Mag += take;
             Current.Reserve -= take;

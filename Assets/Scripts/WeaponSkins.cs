@@ -107,6 +107,44 @@ public static class WeaponSkins
         PlayerPrefs.Save();
     }
 
+    public static WeaponSkin Find(WeaponData weapon, string id)
+    {
+        foreach (var skin in For(weapon))
+            if (string.Equals(skin.Id, id, StringComparison.OrdinalIgnoreCase)) return skin;
+        return null;
+    }
+
+    /// <summary>The skin the player has equipped on every weapon: weapon id -> skin id.</summary>
+    public static Dictionary<string, string> EquippedChoices()
+    {
+        var choices = new Dictionary<string, string>();
+        foreach (var weapon in WeaponData.All)
+        {
+            var skin = Equipped(weapon);
+            if (skin != null) choices[weapon.Id] = skin.Id;
+        }
+        return choices;
+    }
+
+    /// <summary>"glock=Pink Scribble;knife=nogektestskin", to send the choices to the host.</summary>
+    public static string EncodeChoices(Dictionary<string, string> choices)
+    {
+        var parts = new List<string>();
+        foreach (var pair in choices) parts.Add(pair.Key + "=" + pair.Value);
+        return string.Join(";", parts);
+    }
+
+    public static Dictionary<string, string> DecodeChoices(string text)
+    {
+        var choices = new Dictionary<string, string>();
+        foreach (var part in (text ?? "").Split(';'))
+        {
+            int split = part.IndexOf('=');
+            if (split > 0) choices[part.Substring(0, split)] = part.Substring(split + 1);
+        }
+        return choices;
+    }
+
     /// <summary>A skin chosen by <paramref name="seed"/>, so a bot keeps the same look all match.</summary>
     public static WeaponSkin Pick(WeaponData weapon, int seed)
     {

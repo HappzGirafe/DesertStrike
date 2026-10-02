@@ -11,6 +11,7 @@ public class WeaponData
 {
     public const int KevlarPrice = 650;
     public const int KevlarHelmetPrice = 1000;
+    public const int DefuseKitPrice = 400;
 
     public string Id;
     public string Name;
@@ -137,8 +138,19 @@ public class WeaponData
         ArmorPenetration = 0.85f, MoveSpeed = 4.8f, KillReward = 100,
     };
 
+    /// <summary>The C4: not a shop weapon, only used for its blast damage and in the kill feed.</summary>
+    public static readonly WeaponData Bomb = new WeaponData
+    {
+        Id = "c4", Name = "C4", Slot = WeaponSlot.Knife, Damage = 500, ArmorPenetration = 0.9f, KillReward = 0,
+    };
+
     // Declared after the weapons above so they are already initialized.
     public static readonly WeaponData[] All = { Knife, Glock, Usp, TecDc9, M1911, Deagle, Mp5, Shotgun, Ak47, M4a1, Awp, Rpg };
+
+    /// <summary>Position in <see cref="All"/> (used to send weapons over the network); 255 for none.</summary>
+    public static int IndexOf(WeaponData weapon) => weapon == null ? 255 : System.Array.IndexOf(All, weapon);
+
+    public static WeaponData FromIndex(int index) => index >= 0 && index < All.Length ? All[index] : null;
 
     /// <summary>Finds a weapon by id ("ak47") or display name ("AK-47"), ignoring case.</summary>
     public static WeaponData Find(string idOrName)
