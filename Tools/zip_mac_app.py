@@ -3,7 +3,8 @@
 Windows does not keep the Unix "executable" permission, so a plain zip of the app arrives on the Mac with a
 program that is not allowed to run. This zip marks the files in Contents/MacOS (and libraries) executable.
 
-    python Tools/zip_mac_app.py Builds/macOS/DesertStrike.app Builds/DesertStrike-macOS.zip
+    python Tools/zip_mac_app.py Builds/macOS/DesertStrike.app Builds/DesertStrike-macOS.zip ["Tools/How to open on Mac.txt" ...]
+Any extra files are put next to the app in the zip.
 (Blender's Python works too: "C:/Program Files/Blender Foundation/Blender 5.2/5.2/python/bin/python.exe")
 """
 import os
@@ -12,7 +13,7 @@ import sys
 import time
 import zipfile
 
-app, output = sys.argv[1], sys.argv[2]
+app, output, extras = sys.argv[1], sys.argv[2], sys.argv[3:]
 base = os.path.dirname(os.path.abspath(app))
 now = time.localtime()[:6]
 
@@ -34,5 +35,13 @@ with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
             info.compress_type = zipfile.ZIP_DEFLATED
             with open(full, "rb") as source:
                 archive.writestr(info, source.read())
+
+    for extra in extras:
+        info = zipfile.ZipInfo(os.path.basename(extra), now)
+        info.create_system = 3
+        info.external_attr = (stat.S_IFREG | 0o644) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        with open(extra, "rb") as source:
+            archive.writestr(info, source.read())
 
 print("Wrote", output)

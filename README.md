@@ -19,12 +19,13 @@ Both files are in the [`Builds`](Builds) folder of this repository, and every ve
 - **Windows:** download `DesertStrike-Windows.exe` and double-click it.
   It is the whole game in one file: the first time (and after an update) it unpacks the game to
   `%LOCALAPPDATA%\DesertStrike`, then starts it. If Windows SmartScreen appears, click *More info* > *Run anyway*.
-- **macOS** (Intel and Apple Silicon): download `DesertStrike-macOS.zip`, unzip it, and run this once in Terminal
-  in the folder with the app (the app is not signed by Apple, so macOS blocks it until you do):
-  ```
-  xattr -cr DesertStrike.app && codesign --force --deep -s - DesertStrike.app
-  ```
-  Then open `DesertStrike.app` (the first time: right-click > Open).
+- **macOS** (Intel and Apple Silicon): download `DesertStrike-macOS.zip` and unzip it. The game is not signed
+  with a paid Apple Developer ID, so the first time macOS says it "cannot be opened" (unidentified developer).
+  Allow it once:
+  1. Double-click **DesertStrike**, then click **Done** / **OK** on the warning.
+  2. Open **System Settings > Privacy & Security**, scroll down, click **Open Anyway** next to
+     *"DesertStrike" was blocked*, and enter your Mac password.
+  3. Click **Open**. From then on it opens normally. (The zip also contains these steps as a text file.)
 - **In Unity:** open this folder in Unity Hub, open `Assets/Scenes/DesertStrike.unity` (it opens automatically), press Play.
 
 The main menu lets you pick your team (Terrorists, SWAT, or watch the bots), team size (1v1 to 5v5),
@@ -45,7 +46,11 @@ The game uses UDP ports 27015 (game) and 27016 (finding games).
 - Unity menu **Desert Strike > Build Windows Game** → `Builds/Windows/`
 - Unity menu **Desert Strike > Build macOS Game** (needs Unity's Mac Build Support module) → `Builds/macOS/DesertStrike.app`
 - One-file Windows exe: `powershell -ExecutionPolicy Bypass -File Tools/build_launcher.ps1` → `Builds/DesertStrike-Windows.exe`
-- Mac zip that keeps the app runnable: `python Tools/zip_mac_app.py Builds/macOS/DesertStrike.app Builds/DesertStrike-macOS.zip`
+- Sign the Mac app (ad-hoc, so Macs do not call it "damaged") with the free
+  [rcodesign](https://github.com/indygreg/apple-platform-rs/releases) tool: `rcodesign sign Builds/macOS/DesertStrike.app`
+- Mac zip that keeps the app runnable, with the opening steps:
+  `python Tools/zip_mac_app.py Builds/macOS/DesertStrike.app Builds/DesertStrike-macOS.zip "Tools/How to open on Mac.txt"`
+- Removing the "unidentified developer" warning completely needs an Apple Developer ID ($99/year) and notarization.
 
 ## Controls
 

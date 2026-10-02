@@ -1,0 +1,15 @@
+DESERT STRIKE ON MAC - HOW TO OPEN IT THE FIRST TIME
+
+macOS only opens apps silently when the developer pays Apple for a Developer ID.
+Desert Strike is a free hobby game, so the first time macOS says it "cannot be opened"
+or that Apple "could not verify" it. Allow it once like this:
+
+1. Double-click DesertStrike. When the warning appears, click "Done" (or "OK").
+2. Open System Settings > Privacy & Security and scroll down to "Security".
+3. Next to '"DesertStrike" was blocked...', click "Open Anyway" and enter your Mac password.
+4. Click "Open". From now on it opens normally.
+
+(Tip: move DesertStrike to your Applications folder first, then do the steps above.)
+
+LAN games: the first time, macOS may ask whether DesertStrike may accept incoming network
+connections. Click "Allow" so other PCs on your WiFi can find and join your game.
