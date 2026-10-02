@@ -4,9 +4,19 @@ A small Counter-Strike-style shooter made in Unity 6.3 (built-in render pipeline
 Terrorists vs SWAT, round-based, with a buy menu and bots, on **de_dune**, a desert map with a Dust-2-style layout
 (outside long, long doors, long A, catwalk/short A, mid doors, upper and lower tunnels to B).
 
+## Download
+
+| System | File | |
+| --- | --- | --- |
+| Windows | [**DesertStrike-Windows.exe**](https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe) | the whole game in one file |
+| macOS | [**DesertStrike-macOS.zip**](https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip) | Intel and Apple Silicon |
+
+Both files are in the [`Builds`](Builds) folder of this repository, and every version is also on the
+[Releases](https://github.com/HappzGirafe/DesertStrike/releases) page.
+
 ## Play
 
-- **Windows:** download `DesertStrike-Windows.exe` from the [Releases](../../releases) page and double-click it.
+- **Windows:** download `DesertStrike-Windows.exe` and double-click it.
   It is the whole game in one file: the first time (and after an update) it unpacks the game to
   `%LOCALAPPDATA%\DesertStrike`, then starts it. If Windows SmartScreen appears, click *More info* > *Run anyway*.
 - **macOS** (Intel and Apple Silicon): download `DesertStrike-macOS.zip`, unzip it, and run this once in Terminal

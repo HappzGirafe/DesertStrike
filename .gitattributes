@@ -1,5 +1,9 @@
 * text=auto
 
+# Ready-to-play builds
+*.exe binary
+*.zip binary
+
 # Unity YAML assets: merge as text, keep Unity's line endings
 *.unity text eol=lf
 *.prefab text eol=lf
