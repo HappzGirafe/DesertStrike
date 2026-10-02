@@ -88,8 +88,12 @@ The game uses UDP ports 27015 (game) and 27016 (finding games).
 Hover a skin to preview it and click to equip it; the choice is saved. Bots carry random skins.
 
 Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
-Custom skins: Pink Scribble (Glock-18, USP), and skins with their own model: nogektestskin (knife),
-digle (Desert Eagle) and AWPSkin (AWP).
+Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
+nogektestskin (knife) and digle (Desert Eagle).
+
+The Glock-18, USP, TEC-DC9, M1911, MP5, M4A1, AK-47 and AWP use Blender models. Their **Default** skin is the
+model's own look from Blender; the other skins ("wraps") paint over it. Weapons without a model (Desert Eagle,
+Pump Shotgun, RPG, knife) are built from boxes.
 
 ### Skin folders
 
@@ -127,17 +131,25 @@ To add a skin, create a new folder: Unity updates `Skins/index.json` by itself, 
 ### Blender models
 
 - Sources: `Art/Blender/*.blend`, with their textures in `Art/Textures`
-- The Glock-18 and USP models: `Assets/Resources/Models/*.fbx`
+- A weapon's default model: `Assets/Resources/Models/<weapon name>/model.fbx`, with `parts.json` and the textures
+  that make up its own look
 - A skin's own model: `model.fbx` in its skin folder
 
-After editing a model in Blender, re-export it (Blender must be installed):
+After adding or editing a model in Blender, re-export everything (Blender must be installed):
 
 ```
-blender -b Art/Blender/Glock18.blend --python Tools/export_gun_fbx.py -- Assets/Resources/Models/Glock18.fbx
+powershell -ExecutionPolicy Bypass -File Tools/export_models.ps1
 ```
 
-The exporter names the parts by the texture they use: `peredr...` = guard, `ruchka`/`rychka` = grip,
-`nogen` = knife blade, `skin` = pistol slide, and an untextured mesh (like the USP silencer) is a detail part.
+`Tools/export_models.ps1` has one line per model. A skin paints a model by part: **Main** (body, slide, blade) gets
+`main.png`, **Grip** (grip, stock) the grip colour, and **Detail** (barrel, magazine, sights) the detail colour.
+`--roles "Main=Cube.002;Grip=Cube"` says which Blender objects are which (every other object is a Detail), and
+`--copy-textures` makes the model's own textures and colours its Default look. Without `--roles` the texture names
+decide (`ruchka`/`rychka`/`wood` = grip, `skin`/`stvol`/`steel` = main, `nogen` = knife blade, `peredr` = guard).
+Flat reference pictures in a .blend are left out.
+
+The AK-47's textures (`ak 47 steel.png`, `ak 47 wood.png`, `AWP_dulo.png`) were not on this PC, so its Default skin
+uses plain steel and wood colours. Put them in `Art/Textures` and re-export to use them.
 
 ## Rules
 

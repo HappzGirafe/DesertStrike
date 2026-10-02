@@ -1,0 +1,46 @@
+{
+  "parts": [
+    {
+      "name": "Grip",
+      "texture": "teg92",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail",
+      "texture": "tec91",
+      "color": "#E6E6E6",
+      "metallic": 0.0,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Main",
+      "texture": "teg92",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.001",
+      "texture": "teg92",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.002",
+      "texture": "teg92",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.003",
+      "texture": "tec91",
+      "color": "#E6E6E6",
+      "metallic": 0.0,
+      "smoothness": 0.3
+    }
+  ]
+}

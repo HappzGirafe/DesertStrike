@@ -1,0 +1,39 @@
+{
+  "parts": [
+    {
+      "name": "Main",
+      "texture": "",
+      "color": "#0C5200",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Main.001",
+      "texture": "",
+      "color": "#082E03",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail",
+      "texture": "",
+      "color": "#31302B",
+      "metallic": 0.0,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.001",
+      "texture": "",
+      "color": "#6A6A6A",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.002",
+      "texture": "",
+      "color": "#3C3931",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    }
+  ]
+}

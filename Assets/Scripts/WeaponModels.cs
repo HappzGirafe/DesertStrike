@@ -48,8 +48,10 @@ public static class WeaponModels
         muzzlePosition = default;
         var prefab = WeaponSkins.LoadModel(weapon, skin);
         if (prefab == null) return false;
+        string modelPath = WeaponSkins.ModelPath(weapon, skin);
 
-        // Parts are named by Tools/export_gun_fbx.py: Slide or Blade (main), Grip, and Guard/Silencer (detail).
+        // Parts are named by Tools/export_gun_fbx.py: Main (also Slide, Blade), Grip, and Detail (anything else).
+        // Each part gets the skin's material, else its own look from Blender (parts.json), else a plain metal colour.
         var model = Object.Instantiate(prefab, root, false).transform;
         var mains = new List<MeshFilter>();
         var grips = new List<MeshFilter>();
@@ -64,7 +66,7 @@ public static class WeaponModels
                 unskinned = DarkMetal;
                 grips.Add(filter);
             }
-            else if (filter.name.StartsWith("Slide") || filter.name.StartsWith("Blade"))
+            else if (filter.name.StartsWith("Main") || filter.name.StartsWith("Slide") || filter.name.StartsWith("Blade"))
             {
                 part = SkinPart.Main;
                 unskinned = weapon.IsMelee ? Steel : Metal;
@@ -75,7 +77,9 @@ public static class WeaponModels
                 part = SkinPart.Detail;
                 unskinned = DarkMetal;
             }
-            filter.GetComponent<Renderer>().sharedMaterial = WeaponSkins.MaterialFor(skin, part) ?? Effects.Mat(unskinned);
+            filter.GetComponent<Renderer>().sharedMaterial = WeaponSkins.MaterialFor(skin, part)
+                                                             ?? WeaponSkins.OwnLook(modelPath, filter.name)
+                                                             ?? Effects.Mat(unskinned);
             all.Add(filter);
         }
         if (mains.Count == 0) mains = all;

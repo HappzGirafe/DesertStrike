@@ -1,0 +1,81 @@
+{
+  "parts": [
+    {
+      "name": "Main",
+      "texture": "M4a1",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Main.001",
+      "texture": "mp5ocnova",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail",
+      "texture": "teg92",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.001",
+      "texture": "M4a1",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.002",
+      "texture": "mp5ocnova",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Grip",
+      "texture": "M4a1",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.003",
+      "texture": "mp5ocnova",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Grip.001",
+      "texture": "M4a1",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.004",
+      "texture": "mp5ocnova",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.005",
+      "texture": "skin1_nogen_peredrychkou",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail.006",
+      "texture": "mp5ocnova",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    }
+  ]
+}

@@ -10,9 +10,9 @@
             "hasDetail": false,
             "info": {
                 "name": "Default",
-                "main": "",
-                "grip": "",
-                "detail": "",
+                "main": "#3A3A3E",
+                "grip": "#7A4A26",
+                "detail": "#202023",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0
             }
@@ -138,14 +138,14 @@
         },
         {
             "weapon": "awp",
-            "id": "AWPSkin",
-            "folder": "Skins/AWP/AWPSkin",
-            "hasModel": true,
+            "id": "AWP_1skin",
+            "folder": "Skins/AWP/AWP_1skin",
+            "hasModel": false,
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
             "info": {
-                "name": "AWPSkin",
+                "name": "AWP_1skin",
                 "main": "",
                 "grip": "",
                 "detail": "",
@@ -1308,6 +1308,40 @@
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0
             }
+        }
+    ],
+    "models": [
+        {
+            "weapon": "ak47",
+            "path": "Models/AK-47/model"
+        },
+        {
+            "weapon": "awp",
+            "path": "Models/AWP/model"
+        },
+        {
+            "weapon": "glock",
+            "path": "Models/Glock-18/model"
+        },
+        {
+            "weapon": "m1911",
+            "path": "Models/M1911/model"
+        },
+        {
+            "weapon": "m4a1",
+            "path": "Models/M4A1/model"
+        },
+        {
+            "weapon": "mp5",
+            "path": "Models/MP5/model"
+        },
+        {
+            "weapon": "tec9",
+            "path": "Models/TEC-DC9/model"
+        },
+        {
+            "weapon": "usp",
+            "path": "Models/USP/model"
         }
     ]
 }

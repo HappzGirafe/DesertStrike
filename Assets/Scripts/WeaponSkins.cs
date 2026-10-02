@@ -25,10 +25,36 @@ public class SkinIndexEntry
     public SkinInfo info;
 }
 
+/// <summary>A weapon's default model: Resources path of Models/&lt;weapon name&gt;/model.fbx.</summary>
+[Serializable]
+public class ModelIndexEntry
+{
+    public string weapon;
+    public string path;
+}
+
 [Serializable]
 public class SkinIndex
 {
     public List<SkinIndexEntry> skins = new List<SkinIndexEntry>();
+    public List<ModelIndexEntry> models = new List<ModelIndexEntry>();
+}
+
+/// <summary>One part's own look from Blender, as Tools/export_gun_fbx.py writes it to parts.json.</summary>
+[Serializable]
+public class PartLook
+{
+    public string name;
+    public string texture;
+    public string color;
+    public float metallic;
+    public float smoothness = 0.2f;
+}
+
+[Serializable]
+class PartLooks
+{
+    public List<PartLook> parts = new List<PartLook>();
 }
 
 /// <summary>Parts a skin can paint: main = slide/body/blade, grip = grip/stock/handle, detail = barrel/mag/scope/guard.</summary>
@@ -57,14 +83,9 @@ public static class WeaponSkins
 {
     const string Root = "Skins";
 
-    // Weapons whose own model comes from Blender (weapon id -> Resources path). Others use box models.
-    static readonly Dictionary<string, string> ModelPaths = new Dictionary<string, string>
-    {
-        { "glock", "Models/Glock18" },
-        { "usp", "Models/USP" },
-    };
-
     static Dictionary<string, List<WeaponSkin>> byWeapon;
+    static readonly Dictionary<string, string> defaultModels = new Dictionary<string, string>();   // weapon id -> Resources path
+    static readonly Dictionary<string, Dictionary<string, PartLook>> partLooks = new Dictionary<string, Dictionary<string, PartLook>>();
     static WeaponData[] skinnable;
     static readonly Dictionary<string, GameObject> models = new Dictionary<string, GameObject>();
     static readonly Dictionary<string, Material> materials = new Dictionary<string, Material>();
@@ -152,11 +173,21 @@ public static class WeaponSkins
         return skins.Count > 0 ? skins[seed % skins.Count] : null;
     }
 
-    /// <summary>The model to build for this weapon and skin, or null to use the box model.</summary>
+    /// <summary>
+    /// Resources path of the model to build: the skin's own model, else the weapon's default model
+    /// (Models/&lt;weapon name&gt;/model), else null for the box model.
+    /// </summary>
+    public static string ModelPath(WeaponData weapon, WeaponSkin skin)
+    {
+        if (byWeapon == null) LoadIndex();
+        if (skin?.Model != null) return skin.Model;
+        return defaultModels.TryGetValue(weapon.Id, out var path) ? path : null;
+    }
+
     public static GameObject LoadModel(WeaponData weapon, WeaponSkin skin)
     {
-        string path = skin?.Model;
-        if (path == null && !ModelPaths.TryGetValue(weapon.Id, out path)) return null;
+        string path = ModelPath(weapon, skin);
+        if (path == null) return null;
         if (!models.TryGetValue(path, out var model))
         {
             model = Resources.Load<GameObject>(path);
@@ -183,6 +214,35 @@ public static class WeaponSkins
         return material;
     }
 
+    /// <summary>
+    /// A part's own look from Blender (its texture or colour, listed in parts.json next to the model), used where
+    /// the skin leaves the part alone. Null when the model has no parts.json or does not list the part.
+    /// </summary>
+    public static Material OwnLook(string modelPath, string partName)
+    {
+        if (string.IsNullOrEmpty(modelPath)) return null;
+        string folder = modelPath.Substring(0, Math.Max(0, modelPath.LastIndexOf('/')));
+        if (!partLooks.TryGetValue(folder, out var parts))
+        {
+            parts = new Dictionary<string, PartLook>();
+            var asset = Resources.Load<TextAsset>(folder + "/parts");
+            if (asset != null)
+                foreach (var look in JsonUtility.FromJson<PartLooks>(asset.text).parts) parts[look.name] = look;
+            partLooks[folder] = parts;
+        }
+        if (!parts.TryGetValue(partName, out var part)) return null;
+
+        string key = folder + "/" + partName;
+        if (!materials.TryGetValue(key, out var material))
+        {
+            var texture = string.IsNullOrEmpty(part.texture) ? null : Resources.Load<Texture2D>(folder + "/" + part.texture);
+            Color? color = texture != null ? Color.white : ParseColor(part.color);
+            material = color == null ? null : Effects.SkinMaterial(color.Value, texture, part.smoothness, part.metallic);
+            materials[key] = material;
+        }
+        return material;
+    }
+
     static void LoadIndex()
     {
         byWeapon = new Dictionary<string, List<WeaponSkin>>();
@@ -193,7 +253,9 @@ public static class WeaponSkins
             return;
         }
 
-        foreach (var entry in JsonUtility.FromJson<SkinIndex>(asset.text).skins)
+        var index = JsonUtility.FromJson<SkinIndex>(asset.text);
+        foreach (var model in index.models) defaultModels[model.weapon] = model.path;
+        foreach (var entry in index.skins)
         {
             var info = entry.info ?? new SkinInfo();
             var skin = new WeaponSkin
