@@ -163,7 +163,7 @@ A skin folder can hold any of these:
 | `skin.json` | Optional settings, e.g. `{ "name": "Gold", "main": "#D4AF37", "grip": "#141414", "detail": "#8A6E22", "smoothness": 0.75, "metallic": 0.9 }` |
 
 `skin.json` can also turn a skin's own model in the hand: `"rotation": [x, y, z]` in degrees, around the grip
-(the karambit uses `[180, 0, 180]`). The game first points every model's blade or barrel forward by itself, then adds this turn.
+(the karambit uses `[0, 0, 180]`). The game first points every model's blade or barrel forward by itself, then adds this turn.
 
 Colors in `skin.json` tint the texture of that part, or paint it when there is no texture. Parts with neither
 keep their normal look. The weapon folder must be named like the weapon in the shop (`AK-47`, `Glock-18`,
