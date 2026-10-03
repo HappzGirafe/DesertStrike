@@ -219,6 +219,8 @@ public class GameUI : MonoBehaviour
             Label(new Rect(x + 40f, y, w - 80f, 30f), notice, 17, Danger);
             y += 34f;
         }
+        Label(new Rect(x + 40f, y, w - 80f, 30f), "Voice chat: in the match, hold V to talk. Everyone in the game hears you.", 15, Dim);
+        y += 30f;
         Label(new Rect(x + 40f, y, w - 80f, 60f),
               "Windows may ask whether Desert Strike may use the network: allow it (at least on private networks).",
               15, Dim);
@@ -283,6 +285,7 @@ public class GameUI : MonoBehaviour
         y += 20f;
         if (net.Connected)
             Label(new Rect(x, y, w, 30f), "Waiting for the host to start the match...", 22, Color.white, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 40f, w, 26f), "Voice chat: in the match, hold V to talk.", 17, Dim, TextAnchor.MiddleCenter);
         if (Button(new Rect(x + w / 2f - 150f, (RefHeight + h) / 2f - 80f, 300f, 56f), "LEAVE")) net.Stop();
     }
 
@@ -411,8 +414,9 @@ public class GameUI : MonoBehaviour
     void DrawSettings()
     {
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
-        float w = 780f, x = (width - w) / 2f, y = 110f;
-        Fill(new Rect(x, y, w, 820f), PanelColor);
+        const float top = 60f, height = 920f;
+        float w = 780f, x = (width - w) / 2f, y = top;
+        Fill(new Rect(x, y, w, height), PanelColor);
         Label(new Rect(x, y + 20f, w, 60f), "SETTINGS", 50, Gold, TextAnchor.MiddleCenter);
         y += 110f;
 
@@ -424,10 +428,11 @@ public class GameUI : MonoBehaviour
                       Array.IndexOf(GameSettings.FrameLimits, GameSettings.FrameLimit), i => GameSettings.SetFrameLimit(GameSettings.FrameLimits[i]));
         y = OptionRow(x, y, "3D resolution (lower = faster, a little blurrier; menus stay sharp)", new[] { "100%", "75%", "50%" },
                       Array.IndexOf(GameSettings.RenderScales, GameSettings.RenderScale), i => GameSettings.SetRenderScale(GameSettings.RenderScales[i]));
+        y = OptionRow(x, y, "Voice chat in LAN games (hold V to talk)", new[] { "Off", "On" }, GameSettings.VoiceChat ? 1 : 0, i => GameSettings.SetVoiceChat(i == 1));
         y = OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1));
         SensitivitySlider(x + 40f, y, w - 80f);
 
-        if (Button(new Rect(x + w / 2f - 150f, 110f + 820f - 80f, 300f, 56f), "BACK")) settingsOpen = false;
+        if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) settingsOpen = false;
     }
 
     // FPS, then how many milliseconds the CPU and the graphics chip (GPU) spend on a frame: when one of them is
@@ -585,6 +590,7 @@ public class GameUI : MonoBehaviour
         DrawRadar();
         DrawTopBar();
         DrawKillFeed();
+        DrawVoice();
 
         var player = gm.Player;
         if (player != null && player.Self.IsAlive)
@@ -616,6 +622,44 @@ public class GameUI : MonoBehaviour
             Label(new Rect(0f, 280f, width, 80f), gm.Banner, 56, gm.LastWinner.HasValue ? TeamColor(gm.LastWinner.Value) : Color.white, TextAnchor.MiddleCenter);
         else if (gm.Message != null && Time.time < gm.MessageUntil)
             Label(new Rect(0f, 220f, width, 60f), gm.Message, 42, Danger, TextAnchor.MiddleCenter);
+    }
+
+    // Voice chat, under the radar: "You" while V is held, then everyone who can be heard right now.
+    void DrawVoice()
+    {
+        var voice = VoiceChat.Instance;
+        if (voice == null || gm.Net.Role == NetSession.Mode.Off) return;
+        float y = GameSettings.ShowFps ? 352f : 272f;
+        if (voice.Problem != null && Input.GetKey(VoiceChat.TalkKey))
+        {
+            Fill(new Rect(20f, y, 320f, 30f), PanelColor);
+            Label(new Rect(30f, y, 310f, 30f), voice.Problem, 18, Danger);
+            y += 34f;
+        }
+        if (voice.Talking)
+        {
+            VoiceRow(y, "You", MoneyGreen);
+            y += 34f;
+        }
+        foreach (string name in voice.Speaking())
+        {
+            VoiceRow(y, name, SpeakerColor(name));
+            y += 34f;
+        }
+    }
+
+    void VoiceRow(float y, string name, Color color)
+    {
+        Fill(new Rect(20f, y, 240f, 30f), PanelColor);
+        Fill(new Rect(30f, y + 9f, 12f, 12f), color);   // a small "talking" light
+        Label(new Rect(52f, y, 205f, 30f), name, 18, color);
+    }
+
+    Color SpeakerColor(string name)
+    {
+        foreach (var c in gm.Combatants)
+            if (c.DisplayName == name) return TeamColor(c.Team);
+        return Color.white;
     }
 
     void DrawBombHints(Combatant me)

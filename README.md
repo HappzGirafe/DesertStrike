@@ -86,6 +86,11 @@ The gun models and skins make no measurable difference: the models have 24 to 1,
 The first time, Windows asks whether Desert Strike may use the network: allow it (at least on private networks).
 The game uses UDP ports 27015 (game) and 27016 (finding games).
 
+**Voice chat:** during a LAN match, hold **V** to talk; everyone in the game hears you, and the names of the
+people talking appear under the radar. The microphone starts the first time you press V (macOS asks for
+permission once) and stops when the LAN game ends. Settings > *Voice chat in LAN games* turns it off.
+While in a LAN game the game keeps running when its window is not in front, so the others are not affected.
+
 ### Building
 
 - Unity menu **Desert Strike > Build Windows Game** → `Builds/Windows/`
@@ -110,6 +115,7 @@ The game uses UDP ports 27015 (game) and 27016 (finding games).
 | E | Plant the bomb (Terrorists, on site A or B) / defuse it (SWAT) — hold |
 | G | Drop the bomb |
 | Tab | Scoreboard |
+| V | Voice chat: hold to talk (LAN games) |
 | Esc | Pause (menu only, in a LAN game) and settings |
 
 ## Shop

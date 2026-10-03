@@ -26,7 +26,7 @@ public class NetSession : MonoBehaviour
     const float InputInterval = 1f / 60f;
     const float Timeout = 8f;
 
-    enum Msg : byte { Hello = 1, Input, Fire, Action, Bye, Welcome = 101, Lobby, Snapshot, Events, Ended }
+    enum Msg : byte { Hello = 1, Input, Fire, Action, Bye, Voice, Welcome = 101, Lobby, Snapshot, Events, Ended, VoiceRelay }
     enum Ev : byte { Fire = 1, Tracer, Impact, Blood, Rocket, HitMarker }
 
     public enum Mode { Off, Host, Client }
@@ -105,6 +105,7 @@ public class NetSession : MonoBehaviour
             return false;
         }
         Role = Mode.Host;
+        Application.runInBackground = true;   // keep the game running for the others when this window is not in front
         HostName = PlayerName;
         Status = "";
         beaconTargets.Clear();
@@ -138,6 +139,7 @@ public class NetSession : MonoBehaviour
             return;
         }
         Role = Mode.Client;
+        Application.runInBackground = true;
         Connected = false;
         hostEndPoint = new IPEndPoint(address, GamePort);
         connectStarted = lastHeardFromHost = Time.unscaledTime;
@@ -159,6 +161,7 @@ public class NetSession : MonoBehaviour
             socket = null;
         }
         Role = Mode.Off;
+        Application.runInBackground = false;  // alone, the game pauses in the background (saves battery)
         Connected = false;
         Peers.Clear();
         LobbyPlayers.Clear();
@@ -360,6 +363,18 @@ public class NetSession : MonoBehaviour
                 var action = (NetAction)reader.ReadByte();
                 int argument = reader.ReadInt32();
                 if (peer.Player != null) peer.Player.HandleAction(action, argument);
+                break;
+            case Msg.Voice:
+                {
+                    ushort sequence = reader.ReadUInt16();
+                    int offset = (int)reader.BaseStream.Position;
+                    byte[] frame = ((MemoryStream)reader.BaseStream).ToArray();
+                    VoiceChat.Instance?.Receive(peer.Name, frame, offset, frame.Length - offset);
+                    // Pass it on to everyone else.
+                    byte[] relay = VoicePacket(peer.Name, sequence, frame, offset, frame.Length - offset);
+                    foreach (var other in Peers)
+                        if (other != peer) Send(relay, other.EndPoint);
+                }
                 break;
             case Msg.Bye:
                 RemovePeer(peer, "left");
@@ -625,6 +640,15 @@ public class NetSession : MonoBehaviour
             case Msg.Ended:
                 gm.OnNetworkGameEnded("The host ended the game.");
                 break;
+            case Msg.VoiceRelay:
+                {
+                    string speaker = reader.ReadString();
+                    reader.ReadUInt16();   // sequence number
+                    int offset = (int)reader.BaseStream.Position;
+                    byte[] frame = ((MemoryStream)reader.BaseStream).ToArray();
+                    VoiceChat.Instance?.Receive(speaker, frame, offset, frame.Length - offset);
+                }
+                break;
         }
     }
 
@@ -871,6 +895,33 @@ public class NetSession : MonoBehaviour
             w.Write(argument);
         }), hostEndPoint);
     }
+
+    /// <summary>One 20 ms voice frame from this player: a client sends it to the host, the host to every client.</summary>
+    public void SendVoice(ushort sequence, byte[] frame)
+    {
+        if (IsClient && Connected)
+        {
+            Send(Packet(w =>
+            {
+                w.Write((byte)Msg.Voice);
+                w.Write(sequence);
+                w.Write(frame);
+            }), hostEndPoint);
+        }
+        else if (IsHost && Peers.Count > 0)
+        {
+            byte[] packet = VoicePacket(HostName, sequence, frame, 0, frame.Length);
+            foreach (var peer in Peers) Send(packet, peer.EndPoint);
+        }
+    }
+
+    static byte[] VoicePacket(string speaker, ushort sequence, byte[] frame, int offset, int count) => Packet(w =>
+    {
+        w.Write((byte)Msg.VoiceRelay);
+        w.Write(speaker);
+        w.Write(sequence);
+        w.Write(frame, offset, count);
+    });
 
     // ----------------------------------------------------------------- helpers
 

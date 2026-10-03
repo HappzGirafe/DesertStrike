@@ -65,6 +65,9 @@ public static class DesertStrikeSetup
         SetMacArchitecture("x64ARM64");
         // Retina would draw 4 times the pixels (2560x1600 on a MacBook Air), which is what heats it up most.
         PlayerSettings.macRetinaSupport = false;
+        // Voice chat: macOS asks the player once, the first time they hold V in a LAN game, and shows this text.
+        // (Unity keeps one setting for this on Apple platforms; it becomes NSMicrophoneUsageDescription.)
+        PlayerSettings.iOS.microphoneUsageDescription = "Desert Strike uses the microphone for voice chat in LAN games while you hold V.";
         Build(BuildTarget.StandaloneOSX, "Builds/macOS/DesertStrike.app");
     }
 

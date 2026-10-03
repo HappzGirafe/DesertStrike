@@ -118,6 +118,7 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<RenderScaler>();
         gameObject.AddComponent<PerfStats>();
         Net = gameObject.AddComponent<NetSession>();
+        gameObject.AddComponent<VoiceChat>();
         Bomb = gameObject.AddComponent<BombManager>();
         if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();
         ReadCommandLine();

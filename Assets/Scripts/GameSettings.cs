@@ -17,6 +17,7 @@ public static class GameSettings
     const string ShowFpsKey = "DesertStrike.showFps";
     const string SensitivityKey = "DesertStrike.sensitivity";
     const string RenderScaleKey = "DesertStrike.renderScale";
+    const string VoiceKey = "DesertStrike.voice";
 
     public static GraphicsQuality Quality { get; private set; } = GraphicsQuality.High;
     public static int FrameLimit { get; private set; } = 60;
@@ -24,6 +25,9 @@ public static class GameSettings
 
     /// <summary>The 3D view is drawn at this fraction of the screen resolution and stretched (menus and HUD stay sharp).</summary>
     public static float RenderScale { get; private set; } = 1f;
+
+    /// <summary>Voice chat in LAN games (hold V to talk, hear the others).</summary>
+    public static bool VoiceChat { get; private set; } = true;
 
     /// <summary>Real lights for muzzle flashes and rockets (each one makes nearby objects draw again).</summary>
     public static bool DynamicLights => Quality == GraphicsQuality.High;
@@ -38,6 +42,7 @@ public static class GameSettings
         FrameLimit = PlayerPrefs.GetInt(FrameLimitKey, 60);
         ShowFps = PlayerPrefs.GetInt(ShowFpsKey, 0) == 1;
         RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(RenderScaleKey, 1f), 0.5f, 1f);
+        VoiceChat = PlayerPrefs.GetInt(VoiceKey, 1) == 1;
         PlayerController.MouseSensitivity = PlayerPrefs.GetFloat(SensitivityKey, 2f);
         Apply();
     }
@@ -60,6 +65,12 @@ public static class GameSettings
     {
         RenderScale = scale;
         PlayerPrefs.SetFloat(RenderScaleKey, scale);
+    }
+
+    public static void SetVoiceChat(bool on)
+    {
+        VoiceChat = on;
+        PlayerPrefs.SetInt(VoiceKey, on ? 1 : 0);
     }
 
     public static void SetShowFps(bool show)
