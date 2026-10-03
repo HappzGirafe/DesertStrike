@@ -1,0 +1,32 @@
+{
+  "parts": [
+    {
+      "name": "Grip",
+      "texture": "",
+      "color": "#707070",
+      "metallic": 0.0,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Main",
+      "texture": "",
+      "color": "#98A0AC",
+      "metallic": 0.5,
+      "smoothness": 0.3
+    },
+    {
+      "name": "Detail",
+      "texture": "",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.2
+    },
+    {
+      "name": "Detail.001",
+      "texture": "",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.2
+    }
+  ]
+}

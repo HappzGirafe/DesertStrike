@@ -131,9 +131,9 @@ Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
 Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
 nogektestskin (knife) and digle (Desert Eagle).
 
-The Glock-18, USP, TEC-DC9, M1911, MP5, M4A1, AK-47 and AWP use Blender models. Their **Default** skin is the
-model's own look from Blender; the other skins ("wraps") paint over it. Weapons without a model (Desert Eagle,
-Pump Shotgun, RPG, knife) are built from boxes.
+The Glock-18, USP, TEC-DC9, M1911, Desert Eagle (`digle_default.blend`), MP5, M4A1, AK-47 and AWP use Blender
+models. Their **Default** skin is the model's own look from Blender; the other skins ("wraps") paint over it.
+Weapons without a model (Pump Shotgun, RPG, knife) are built from boxes.
 
 ### Skin folders
 

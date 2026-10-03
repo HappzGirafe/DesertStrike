@@ -1320,6 +1320,10 @@
             "path": "Models/AWP/model"
         },
         {
+            "weapon": "deagle",
+            "path": "Models/Desert Eagle/model"
+        },
+        {
             "weapon": "glock",
             "path": "Models/Glock-18/model"
         },
