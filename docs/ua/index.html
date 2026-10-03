@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Low-Strike: безкоштовний шутер з ботами та LAN для Windows і macOS</title>
+<meta name="description" content="Терористи проти SWAT на пустельній карті. Заклади бомбу, знешкодь її або переможи іншу команду: проти ботів або з друзями в одній мережі Wi‑Fi.">
+<link rel="canonical" href="https://happzgirafe.github.io/DesertStrike/ua/">
+<link rel="alternate" hreflang="en-GB" href="https://happzgirafe.github.io/DesertStrike/">
+<link rel="alternate" hreflang="uk" href="https://happzgirafe.github.io/DesertStrike/ua/">
+<link rel="alternate" hreflang="de" href="https://happzgirafe.github.io/DesertStrike/de/">
+<link rel="alternate" hreflang="fr" href="https://happzgirafe.github.io/DesertStrike/fr/">
+<link rel="alternate" hreflang="it" href="https://happzgirafe.github.io/DesertStrike/it/">
+<link rel="alternate" hreflang="es" href="https://happzgirafe.github.io/DesertStrike/es/">
+<link rel="alternate" hreflang="x-default" href="https://happzgirafe.github.io/DesertStrike/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Low-Strike">
+<meta property="og:title" content="Low-Strike: безкоштовний шутер з ботами та LAN для Windows і macOS">
+<meta property="og:description" content="Терористи проти SWAT на пустельній карті. Заклади бомбу, знешкодь її або переможи іншу команду: проти ботів або з друзями в одній мережі Wi‑Fi.">
+<meta property="og:url" content="https://happzgirafe.github.io/DesertStrike/ua/">
+<meta property="og:locale" content="uk_UA">
+<meta property="og:image" content="https://happzgirafe.github.io/DesertStrike/media/poster.jpg">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="720">
+<meta property="og:video" content="https://happzgirafe.github.io/DesertStrike/media/gameplay.mp4">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#15110d">
+<link rel="icon" type="image/png" sizes="192x192" href="https://happzgirafe.github.io/DesertStrike/favicon.png">
+<link rel="apple-touch-icon" href="https://happzgirafe.github.io/DesertStrike/favicon.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Low-Strike", "url": "https://happzgirafe.github.io/DesertStrike/ua/", "description": "Терористи проти SWAT на пустельній карті. Заклади бомбу, знешкодь її або переможи іншу команду: проти ботів або з друзями в одній мережі Wi‑Fi.", "inLanguage": "uk", "image": "https://happzgirafe.github.io/DesertStrike/media/poster.jpg", "genre": ["Shooter", "Tactical shooter"], "gamePlatform": ["Windows", "macOS"], "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer", "applicationCategory": "GameApplication", "playMode": ["SinglePlayer", "MultiPlayer"], "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10}, "author": {"@type": "Person", "name": "HappzGirafe", "url": "https://github.com/HappzGirafe"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "trailer": {"@type": "VideoObject", "name": "Low-Strike gameplay", "description": "Хвилина справжнього матчу, записана в грі.", "thumbnailUrl": "https://happzgirafe.github.io/DesertStrike/media/poster.jpg", "contentUrl": "https://happzgirafe.github.io/DesertStrike/media/gameplay.mp4", "uploadDate": "2026-10-03", "duration": "PT1M3S"}}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Tektur:wdth,wght@75..100,500..900&display=swap">
+<style>
+  /* Layout: the page reads like the game's own screens. A sticky scoreboard bar, a hero with the in-game HUD
+     over a real frame, the shop drawn as the buy menu, then screenshots, keys and downloads.
+     One deliberate look: dusk over the desert map, dark panels and the gold of the game's title. */
+  :root {
+    color-scheme: dark;
+    --night: #15110d;        /* page ground: the shadow side of a sand wall */
+    --panel: #201a14;        /* raised panels, like the game's menus */
+    --tile: #2a231c;         /* buy-menu tiles */
+    --tile-hi: #3a3026;
+    --line: #3d3329;
+    --text: #f4ebdc;
+    --muted: #b4a58d;
+    --sand: #d9c09a;
+    --gold: #ffc75a;         /* the game's title colour */
+    --orange: #d8892a;       /* selected buttons in the game */
+    --orange-hi: #e99a38;
+    --terror: #faa840;
+    --swat: #74b8ff;
+    --money: #7ef07e;
+    --scrim: rgba(12, 9, 6, 0.72);
+    --font-display: "Tektur", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+    --font-body: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --radius: 4px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -12%, color-mix(in srgb, var(--orange) 22%, transparent), transparent 70%),
+      var(--night);
+    color: var(--text);
+    font: 400 16px/1.6 var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--gold); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  img, video { max-width: 100%; display: block; }
+  .wrap { max-width: 1140px; margin-inline: auto; padding-inline: 20px; }
+
+  /* ---------- top bar ---------- */
+  .bar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: color-mix(in srgb, var(--night) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar .wrap { display: flex; align-items: center; gap: 24px; min-height: 60px; flex-wrap: wrap; padding-block: 8px; }
+  .brand {
+    font: 800 22px/1 var(--font-display); font-stretch: 75%; letter-spacing: 0.04em;
+    color: var(--gold); text-decoration: none; white-space: nowrap;
+  }
+  .brand b { color: var(--orange); font-weight: 800; }
+  .nav { display: flex; gap: 20px; flex: 1; flex-wrap: wrap; }
+  .nav a { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 15px; }
+  .nav a:hover { color: var(--text); }
+  .langs { display: flex; gap: 4px; margin-left: auto; }
+  .langs button {
+    font: 700 12px/1 var(--font-mono); letter-spacing: 0.06em;
+    background: var(--tile); color: var(--muted);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 7px 8px; min-width: 38px; cursor: pointer;
+  }
+  .langs button:hover { color: var(--text); background: var(--tile-hi); }
+  .langs button[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: #1b130a; }
+  @media (max-width: 820px) { .nav { display: none; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding-block: 56px 48px; }
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 44px; align-items: center; }
+  @media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } }
+  .eyebrow {
+    font: 700 12.5px/1.4 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--sand); margin: 0 0 14px;
+  }
+  h1 {
+    margin: 0;
+    font: 900 clamp(64px, 11vw, 124px)/0.88 var(--font-display); font-stretch: 75%;
+    letter-spacing: 0.01em; color: var(--gold);
+    text-shadow: 0 3px 0 color-mix(in srgb, var(--orange) 55%, black);
+  }
+  h1 .dash { color: var(--orange); text-shadow: none; }
+  .lead { font-size: 18.5px; line-height: 1.55; max-width: 34em; margin: 22px 0 28px; color: var(--text); }
+  .buy-row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .buy {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 14px 16px 14px 18px; border-radius: var(--radius);
+    font: 700 16px/1.2 var(--font-body); text-decoration: none; color: var(--text);
+    background: var(--tile); border: 1px solid var(--line);
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+  .buy:hover { background: var(--tile-hi); }
+  .buy:active { transform: translateY(1px); }
+  .buy.primary { background: var(--orange); border-color: var(--orange); color: #1b130a; }
+  .buy.primary:hover { background: var(--orange-hi); }
+  .price {
+    font: 700 13px/1 var(--font-mono); color: var(--money);
+    background: rgba(0, 0, 0, 0.35); padding: 6px 7px; border-radius: 3px;
+  }
+  .buy.primary .price { background: rgba(0, 0, 0, 0.25); color: #b9ffb9; }
+  .note { font: 500 13px/1.5 var(--font-mono); color: var(--muted); margin: 16px 0 0; font-variant-numeric: tabular-nums; }
+
+  /* The game frame with the HUD drawn over it */
+  .screen {
+    position: relative; margin: 0; aspect-ratio: 16 / 9; max-width: 100%;
+    border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+    container-type: inline-size;
+    background: var(--panel);
+  }
+  .screen img { width: 100%; height: 100%; object-fit: cover; }
+  .hud-top {
+    position: absolute; top: 2.2cqi; left: 50%; transform: translateX(-50%);
+    width: 50cqi; background: var(--scrim); border-radius: 2px;
+    padding: 0.8cqi 1.6cqi 1cqi; font-family: var(--font-body); color: var(--text);
+  }
+  .hud-score { display: flex; align-items: baseline; justify-content: space-between; font-weight: 800; font-size: 3.6cqi; line-height: 1.1; }
+  .hud-score .t { color: var(--terror); }
+  .hud-score .s { color: var(--swat); }
+  .hud-score .clock { font-family: var(--font-mono); font-size: 3.9cqi; color: var(--text); font-variant-numeric: tabular-nums; }
+  .hud-sub { display: flex; justify-content: space-between; gap: 1cqi; font-size: 1.6cqi; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .hud-money { position: absolute; left: 2.4cqi; bottom: 3cqi; font: 800 3.6cqi/1 var(--font-body); color: var(--money); text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+  .hud-buy { position: absolute; left: 0; right: 0; bottom: 3.2cqi; text-align: center; font: 700 1.9cqi/1 var(--font-body); color: var(--gold); text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+  .hud-cross { position: absolute; left: 50%; top: 50%; width: 1.6cqi; height: 1.6cqi; transform: translate(-50%, -50%); }
+  .hud-cross::before, .hud-cross::after { content: ""; position: absolute; background: var(--money); opacity: 0.85; }
+  .hud-cross::before { left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); }
+  .hud-cross::after { top: 50%; left: 0; right: 0; height: 2px; transform: translateY(-50%); }
+
+  /* ---------- sections ---------- */
+  section { padding-block: 56px; }
+  section + section { border-top: 1px solid var(--line); }
+  h2 {
+    margin: 0 0 8px; font: 800 clamp(32px, 4.4vw, 46px)/1 var(--font-display); font-stretch: 80%;
+    letter-spacing: 0.02em; text-transform: uppercase; color: var(--text); text-wrap: balance;
+  }
+  .intro { color: var(--muted); margin: 0 0 28px; max-width: 60ch; }
+
+  /* video */
+  .film { margin: 0; }
+  .film video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius); border: 1px solid var(--line); }
+  .film figcaption { margin-top: 10px; font: 500 13px/1.4 var(--font-mono); color: var(--muted); }
+
+  /* features */
+  .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 900px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .features { grid-template-columns: minmax(0, 1fr); } }
+  .feature { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 20px 22px; min-width: 0; }
+  .feature header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .feature h3 { margin: 0; font: 800 22px/1.15 var(--font-display); font-stretch: 85%; letter-spacing: 0.02em; color: var(--gold); }
+  .tag { font: 700 12px/1 var(--font-mono); color: var(--sand); white-space: nowrap; border: 1px solid var(--line); padding: 5px 6px; border-radius: 3px; }
+  .feature p { margin: 0; color: var(--text); font-size: 15.5px; }
+
+  /* shop, drawn like the in-game buy menu */
+  .shop { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; background: var(--scrim); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  @media (max-width: 900px) { .shop { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 480px) { .shop { grid-template-columns: minmax(0, 1fr); } }
+  .shop h3 { margin: 0 0 10px; font: 700 12.5px/1.2 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .shop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .shop li {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px;
+    background: var(--tile); border-radius: 3px; padding: 10px 12px; min-height: 58px;
+  }
+  .shop .name { font-weight: 600; font-size: 15px; }
+  .shop .cost { font: 700 14px/1 var(--font-mono); color: var(--money); font-variant-numeric: tabular-nums; grid-row: span 2; }
+  .shop .team { font: 700 11px/1 var(--font-mono); letter-spacing: 0.06em; }
+  .team.t { color: var(--terror); }
+  .team.s { color: var(--swat); }
+  .money-line { margin: 14px 0 0; font: 500 14px/1.5 var(--font-mono); color: var(--sand); font-variant-numeric: tabular-nums; }
+
+  /* screenshots */
+  .shots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .shots figure { margin: 0; min-width: 0; }
+  .shots .wide { grid-column: span 2; }
+  @media (max-width: 900px) { .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .shots { grid-template-columns: minmax(0, 1fr); } .shots .wide { grid-column: auto; } }
+  .shot {
+    display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--panel); cursor: zoom-in; overflow: hidden; aspect-ratio: 16 / 9;
+  }
+  .shot img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.25s ease; }
+  .shot:hover img { transform: scale(1.03); }
+  @media (prefers-reduced-motion: reduce) { .shot img, .buy { transition: none; } .shot:hover img { transform: none; } }
+  .shots figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+
+  /* controls */
+  .keys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 18px; margin: 0; padding: 0; list-style: none; }
+  @media (max-width: 900px) { .keys { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .keys { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .keys li { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  kbd {
+    flex: none; min-width: 52px; text-align: center;
+    font: 700 13px/1 var(--font-mono); color: var(--text);
+    background: var(--tile); border: 1px solid var(--line); border-bottom-width: 3px;
+    border-radius: var(--radius); padding: 9px 9px 7px;
+  }
+  .keys span { font-size: 15px; color: var(--text); min-width: 0; }
+
+  /* downloads */
+  .downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 760px) { .downloads { grid-template-columns: minmax(0, 1fr); } }
+  .os { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .os h3 { margin: 0; font: 800 30px/1 var(--font-display); font-stretch: 80%; color: var(--gold); }
+  .os .file { margin: 0; font: 500 13px/1.5 var(--font-mono); color: var(--sand); overflow-wrap: anywhere; }
+  .os ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+  .os li::marker { color: var(--orange); font-weight: 700; }
+  .os .buy { align-self: flex-start; margin-top: auto; }
+  .all { margin: 22px 0 0; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 28px 36px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
+  footer .brand { font-size: 18px; }
+
+  /* lightbox */
+  dialog.lightbox {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 0; background: var(--panel); color: var(--text);
+    width: min(1200px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+  }
+  dialog.lightbox::backdrop { background: rgba(8, 6, 4, 0.86); }
+  .lightbox img { width: 100%; max-height: calc(100vh - 120px); object-fit: contain; background: #000; }
+  .lightbox .lb-bar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+  .lightbox .lb-caption { flex: 1; min-width: 0; font-size: 15px; color: var(--text); }
+  .lightbox button {
+    font: 600 14px/1 var(--font-body); color: var(--text); background: var(--tile);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px; cursor: pointer;
+  }
+  .lightbox button:hover { background: var(--tile-hi); }
+
+  .langs a {
+    font: 700 12px/1 var(--font-mono); letter-spacing: 0.06em; text-decoration: none; text-align: center;
+    background: var(--tile); color: var(--muted);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 7px 8px; min-width: 38px;
+  }
+  .langs a:hover { color: var(--text); background: var(--tile-hi); }
+  .langs a[aria-current="page"] { background: var(--orange); border-color: var(--orange); color: #1b130a; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top">LOW<b>-</b>STRIKE</a>
+    <nav class="nav">
+      <a href="#gameplay">Геймплей</a>
+      <a href="#features">Можливості</a>
+      <a href="#shop">Ціни</a>
+      <a href="#screenshots">Скриншоти</a>
+      <a href="#download">Завантажити</a>
+    </nav>
+    <nav class="langs" aria-label="Мова">
+      <a href="../ua/" hreflang="uk" lang="uk" title="Українська" aria-current="page">UA</a>
+      <a href="../" hreflang="en-GB" lang="en-GB" title="English">UK</a>
+      <a href="../de/" hreflang="de" lang="de" title="Deutsch">DEU</a>
+      <a href="../fr/" hreflang="fr" lang="fr" title="Français">FR</a>
+      <a href="../it/" hreflang="it" lang="it" title="Italiano">IT</a>
+      <a href="../es/" hreflang="es" lang="es" title="Español">ES</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <p class="eyebrow">Безкоштовно · Windows і macOS · боти та LAN</p>
+        <h1>LOW<span class="dash">-</span>STRIKE</h1>
+        <p class="lead">Терористи проти SWAT на пустельній карті. Заклади бомбу, знешкодь її або переможи іншу команду: проти ботів або з друзями в одній мережі Wi‑Fi.</p>
+        <div class="buy-row">
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span>Завантажити для Windows</span><span class="price">$0</span></a>
+          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span>Завантажити для macOS</span><span class="price">$0</span></a>
+        </div>
+        <p class="note">Версія 1.11 · Windows 34 МБ · macOS 42 МБ, Intel і Apple Silicon</p>
+      </div>
+      <figure class="screen">
+        <img src="../media/poster.jpg" alt="Раунд на точці A: трасери, ящики й намальована літера A" width="1280" height="720">
+        <div class="hud-top" aria-hidden="true">
+          <div class="hud-score"><span class="t">T 0</span><span class="clock" id="clock">1:55</span><span class="s">0 SWAT</span></div>
+          <div class="hud-sub"><span>5 живих</span><span>Раунд 1 · до 8 перемог</span><span>5 живих</span></div>
+        </div>
+        <span class="hud-cross" aria-hidden="true"></span>
+        <div class="hud-money" aria-hidden="true">$800</div>
+        <div class="hud-buy" aria-hidden="true">Натисни B, щоб купити</div>
+      </figure>
+    </div>
+  </div>
+
+  <section id="gameplay">
+    <div class="wrap">
+      <h2>Геймплей</h2>
+      <p class="intro">Хвилина справжнього матчу, записана в грі.</p>
+      <figure class="film">
+        <video id="film" controls playsinline muted preload="metadata" poster="../media/poster.jpg" width="1280" height="720">
+          <source src="../media/gameplay.mp4" type="video/mp4">
+        </video>
+        <figcaption>Відео без звуку.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Що є в грі</h2>
+      <p class="intro">Раунди приблизно по дві хвилини: купи, бийся, заклади або знешкодь.</p>
+      <div class="features">
+        <article class="feature">
+          <header><h3>Боти</h3><span class="tag">1v1 – 5v5</span></header>
+          <p>Від 1 на 1 до 5 на 5 проти ботів: легкі, звичайні або складні. Вони купують зброю, закладають і знешкоджують бомбу.</p>
+        </article>
+        <article class="feature">
+          <header><h3>Бомба</h3><span class="tag">C4 · <span>40 с</span></span></header>
+          <p>Заклади C4 на точці A або B за 3 секунди. Вона вибухає через 40 секунд. SWAT знешкоджує її за 10 секунд, а з набором сапера за 5.</p>
+        </article>
+        <article class="feature">
+          <header><h3>Магазин</h3><span class="tag">$200 – $10000</span></header>
+          <p>13 видів зброї, від Glock-18 до RPG. Купувати можна на своїй базі протягом перших 25 секунд раунду.</p>
+        </article>
+        <article class="feature">
+          <header><h3>Гра по мережі</h3><span class="tag">Wi‑Fi</span></header>
+          <p>Створи гру на одному комп’ютері й приєднайся з іншого в тій самій мережі Wi‑Fi. Вільні місця займають боти.</p>
+        </article>
+        <article class="feature">
+          <header><h3>Скіни</h3><span class="tag">Karambit</span></header>
+          <p>Інвентар зі скінами для кожної зброї: Gold, Arctic, Desert Camo, Urban Digital і ніж-карамбіт.</p>
+        </article>
+        <article class="feature">
+          <header><h3>Працює на ноутбуках</h3><span class="tag">30 / 60 / 120 FPS</span></header>
+          <p>Графіка Low, Medium або High, обмеження кадрів і 3D-роздільність. Працює на Mac з Intel і Apple Silicon.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="shop">
+    <div class="wrap">
+      <h2>Ціни</h2>
+      <p class="intro">Меню покупок, як у грі. T = лише терористи, SWAT = лише SWAT.</p>
+      <div class="shop">
+        <div>
+          <h3>Пістолети</h3>
+          <ul>
+            <li><span class="name">Glock-18</span><span class="cost">$200</span><span class="team t">T</span></li>
+            <li><span class="name">USP</span><span class="cost">$200</span><span class="team s">SWAT</span></li>
+            <li><span class="name">TEC-DC9</span><span class="cost">$500</span><span class="team t">T</span></li>
+            <li><span class="name">M1911</span><span class="cost">$500</span><span class="team s">SWAT</span></li>
+            <li><span class="name">Desert Eagle</span><span class="cost">$700</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>ПП і дробовик</h3>
+          <ul>
+            <li><span class="name">MP5</span><span class="cost">$1500</span></li>
+            <li><span class="name">Pump Shotgun</span><span class="cost">$1700</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Гвинтівки й важка зброя</h3>
+          <ul>
+            <li><span class="name">AK-47</span><span class="cost">$2500</span><span class="team t">T</span></li>
+            <li><span class="name">M4A1</span><span class="cost">$3100</span><span class="team s">SWAT</span></li>
+            <li><span class="name">AWP</span><span class="cost">$4750</span></li>
+            <li><span class="name">RPG</span><span class="cost">$10000</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Спорядження</h3>
+          <ul>
+            <li><span class="name">Kevlar</span><span class="cost">$650</span></li>
+            <li><span class="name">Kevlar + Helmet</span><span class="cost">$1000</span></li>
+            <li><span class="name">Defuse Kit</span><span class="cost">$400</span><span class="team s">SWAT</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="money-line">Гроші: $800 на старті, $3250 за перемогу, $300 за вбивство, $1500 за вбивство ножем.</p>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <div class="wrap">
+      <h2>Скриншоти</h2>
+      <p class="intro">Натисни на картинку, щоб збільшити.</p>
+      <div class="shots">
+        <figure class="wide"><button type="button" class="shot" id="shot-team" data-cap="cap_team"><img src="../media/team.jpg" alt="Союзники на початку раунду" width="1280" height="720" loading="lazy"></button><figcaption>Союзники на початку раунду</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-bomb" data-cap="cap_bomb"><img src="../media/bombsite.jpg" alt="Терорист із бомбою на точці A" width="1280" height="720" loading="lazy"></button><figcaption>Терорист із бомбою на точці A</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-swat" data-cap="cap_swat"><img src="../media/swat.jpg" alt="SWAT у перестрілці в тунелі" width="1280" height="720" loading="lazy"></button><figcaption>SWAT у перестрілці в тунелі</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-menu" data-cap="cap_menu"><img src="../media/menu.webp" alt="Головне меню: команда, гравці, боти, раунди й вогонь по своїх" loading="lazy"></button><figcaption>Головне меню: команда, гравці, боти, раунди й вогонь по своїх</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-settings" data-cap="cap_settings"><img src="../media/settings.png" alt="Налаштування: графіка, обмеження кадрів і 3D-роздільність" loading="lazy"></button><figcaption>Налаштування: графіка, обмеження кадрів і 3D-роздільність</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-inventory" data-cap="cap_inventory"><img src="../media/inventory.png" alt="Інвентар із вибраним карамбітом" loading="lazy"></button><figcaption>Інвентар із вибраним карамбітом</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-lan" data-cap="cap_lan"><img src="../media/lan.webp" alt="Гра по мережі: створи гру або приєднайся" loading="lazy"></button><figcaption>Гра по мережі: створи гру або приєднайся</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="controls">
+    <div class="wrap">
+      <h2>Керування</h2>
+      <p class="intro">Клавіатура й миша, як завжди.</p>
+      <ul class="keys">
+        <li><kbd>WASD</kbd><span>Рух</span></li>
+        <li><kbd>Миша</kbd><span>Приціл і постріл</span></li>
+        <li><kbd>R</kbd><span>Перезарядка</span></li>
+        <li><kbd>1 2 3</kbd><span>Зміна зброї</span></li>
+        <li><kbd>Пробіл</kbd><span>Стрибок</span></li>
+        <li><kbd>Ctrl</kbd><span>Присісти</span></li>
+        <li><kbd>Shift</kbd><span>Тиха хода</span></li>
+        <li><kbd>B</kbd><span>Магазин</span></li>
+        <li><kbd>E</kbd><span>Закласти чи знешкодити (утримуй)</span></li>
+        <li><kbd>G</kbd><span>Викинути бомбу</span></li>
+        <li><kbd>Tab</kbd><span>Таблиця рахунку</span></li>
+        <li><kbd>Esc</kbd><span>Меню й налаштування</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <h2>Завантажити</h2>
+      <p class="intro">Безкоштовно й без реєстрації. Обери свій комп’ютер.</p>
+      <div class="downloads">
+        <article class="os">
+          <h3>Windows</h3>
+          <p class="file">DesertStrike-Windows.exe · <span>один файл</span> · 34 MB</p>
+          <ol>
+            <li>Завантаж файл і двічі клацни по ньому.</li>
+            <li>Під час першого запуску гра розпаковується, це займає кілька секунд.</li>
+            <li>Якщо з’явиться Windows SmartScreen, натисни «Докладніше», а потім «Усе одно запустити».</li>
+          </ol>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span>Завантажити для Windows</span><span class="price">$0</span></a>
+        </article>
+        <article class="os">
+          <h3>macOS</h3>
+          <p class="file">DesertStrike-macOS.zip · <span>Intel і Apple Silicon</span> · 42 MB</p>
+          <ol>
+            <li>Завантаж архів, розпакуй його й двічі клацни DesertStrike.</li>
+            <li>Першого разу macOS блокує гру. Закрий повідомлення.</li>
+            <li>Відкрий Системні параметри &gt; Приватність і безпека, натисни «Однаково відкрити», потім «Відкрити».</li>
+          </ol>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span>Завантажити для macOS</span><span class="price">$0</span></a>
+        </article>
+      </div>
+      <p class="all"><a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener">Усі версії на GitHub</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="brand">LOW<b>-</b>STRIKE</span>
+    <span>Створено в Unity та Blender.</span>
+    <a href="https://github.com/HappzGirafe/DesertStrike" target="_blank" rel="noopener">Код на GitHub</a>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Screenshot">
+  <img id="lb-img" src="../media/poster.jpg" alt="">
+  <div class="lb-bar">
+    <span class="lb-caption" id="lb-caption"></span>
+    <button type="button" id="lb-prev">Попередній</button>
+    <button type="button" id="lb-next">Наступний</button>
+    <button type="button" id="lb-close">Закрити</button>
+  </div>
+</dialog>
+<script>
+(function () {
+  const shots = Array.from(document.querySelectorAll(".shot"));
+  const box = document.getElementById("lightbox");
+  const boxImg = document.getElementById("lb-img");
+  const boxCap = document.getElementById("lb-caption");
+  let current = 0;
+  function showShot(i) {
+    current = (i + shots.length) % shots.length;
+    const img = shots[current].querySelector("img");
+    boxImg.src = img.getAttribute("src");
+    boxImg.alt = img.alt;
+    boxCap.textContent = shots[current].closest("figure").querySelector("figcaption").textContent;
+  }
+  shots.forEach((s, i) => s.addEventListener("click", () => {
+    showShot(i);
+    if (typeof box.showModal === "function") box.showModal(); else box.setAttribute("open", "");
+  }));
+  document.getElementById("lb-prev").addEventListener("click", () => showShot(current - 1));
+  document.getElementById("lb-next").addEventListener("click", () => showShot(current + 1));
+  document.getElementById("lb-close").addEventListener("click", () => box.close());
+  box.addEventListener("click", e => { if (e.target === box) box.close(); });
+  box.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft") showShot(current - 1);
+    if (e.key === "ArrowRight") showShot(current + 1);
+  });
+  const clock = document.getElementById("clock");
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    let left = 115;
+    setInterval(() => {
+      left = left <= 0 ? 115 : left - 1;
+      clock.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+    }, 1000);
+  }
+})();
+</script>
+</body>
+</html>

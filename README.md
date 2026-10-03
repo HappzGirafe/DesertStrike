@@ -4,6 +4,10 @@ A small Counter-Strike-style shooter made in Unity 6.3 (built-in render pipeline
 Terrorists vs SWAT, round-based, with a buy menu and bots, on **de_dune**, a desert map with a Dust-2-style layout
 (outside long, long doors, long A, catwalk/short A, mid doors, upper and lower tunnels to B).
 
+**Website: [happzgirafe.github.io/DesertStrike](https://happzgirafe.github.io/DesertStrike/)** (the game as
+*Low-Strike*, in English, Ukrainian, German, French, Italian and Spanish). Its pages are built from
+`Website/index.html` by `python Tools/build_site.py` into `docs/`, which GitHub Pages serves.
+
 ## Download
 
 | System | File | |

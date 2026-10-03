@@ -1,0 +1,745 @@
+<title>Low-Strike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Tektur:wdth,wght@75..100,500..900&display=swap">
+<style>
+  /* Layout: the page reads like the game's own screens. A sticky scoreboard bar, a hero with the in-game HUD
+     over a real frame, the shop drawn as the buy menu, then screenshots, keys and downloads.
+     One deliberate look: dusk over the desert map, dark panels and the gold of the game's title. */
+  :root {
+    color-scheme: dark;
+    --night: #15110d;        /* page ground: the shadow side of a sand wall */
+    --panel: #201a14;        /* raised panels, like the game's menus */
+    --tile: #2a231c;         /* buy-menu tiles */
+    --tile-hi: #3a3026;
+    --line: #3d3329;
+    --text: #f4ebdc;
+    --muted: #b4a58d;
+    --sand: #d9c09a;
+    --gold: #ffc75a;         /* the game's title colour */
+    --orange: #d8892a;       /* selected buttons in the game */
+    --orange-hi: #e99a38;
+    --terror: #faa840;
+    --swat: #74b8ff;
+    --money: #7ef07e;
+    --scrim: rgba(12, 9, 6, 0.72);
+    --font-display: "Tektur", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+    --font-body: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --radius: 4px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(ellipse 90% 60% at 50% -12%, color-mix(in srgb, var(--orange) 22%, transparent), transparent 70%),
+      var(--night);
+    color: var(--text);
+    font: 400 16px/1.6 var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--gold); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  img, video { max-width: 100%; display: block; }
+  .wrap { max-width: 1140px; margin-inline: auto; padding-inline: 20px; }
+
+  /* ---------- top bar ---------- */
+  .bar {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+    background: color-mix(in srgb, var(--night) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar .wrap { display: flex; align-items: center; gap: 24px; min-height: 60px; flex-wrap: wrap; padding-block: 8px; }
+  .brand {
+    font: 800 22px/1 var(--font-display); font-stretch: 75%; letter-spacing: 0.04em;
+    color: var(--gold); text-decoration: none; white-space: nowrap;
+  }
+  .brand b { color: var(--orange); font-weight: 800; }
+  .nav { display: flex; gap: 20px; flex: 1; flex-wrap: wrap; }
+  .nav a { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 15px; }
+  .nav a:hover { color: var(--text); }
+  .langs { display: flex; gap: 4px; margin-left: auto; }
+  .langs button {
+    font: 700 12px/1 var(--font-mono); letter-spacing: 0.06em;
+    background: var(--tile); color: var(--muted);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 7px 8px; min-width: 38px; cursor: pointer;
+  }
+  .langs button:hover { color: var(--text); background: var(--tile-hi); }
+  .langs button[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: #1b130a; }
+  @media (max-width: 820px) { .nav { display: none; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding-block: 56px 48px; }
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 44px; align-items: center; }
+  @media (max-width: 900px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } }
+  .eyebrow {
+    font: 700 12.5px/1.4 var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--sand); margin: 0 0 14px;
+  }
+  h1 {
+    margin: 0;
+    font: 900 clamp(64px, 11vw, 124px)/0.88 var(--font-display); font-stretch: 75%;
+    letter-spacing: 0.01em; color: var(--gold);
+    text-shadow: 0 3px 0 color-mix(in srgb, var(--orange) 55%, black);
+  }
+  h1 .dash { color: var(--orange); text-shadow: none; }
+  .lead { font-size: 18.5px; line-height: 1.55; max-width: 34em; margin: 22px 0 28px; color: var(--text); }
+  .buy-row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .buy {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 14px 16px 14px 18px; border-radius: var(--radius);
+    font: 700 16px/1.2 var(--font-body); text-decoration: none; color: var(--text);
+    background: var(--tile); border: 1px solid var(--line);
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+  .buy:hover { background: var(--tile-hi); }
+  .buy:active { transform: translateY(1px); }
+  .buy.primary { background: var(--orange); border-color: var(--orange); color: #1b130a; }
+  .buy.primary:hover { background: var(--orange-hi); }
+  .price {
+    font: 700 13px/1 var(--font-mono); color: var(--money);
+    background: rgba(0, 0, 0, 0.35); padding: 6px 7px; border-radius: 3px;
+  }
+  .buy.primary .price { background: rgba(0, 0, 0, 0.25); color: #b9ffb9; }
+  .note { font: 500 13px/1.5 var(--font-mono); color: var(--muted); margin: 16px 0 0; font-variant-numeric: tabular-nums; }
+
+  /* The game frame with the HUD drawn over it */
+  .screen {
+    position: relative; margin: 0; aspect-ratio: 16 / 9; max-width: 100%;
+    border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8);
+    container-type: inline-size;
+    background: var(--panel);
+  }
+  .screen img { width: 100%; height: 100%; object-fit: cover; }
+  .hud-top {
+    position: absolute; top: 2.2cqi; left: 50%; transform: translateX(-50%);
+    width: 50cqi; background: var(--scrim); border-radius: 2px;
+    padding: 0.8cqi 1.6cqi 1cqi; font-family: var(--font-body); color: var(--text);
+  }
+  .hud-score { display: flex; align-items: baseline; justify-content: space-between; font-weight: 800; font-size: 3.6cqi; line-height: 1.1; }
+  .hud-score .t { color: var(--terror); }
+  .hud-score .s { color: var(--swat); }
+  .hud-score .clock { font-family: var(--font-mono); font-size: 3.9cqi; color: var(--text); font-variant-numeric: tabular-nums; }
+  .hud-sub { display: flex; justify-content: space-between; gap: 1cqi; font-size: 1.6cqi; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .hud-money { position: absolute; left: 2.4cqi; bottom: 3cqi; font: 800 3.6cqi/1 var(--font-body); color: var(--money); text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+  .hud-buy { position: absolute; left: 0; right: 0; bottom: 3.2cqi; text-align: center; font: 700 1.9cqi/1 var(--font-body); color: var(--gold); text-shadow: 0 1px 2px rgba(0,0,0,0.7); }
+  .hud-cross { position: absolute; left: 50%; top: 50%; width: 1.6cqi; height: 1.6cqi; transform: translate(-50%, -50%); }
+  .hud-cross::before, .hud-cross::after { content: ""; position: absolute; background: var(--money); opacity: 0.85; }
+  .hud-cross::before { left: 50%; top: 0; bottom: 0; width: 2px; transform: translateX(-50%); }
+  .hud-cross::after { top: 50%; left: 0; right: 0; height: 2px; transform: translateY(-50%); }
+
+  /* ---------- sections ---------- */
+  section { padding-block: 56px; }
+  section + section { border-top: 1px solid var(--line); }
+  h2 {
+    margin: 0 0 8px; font: 800 clamp(32px, 4.4vw, 46px)/1 var(--font-display); font-stretch: 80%;
+    letter-spacing: 0.02em; text-transform: uppercase; color: var(--text); text-wrap: balance;
+  }
+  .intro { color: var(--muted); margin: 0 0 28px; max-width: 60ch; }
+
+  /* video */
+  .film { margin: 0; }
+  .film video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius); border: 1px solid var(--line); }
+  .film figcaption { margin-top: 10px; font: 500 13px/1.4 var(--font-mono); color: var(--muted); }
+
+  /* features */
+  .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 900px) { .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .features { grid-template-columns: minmax(0, 1fr); } }
+  .feature { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 20px 22px; min-width: 0; }
+  .feature header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .feature h3 { margin: 0; font: 800 22px/1.15 var(--font-display); font-stretch: 85%; letter-spacing: 0.02em; color: var(--gold); }
+  .tag { font: 700 12px/1 var(--font-mono); color: var(--sand); white-space: nowrap; border: 1px solid var(--line); padding: 5px 6px; border-radius: 3px; }
+  .feature p { margin: 0; color: var(--text); font-size: 15.5px; }
+
+  /* shop, drawn like the in-game buy menu */
+  .shop { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; background: var(--scrim); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  @media (max-width: 900px) { .shop { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 480px) { .shop { grid-template-columns: minmax(0, 1fr); } }
+  .shop h3 { margin: 0 0 10px; font: 700 12.5px/1.2 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .shop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .shop li {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px;
+    background: var(--tile); border-radius: 3px; padding: 10px 12px; min-height: 58px;
+  }
+  .shop .name { font-weight: 600; font-size: 15px; }
+  .shop .cost { font: 700 14px/1 var(--font-mono); color: var(--money); font-variant-numeric: tabular-nums; grid-row: span 2; }
+  .shop .team { font: 700 11px/1 var(--font-mono); letter-spacing: 0.06em; }
+  .team.t { color: var(--terror); }
+  .team.s { color: var(--swat); }
+  .money-line { margin: 14px 0 0; font: 500 14px/1.5 var(--font-mono); color: var(--sand); font-variant-numeric: tabular-nums; }
+
+  /* screenshots */
+  .shots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .shots figure { margin: 0; min-width: 0; }
+  .shots .wide { grid-column: span 2; }
+  @media (max-width: 900px) { .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .shots { grid-template-columns: minmax(0, 1fr); } .shots .wide { grid-column: auto; } }
+  .shot {
+    display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--panel); cursor: zoom-in; overflow: hidden; aspect-ratio: 16 / 9;
+  }
+  .shot img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.25s ease; }
+  .shot:hover img { transform: scale(1.03); }
+  @media (prefers-reduced-motion: reduce) { .shot img, .buy { transition: none; } .shot:hover img { transform: none; } }
+  .shots figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+
+  /* controls */
+  .keys { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 18px; margin: 0; padding: 0; list-style: none; }
+  @media (max-width: 900px) { .keys { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .keys { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .keys li { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  kbd {
+    flex: none; min-width: 52px; text-align: center;
+    font: 700 13px/1 var(--font-mono); color: var(--text);
+    background: var(--tile); border: 1px solid var(--line); border-bottom-width: 3px;
+    border-radius: var(--radius); padding: 9px 9px 7px;
+  }
+  .keys span { font-size: 15px; color: var(--text); min-width: 0; }
+
+  /* downloads */
+  .downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 760px) { .downloads { grid-template-columns: minmax(0, 1fr); } }
+  .os { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .os h3 { margin: 0; font: 800 30px/1 var(--font-display); font-stretch: 80%; color: var(--gold); }
+  .os .file { margin: 0; font: 500 13px/1.5 var(--font-mono); color: var(--sand); overflow-wrap: anywhere; }
+  .os ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+  .os li::marker { color: var(--orange); font-weight: 700; }
+  .os .buy { align-self: flex-start; margin-top: auto; }
+  .all { margin: 22px 0 0; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 28px 36px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
+  footer .brand { font-size: 18px; }
+
+  /* lightbox */
+  dialog.lightbox {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 0; background: var(--panel); color: var(--text);
+    width: min(1200px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+  }
+  dialog.lightbox::backdrop { background: rgba(8, 6, 4, 0.86); }
+  .lightbox img { width: 100%; max-height: calc(100vh - 120px); object-fit: contain; background: #000; }
+  .lightbox .lb-bar { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+  .lightbox .lb-caption { flex: 1; min-width: 0; font-size: 15px; color: var(--text); }
+  .lightbox button {
+    font: 600 14px/1 var(--font-body); color: var(--text); background: var(--tile);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 9px 12px; cursor: pointer;
+  }
+  .lightbox button:hover { background: var(--tile-hi); }
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top">LOW<b>-</b>STRIKE</a>
+    <nav class="nav">
+      <a href="#gameplay" data-i18n="nav_gameplay">Gameplay</a>
+      <a href="#features" data-i18n="nav_features">Features</a>
+      <a href="#shop" data-i18n="nav_shop">Price list</a>
+      <a href="#screenshots" data-i18n="nav_screens">Screenshots</a>
+      <a href="#download" data-i18n="nav_download">Download</a>
+    </nav>
+    <div class="langs" role="group" aria-label="Language" data-i18n-aria="lang_label">
+      <button type="button" id="lang-ua" data-lang="ua" title="Українська" aria-pressed="false">UA</button>
+      <button type="button" id="lang-en" data-lang="en" title="English" aria-pressed="true">UK</button>
+      <button type="button" id="lang-de" data-lang="de" title="Deutsch" aria-pressed="false">DEU</button>
+      <button type="button" id="lang-fr" data-lang="fr" title="Français" aria-pressed="false">FR</button>
+      <button type="button" id="lang-it" data-lang="it" title="Italiano" aria-pressed="false">IT</button>
+      <button type="button" id="lang-es" data-lang="es" title="Español" aria-pressed="false">ES</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <div>
+        <p class="eyebrow" data-i18n="hero_eyebrow">Free · Windows and macOS · bots and LAN</p>
+        <h1>LOW<span class="dash">-</span>STRIKE</h1>
+        <p class="lead" data-i18n="hero_lead">Terrorists against SWAT on a desert map. Plant the bomb, defuse it or take out the other team, against bots or with friends on the same WiFi.</p>
+        <div class="buy-row">
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span data-i18n="hero_win">Download for Windows</span><span class="price">$0</span></a>
+          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span data-i18n="hero_mac">Download for macOS</span><span class="price">$0</span></a>
+        </div>
+        <p class="note" data-i18n="hero_note">Version 1.11 · Windows 34 MB · macOS 42 MB, Intel and Apple Silicon</p>
+      </div>
+      <figure class="screen">
+        <img src="media/poster.jpg" alt="A round on site A: tracers, crates and the painted letter A" data-i18n-alt="cap_hero" width="1280" height="720">
+        <div class="hud-top" aria-hidden="true">
+          <div class="hud-score"><span class="t">T 0</span><span class="clock" id="clock">1:55</span><span class="s">0 SWAT</span></div>
+          <div class="hud-sub"><span data-i18n="hud_alive">5 alive</span><span data-i18n="hud_round">Round 1 · first to 8</span><span data-i18n="hud_alive">5 alive</span></div>
+        </div>
+        <span class="hud-cross" aria-hidden="true"></span>
+        <div class="hud-money" aria-hidden="true">$800</div>
+        <div class="hud-buy" aria-hidden="true" data-i18n="hud_buy">Press B to buy</div>
+      </figure>
+    </div>
+  </div>
+
+  <section id="gameplay">
+    <div class="wrap">
+      <h2 data-i18n="video_title">Gameplay</h2>
+      <p class="intro" data-i18n="video_text">One minute from a real match, recorded in the game.</p>
+      <figure class="film">
+        <video id="film" controls playsinline muted preload="metadata" poster="media/poster.jpg" width="1280" height="720">
+          <source src="media/gameplay.mp4" type="video/mp4">
+        </video>
+        <figcaption data-i18n="video_caption">Video without sound.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <h2 data-i18n="features_title">What's in the game</h2>
+      <p class="intro" data-i18n="features_text">Rounds of about two minutes: buy, fight, plant or defuse.</p>
+      <div class="features">
+        <article class="feature">
+          <header><h3 data-i18n="f_bots_t">Bots</h3><span class="tag">1v1 – 5v5</span></header>
+          <p data-i18n="f_bots_d">From 1v1 up to 5v5 against bots on Easy, Normal or Hard. They buy weapons, plant the bomb and defuse it.</p>
+        </article>
+        <article class="feature">
+          <header><h3 data-i18n="f_bomb_t">The bomb</h3><span class="tag">C4 · <span data-i18n="tag_bomb">40 s</span></span></header>
+          <p data-i18n="f_bomb_d">Plant the C4 on site A or B in 3 seconds. It explodes after 40 seconds. SWAT defuse it in 10 seconds, or 5 with a kit.</p>
+        </article>
+        <article class="feature">
+          <header><h3 data-i18n="f_shop_t">Shop</h3><span class="tag">$200 – $10000</span></header>
+          <p data-i18n="f_shop_d">13 weapons, from the Glock-18 to the RPG. Buy in your own spawn during the first 25 seconds of a round.</p>
+        </article>
+        <article class="feature">
+          <header><h3 data-i18n="f_lan_t">LAN games</h3><span class="tag">Wi‑Fi</span></header>
+          <p data-i18n="f_lan_d">Host a game on one computer and join from another on the same WiFi. Bots take the free places.</p>
+        </article>
+        <article class="feature">
+          <header><h3 data-i18n="f_skins_t">Skins</h3><span class="tag">Karambit</span></header>
+          <p data-i18n="f_skins_d">An inventory with skins for every weapon: Gold, Arctic, Desert Camo, Urban Digital and the karambit knife.</p>
+        </article>
+        <article class="feature">
+          <header><h3 data-i18n="f_perf_t">Runs on laptops</h3><span class="tag">30 / 60 / 120 FPS</span></header>
+          <p data-i18n="f_perf_d">Graphics Low, Medium or High, a frame limit and 3D resolution. Works on Intel and Apple Silicon Macs.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="shop">
+    <div class="wrap">
+      <h2 data-i18n="shop_title">Price list</h2>
+      <p class="intro" data-i18n="shop_intro">The buy menu, as it looks in the game. T = Terrorists only, SWAT = SWAT only.</p>
+      <div class="shop">
+        <div>
+          <h3 data-i18n="cat_pistols">Pistols</h3>
+          <ul>
+            <li><span class="name">Glock-18</span><span class="cost">$200</span><span class="team t">T</span></li>
+            <li><span class="name">USP</span><span class="cost">$200</span><span class="team s">SWAT</span></li>
+            <li><span class="name">TEC-DC9</span><span class="cost">$500</span><span class="team t">T</span></li>
+            <li><span class="name">M1911</span><span class="cost">$500</span><span class="team s">SWAT</span></li>
+            <li><span class="name">Desert Eagle</span><span class="cost">$700</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-i18n="cat_smg">SMG &amp; shotgun</h3>
+          <ul>
+            <li><span class="name">MP5</span><span class="cost">$1500</span></li>
+            <li><span class="name">Pump Shotgun</span><span class="cost">$1700</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-i18n="cat_rifles">Rifles &amp; heavy</h3>
+          <ul>
+            <li><span class="name">AK-47</span><span class="cost">$2500</span><span class="team t">T</span></li>
+            <li><span class="name">M4A1</span><span class="cost">$3100</span><span class="team s">SWAT</span></li>
+            <li><span class="name">AWP</span><span class="cost">$4750</span></li>
+            <li><span class="name">RPG</span><span class="cost">$10000</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3 data-i18n="cat_equipment">Equipment</h3>
+          <ul>
+            <li><span class="name">Kevlar</span><span class="cost">$650</span></li>
+            <li><span class="name">Kevlar + Helmet</span><span class="cost">$1000</span></li>
+            <li><span class="name">Defuse Kit</span><span class="cost">$400</span><span class="team s">SWAT</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="money-line" data-i18n="shop_text">Money: $800 at the start, $3250 for a win, $300 per kill, $1500 for a knife kill.</p>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <div class="wrap">
+      <h2 data-i18n="screens_title">Screenshots</h2>
+      <p class="intro" data-i18n="screens_text">Click a picture to see it bigger.</p>
+      <div class="shots">
+        <figure class="wide"><button type="button" class="shot" id="shot-team" data-cap="cap_team"><img src="media/team.jpg" alt="Teammates at the start of a round" data-i18n-alt="cap_team" width="1280" height="720" loading="lazy"></button><figcaption data-i18n="cap_team">Teammates at the start of a round</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-bomb" data-cap="cap_bomb"><img src="media/bombsite.jpg" alt="A Terrorist with the bomb on site A" data-i18n-alt="cap_bomb" width="1280" height="720" loading="lazy"></button><figcaption data-i18n="cap_bomb">A Terrorist with the bomb on site A</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-swat" data-cap="cap_swat"><img src="media/swat.jpg" alt="SWAT in a firefight in the tunnel" data-i18n-alt="cap_swat" width="1280" height="720" loading="lazy"></button><figcaption data-i18n="cap_swat">SWAT in a firefight in the tunnel</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-menu" data-cap="cap_menu"><img src="media/menu.webp" alt="Main menu" data-i18n-alt="cap_menu" loading="lazy"></button><figcaption data-i18n="cap_menu">Main menu: team, players, bots, rounds and friendly fire</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-settings" data-cap="cap_settings"><img src="media/settings.png" alt="Settings" data-i18n-alt="cap_settings" loading="lazy"></button><figcaption data-i18n="cap_settings">Settings: graphics, frame limit and 3D resolution</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-inventory" data-cap="cap_inventory"><img src="media/inventory.png" alt="Inventory" data-i18n-alt="cap_inventory" loading="lazy"></button><figcaption data-i18n="cap_inventory">Inventory with the karambit equipped</figcaption></figure>
+        <figure><button type="button" class="shot" id="shot-lan" data-cap="cap_lan"><img src="media/lan.webp" alt="LAN game" data-i18n-alt="cap_lan" loading="lazy"></button><figcaption data-i18n="cap_lan">LAN game: host or join on your network</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="controls">
+    <div class="wrap">
+      <h2 data-i18n="controls_title">Controls</h2>
+      <p class="intro" data-i18n="controls_text">Keyboard and mouse, the classic way.</p>
+      <ul class="keys">
+        <li><kbd>WASD</kbd><span data-i18n="k_move">Move</span></li>
+        <li><kbd data-i18n="key_mouse">Mouse</kbd><span data-i18n="k_aim">Aim and shoot</span></li>
+        <li><kbd>R</kbd><span data-i18n="k_reload">Reload</span></li>
+        <li><kbd>1 2 3</kbd><span data-i18n="k_weapons">Switch weapons</span></li>
+        <li><kbd data-i18n="key_space">Space</kbd><span data-i18n="k_jump">Jump</span></li>
+        <li><kbd>Ctrl</kbd><span data-i18n="k_crouch">Crouch</span></li>
+        <li><kbd>Shift</kbd><span data-i18n="k_walk">Walk quietly</span></li>
+        <li><kbd>B</kbd><span data-i18n="k_buy">Buy menu</span></li>
+        <li><kbd>E</kbd><span data-i18n="k_plant">Plant or defuse (hold)</span></li>
+        <li><kbd>G</kbd><span data-i18n="k_drop">Drop the bomb</span></li>
+        <li><kbd>Tab</kbd><span data-i18n="k_scores">Scoreboard</span></li>
+        <li><kbd>Esc</kbd><span data-i18n="k_menu">Menu and settings</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <h2 data-i18n="dl_title">Download</h2>
+      <p class="intro" data-i18n="dl_text">Free, no account needed. Pick your computer.</p>
+      <div class="downloads">
+        <article class="os">
+          <h3>Windows</h3>
+          <p class="file">DesertStrike-Windows.exe · <span data-i18n="dl_win_meta">one file</span> · 34 MB</p>
+          <ol>
+            <li data-i18n="dl_win_1">Download the file and double-click it.</li>
+            <li data-i18n="dl_win_2">The first start unpacks the game, which takes a few seconds.</li>
+            <li data-i18n="dl_win_3">If Windows SmartScreen appears, click More info, then Run anyway.</li>
+          </ol>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span data-i18n="hero_win">Download for Windows</span><span class="price">$0</span></a>
+        </article>
+        <article class="os">
+          <h3>macOS</h3>
+          <p class="file">DesertStrike-macOS.zip · <span data-i18n="dl_mac_meta">Intel and Apple Silicon</span> · 42 MB</p>
+          <ol>
+            <li data-i18n="dl_mac_1">Download the zip, unzip it and double-click DesertStrike.</li>
+            <li data-i18n="dl_mac_2">The first time, macOS blocks it. Close the message.</li>
+            <li data-i18n="dl_mac_3">Open System Settings &gt; Privacy &amp; Security, click Open Anyway, then Open.</li>
+          </ol>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span data-i18n="hero_mac">Download for macOS</span><span class="price">$0</span></a>
+        </article>
+      </div>
+      <p class="all"><a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener" data-i18n="dl_all">All versions on GitHub</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="brand">LOW<b>-</b>STRIKE</span>
+    <span data-i18n="footer_made">Made with Unity and Blender.</span>
+    <a href="https://github.com/HappzGirafe/DesertStrike" target="_blank" rel="noopener" data-i18n="footer_code">Source code on GitHub</a>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Screenshot">
+  <img id="lb-img" src="media/poster.jpg" alt="">
+  <div class="lb-bar">
+    <span class="lb-caption" id="lb-caption"></span>
+    <button type="button" id="lb-prev" data-i18n="lb_prev">Previous</button>
+    <button type="button" id="lb-next" data-i18n="lb_next">Next</button>
+    <button type="button" id="lb-close" data-i18n="lb_close">Close</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  const T = {
+    en: {
+      nav_gameplay: "Gameplay", nav_features: "Features", nav_shop: "Price list", nav_screens: "Screenshots", nav_download: "Download",
+      lang_label: "Language",
+      hero_eyebrow: "Free · Windows and macOS · bots and LAN",
+      hero_lead: "Terrorists against SWAT on a desert map. Plant the bomb, defuse it or take out the other team, against bots or with friends on the same WiFi.",
+      hero_win: "Download for Windows", hero_mac: "Download for macOS",
+      hero_note: "Version 1.11 · Windows 34 MB · macOS 42 MB, Intel and Apple Silicon",
+      hud_round: "Round 1 · first to 8", hud_alive: "5 alive", hud_buy: "Press B to buy",
+      cap_hero: "A round on site A: tracers, crates and the painted letter A",
+      video_title: "Gameplay", video_text: "One minute from a real match, recorded in the game.", video_caption: "Video without sound.",
+      features_title: "What's in the game", features_text: "Rounds of about two minutes: buy, fight, plant or defuse.",
+      f_bots_t: "Bots", f_bots_d: "From 1v1 up to 5v5 against bots on Easy, Normal or Hard. They buy weapons, plant the bomb and defuse it.",
+      f_bomb_t: "The bomb", f_bomb_d: "Plant the C4 on site A or B in 3 seconds. It explodes after 40 seconds. SWAT defuse it in 10 seconds, or 5 with a kit.", tag_bomb: "40 s",
+      f_shop_t: "Shop", f_shop_d: "13 weapons, from the Glock-18 to the RPG. Buy in your own spawn during the first 25 seconds of a round.",
+      f_lan_t: "LAN games", f_lan_d: "Host a game on one computer and join from another on the same WiFi. Bots take the free places.",
+      f_skins_t: "Skins", f_skins_d: "An inventory with skins for every weapon: Gold, Arctic, Desert Camo, Urban Digital and the karambit knife.",
+      f_perf_t: "Runs on laptops", f_perf_d: "Graphics Low, Medium or High, a frame limit and 3D resolution. Works on Intel and Apple Silicon Macs.",
+      shop_title: "Price list", shop_intro: "The buy menu, as it looks in the game. T = Terrorists only, SWAT = SWAT only.",
+      shop_text: "Money: $800 at the start, $3250 for a win, $300 per kill, $1500 for a knife kill.",
+      cat_pistols: "Pistols", cat_smg: "SMG & shotgun", cat_rifles: "Rifles & heavy", cat_equipment: "Equipment",
+      screens_title: "Screenshots", screens_text: "Click a picture to see it bigger.",
+      cap_team: "Teammates at the start of a round", cap_bomb: "A Terrorist with the bomb on site A", cap_swat: "SWAT in a firefight in the tunnel",
+      cap_menu: "Main menu: team, players, bots, rounds and friendly fire", cap_settings: "Settings: graphics, frame limit and 3D resolution",
+      cap_inventory: "Inventory with the karambit equipped", cap_lan: "LAN game: host or join on your network",
+      lb_close: "Close", lb_prev: "Previous", lb_next: "Next",
+      controls_title: "Controls", controls_text: "Keyboard and mouse, the classic way.", key_mouse: "Mouse", key_space: "Space",
+      k_move: "Move", k_aim: "Aim and shoot", k_reload: "Reload", k_weapons: "Switch weapons", k_jump: "Jump", k_crouch: "Crouch",
+      k_walk: "Walk quietly", k_buy: "Buy menu", k_plant: "Plant or defuse (hold)", k_drop: "Drop the bomb", k_scores: "Scoreboard", k_menu: "Menu and settings",
+      dl_title: "Download", dl_text: "Free, no account needed. Pick your computer.", dl_win_meta: "one file", dl_mac_meta: "Intel and Apple Silicon",
+      dl_win_1: "Download the file and double-click it.", dl_win_2: "The first start unpacks the game, which takes a few seconds.",
+      dl_win_3: "If Windows SmartScreen appears, click More info, then Run anyway.",
+      dl_mac_1: "Download the zip, unzip it and double-click DesertStrike.", dl_mac_2: "The first time, macOS blocks it. Close the message.",
+      dl_mac_3: "Open System Settings > Privacy & Security, click Open Anyway, then Open.",
+      dl_all: "All versions on GitHub", footer_made: "Made with Unity and Blender.", footer_code: "Source code on GitHub"
+    },
+    ua: {
+      nav_gameplay: "Геймплей", nav_features: "Можливості", nav_shop: "Ціни", nav_screens: "Скриншоти", nav_download: "Завантажити",
+      lang_label: "Мова",
+      hero_eyebrow: "Безкоштовно · Windows і macOS · боти та LAN",
+      hero_lead: "Терористи проти SWAT на пустельній карті. Заклади бомбу, знешкодь її або переможи іншу команду: проти ботів або з друзями в одній мережі Wi‑Fi.",
+      hero_win: "Завантажити для Windows", hero_mac: "Завантажити для macOS",
+      hero_note: "Версія 1.11 · Windows 34 МБ · macOS 42 МБ, Intel і Apple Silicon",
+      hud_round: "Раунд 1 · до 8 перемог", hud_alive: "5 живих", hud_buy: "Натисни B, щоб купити",
+      cap_hero: "Раунд на точці A: трасери, ящики й намальована літера A",
+      video_title: "Геймплей", video_text: "Хвилина справжнього матчу, записана в грі.", video_caption: "Відео без звуку.",
+      features_title: "Що є в грі", features_text: "Раунди приблизно по дві хвилини: купи, бийся, заклади або знешкодь.",
+      f_bots_t: "Боти", f_bots_d: "Від 1 на 1 до 5 на 5 проти ботів: легкі, звичайні або складні. Вони купують зброю, закладають і знешкоджують бомбу.",
+      f_bomb_t: "Бомба", f_bomb_d: "Заклади C4 на точці A або B за 3 секунди. Вона вибухає через 40 секунд. SWAT знешкоджує її за 10 секунд, а з набором сапера за 5.", tag_bomb: "40 с",
+      f_shop_t: "Магазин", f_shop_d: "13 видів зброї, від Glock-18 до RPG. Купувати можна на своїй базі протягом перших 25 секунд раунду.",
+      f_lan_t: "Гра по мережі", f_lan_d: "Створи гру на одному комп’ютері й приєднайся з іншого в тій самій мережі Wi‑Fi. Вільні місця займають боти.",
+      f_skins_t: "Скіни", f_skins_d: "Інвентар зі скінами для кожної зброї: Gold, Arctic, Desert Camo, Urban Digital і ніж-карамбіт.",
+      f_perf_t: "Працює на ноутбуках", f_perf_d: "Графіка Low, Medium або High, обмеження кадрів і 3D-роздільність. Працює на Mac з Intel і Apple Silicon.",
+      shop_title: "Ціни", shop_intro: "Меню покупок, як у грі. T = лише терористи, SWAT = лише SWAT.",
+      shop_text: "Гроші: $800 на старті, $3250 за перемогу, $300 за вбивство, $1500 за вбивство ножем.",
+      cat_pistols: "Пістолети", cat_smg: "ПП і дробовик", cat_rifles: "Гвинтівки й важка зброя", cat_equipment: "Спорядження",
+      screens_title: "Скриншоти", screens_text: "Натисни на картинку, щоб збільшити.",
+      cap_team: "Союзники на початку раунду", cap_bomb: "Терорист із бомбою на точці A", cap_swat: "SWAT у перестрілці в тунелі",
+      cap_menu: "Головне меню: команда, гравці, боти, раунди й вогонь по своїх", cap_settings: "Налаштування: графіка, обмеження кадрів і 3D-роздільність",
+      cap_inventory: "Інвентар із вибраним карамбітом", cap_lan: "Гра по мережі: створи гру або приєднайся",
+      lb_close: "Закрити", lb_prev: "Попередній", lb_next: "Наступний",
+      controls_title: "Керування", controls_text: "Клавіатура й миша, як завжди.", key_mouse: "Миша", key_space: "Пробіл",
+      k_move: "Рух", k_aim: "Приціл і постріл", k_reload: "Перезарядка", k_weapons: "Зміна зброї", k_jump: "Стрибок", k_crouch: "Присісти",
+      k_walk: "Тиха хода", k_buy: "Магазин", k_plant: "Закласти чи знешкодити (утримуй)", k_drop: "Викинути бомбу", k_scores: "Таблиця рахунку", k_menu: "Меню й налаштування",
+      dl_title: "Завантажити", dl_text: "Безкоштовно й без реєстрації. Обери свій комп’ютер.", dl_win_meta: "один файл", dl_mac_meta: "Intel і Apple Silicon",
+      dl_win_1: "Завантаж файл і двічі клацни по ньому.", dl_win_2: "Під час першого запуску гра розпаковується, це займає кілька секунд.",
+      dl_win_3: "Якщо з’явиться Windows SmartScreen, натисни «Докладніше», а потім «Усе одно запустити».",
+      dl_mac_1: "Завантаж архів, розпакуй його й двічі клацни DesertStrike.", dl_mac_2: "Першого разу macOS блокує гру. Закрий повідомлення.",
+      dl_mac_3: "Відкрий Системні параметри > Приватність і безпека, натисни «Однаково відкрити», потім «Відкрити».",
+      dl_all: "Усі версії на GitHub", footer_made: "Створено в Unity та Blender.", footer_code: "Код на GitHub"
+    },
+    de: {
+      nav_gameplay: "Gameplay", nav_features: "Funktionen", nav_shop: "Preise", nav_screens: "Screenshots", nav_download: "Download",
+      lang_label: "Sprache",
+      hero_eyebrow: "Kostenlos · Windows und macOS · Bots und LAN",
+      hero_lead: "Terroristen gegen SWAT auf einer Wüstenkarte. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.",
+      hero_win: "Für Windows herunterladen", hero_mac: "Für macOS herunterladen",
+      hero_note: "Version 1.11 · Windows 34 MB · macOS 42 MB, Intel und Apple Silicon",
+      hud_round: "Runde 1 · bis 8 Siege", hud_alive: "5 am Leben", hud_buy: "B zum Kaufen",
+      cap_hero: "Eine Runde auf Platz A: Leuchtspuren, Kisten und das gemalte A",
+      video_title: "Gameplay", video_text: "Eine Minute aus einem echten Match, im Spiel aufgenommen.", video_caption: "Video ohne Ton.",
+      features_title: "Was im Spiel steckt", features_text: "Runden von etwa zwei Minuten: kaufen, kämpfen, Bombe legen oder entschärfen.",
+      f_bots_t: "Bots", f_bots_d: "Von 1 gegen 1 bis 5 gegen 5 gegen Bots auf Leicht, Normal oder Schwer. Sie kaufen Waffen, legen die Bombe und entschärfen sie.",
+      f_bomb_t: "Die Bombe", f_bomb_d: "Leg die C4 in 3 Sekunden auf Bombenplatz A oder B. Sie explodiert nach 40 Sekunden. SWAT entschärft sie in 10 Sekunden, mit Entschärfungsset in 5.", tag_bomb: "40 s",
+      f_shop_t: "Shop", f_shop_d: "13 Waffen, von der Glock-18 bis zum RPG. Gekauft wird im eigenen Spawn in den ersten 25 Sekunden einer Runde.",
+      f_lan_t: "LAN-Spiele", f_lan_d: "Starte ein Spiel auf einem Computer und tritt von einem anderen im selben WLAN bei. Freie Plätze übernehmen Bots.",
+      f_skins_t: "Skins", f_skins_d: "Ein Inventar mit Skins für jede Waffe: Gold, Arctic, Desert Camo, Urban Digital und das Karambit-Messer.",
+      f_perf_t: "Läuft auf Laptops", f_perf_d: "Grafik Low, Medium oder High, Bildratenlimit und 3D-Auflösung. Läuft auf Macs mit Intel und Apple Silicon.",
+      shop_title: "Preisliste", shop_intro: "Das Kaufmenü, wie es im Spiel aussieht. T = nur Terroristen, SWAT = nur SWAT.",
+      shop_text: "Geld: $800 zum Start, $3250 für einen Sieg, $300 pro Kill, $1500 für einen Messer-Kill.",
+      cat_pistols: "Pistolen", cat_smg: "MPs & Schrotflinte", cat_rifles: "Gewehre & Schweres", cat_equipment: "Ausrüstung",
+      screens_title: "Screenshots", screens_text: "Klick auf ein Bild, um es groß zu sehen.",
+      cap_team: "Teamkollegen zu Beginn einer Runde", cap_bomb: "Ein Terrorist mit der Bombe auf Platz A", cap_swat: "SWAT im Feuergefecht im Tunnel",
+      cap_menu: "Hauptmenü: Team, Spieler, Bots, Runden und Friendly Fire", cap_settings: "Einstellungen: Grafik, Bildratenlimit und 3D-Auflösung",
+      cap_inventory: "Inventar mit ausgerüstetem Karambit", cap_lan: "LAN-Spiel: im Netzwerk hosten oder beitreten",
+      lb_close: "Schließen", lb_prev: "Zurück", lb_next: "Weiter",
+      controls_title: "Steuerung", controls_text: "Tastatur und Maus, ganz klassisch.", key_mouse: "Maus", key_space: "Leertaste",
+      k_move: "Bewegen", k_aim: "Zielen und schießen", k_reload: "Nachladen", k_weapons: "Waffe wechseln", k_jump: "Springen", k_crouch: "Ducken",
+      k_walk: "Leise gehen", k_buy: "Kaufmenü", k_plant: "Bombe legen oder entschärfen (halten)", k_drop: "Bombe fallen lassen", k_scores: "Punktestand", k_menu: "Menü und Einstellungen",
+      dl_title: "Download", dl_text: "Kostenlos, ohne Konto. Wähle deinen Computer.", dl_win_meta: "eine Datei", dl_mac_meta: "Intel und Apple Silicon",
+      dl_win_1: "Datei herunterladen und doppelklicken.", dl_win_2: "Beim ersten Start wird das Spiel entpackt, das dauert ein paar Sekunden.",
+      dl_win_3: "Wenn Windows SmartScreen erscheint, auf „Weitere Informationen“ und dann „Trotzdem ausführen“ klicken.",
+      dl_mac_1: "ZIP herunterladen, entpacken und DesertStrike doppelklicken.", dl_mac_2: "Beim ersten Mal blockiert macOS das Spiel. Meldung schließen.",
+      dl_mac_3: "Systemeinstellungen > Datenschutz & Sicherheit öffnen, auf „Dennoch öffnen“ und dann „Öffnen“ klicken.",
+      dl_all: "Alle Versionen auf GitHub", footer_made: "Gemacht mit Unity und Blender.", footer_code: "Quellcode auf GitHub"
+    },
+    fr: {
+      nav_gameplay: "Gameplay", nav_features: "Contenu", nav_shop: "Prix", nav_screens: "Captures", nav_download: "Télécharger",
+      lang_label: "Langue",
+      hero_eyebrow: "Gratuit · Windows et macOS · bots et LAN",
+      hero_lead: "Terroristes contre SWAT sur une carte désertique. Pose la bombe, désamorce-la ou élimine l’autre équipe, contre des bots ou entre amis sur le même Wi‑Fi.",
+      hero_win: "Télécharger pour Windows", hero_mac: "Télécharger pour macOS",
+      hero_note: "Version 1.11 · Windows 34 Mo · macOS 42 Mo, Intel et Apple Silicon",
+      hud_round: "Manche 1 · en 8 victoires", hud_alive: "5 en vie", hud_buy: "B pour acheter",
+      cap_hero: "Une manche sur le site A : traçantes, caisses et le A peint",
+      video_title: "Gameplay", video_text: "Une minute d’un vrai match, enregistrée dans le jeu.", video_caption: "Vidéo sans son.",
+      features_title: "Ce qu’il y a dans le jeu", features_text: "Des manches d’environ deux minutes : acheter, combattre, poser ou désamorcer.",
+      f_bots_t: "Bots", f_bots_d: "Du 1 contre 1 au 5 contre 5 face à des bots en Facile, Normal ou Difficile. Ils achètent des armes, posent la bombe et la désamorcent.",
+      f_bomb_t: "La bombe", f_bomb_d: "Pose le C4 sur le site A ou B en 3 secondes. Il explose au bout de 40 secondes. Le SWAT le désamorce en 10 secondes, ou en 5 avec un kit.", tag_bomb: "40 s",
+      f_shop_t: "Boutique", f_shop_d: "13 armes, du Glock-18 au RPG. On achète dans son propre spawn pendant les 25 premières secondes de la manche.",
+      f_lan_t: "Parties LAN", f_lan_d: "Crée une partie sur un ordinateur et rejoins-la depuis un autre sur le même Wi‑Fi. Des bots prennent les places libres.",
+      f_skins_t: "Skins", f_skins_d: "Un inventaire avec des skins pour chaque arme : Gold, Arctic, Desert Camo, Urban Digital et le couteau karambit.",
+      f_perf_t: "Tourne sur portable", f_perf_d: "Graphismes Low, Medium ou High, limite d’images et résolution 3D. Fonctionne sur les Mac Intel et Apple Silicon.",
+      shop_title: "Liste des prix", shop_intro: "Le menu d’achat, comme dans le jeu. T = terroristes seulement, SWAT = SWAT seulement.",
+      shop_text: "Argent : $800 au départ, $3250 par victoire, $300 par élimination, $1500 au couteau.",
+      cat_pistols: "Pistolets", cat_smg: "PM et fusil à pompe", cat_rifles: "Fusils et armes lourdes", cat_equipment: "Équipement",
+      screens_title: "Captures d’écran", screens_text: "Clique sur une image pour l’agrandir.",
+      cap_team: "Coéquipiers au début d’une manche", cap_bomb: "Un terroriste avec la bombe sur le site A", cap_swat: "Le SWAT en plein échange de tirs dans le tunnel",
+      cap_menu: "Menu principal : équipe, joueurs, bots, manches et tir allié", cap_settings: "Réglages : graphismes, limite d’images et résolution 3D",
+      cap_inventory: "Inventaire avec le karambit équipé", cap_lan: "Partie LAN : héberger ou rejoindre sur ton réseau",
+      lb_close: "Fermer", lb_prev: "Précédente", lb_next: "Suivante",
+      controls_title: "Commandes", controls_text: "Clavier et souris, comme d’habitude.", key_mouse: "Souris", key_space: "Espace",
+      k_move: "Se déplacer", k_aim: "Viser et tirer", k_reload: "Recharger", k_weapons: "Changer d’arme", k_jump: "Sauter", k_crouch: "S’accroupir",
+      k_walk: "Marcher sans bruit", k_buy: "Menu d’achat", k_plant: "Poser ou désamorcer (maintenir)", k_drop: "Lâcher la bombe", k_scores: "Tableau des scores", k_menu: "Menu et réglages",
+      dl_title: "Télécharger", dl_text: "Gratuit, sans compte. Choisis ton ordinateur.", dl_win_meta: "un seul fichier", dl_mac_meta: "Intel et Apple Silicon",
+      dl_win_1: "Télécharge le fichier et double-clique dessus.", dl_win_2: "Au premier lancement, le jeu se décompresse en quelques secondes.",
+      dl_win_3: "Si Windows SmartScreen s’affiche, clique sur « Informations complémentaires », puis « Exécuter quand même ».",
+      dl_mac_1: "Télécharge le zip, décompresse-le et double-clique sur DesertStrike.", dl_mac_2: "La première fois, macOS le bloque. Ferme le message.",
+      dl_mac_3: "Ouvre Réglages Système > Confidentialité et sécurité, clique sur « Ouvrir quand même », puis « Ouvrir ».",
+      dl_all: "Toutes les versions sur GitHub", footer_made: "Fait avec Unity et Blender.", footer_code: "Code source sur GitHub"
+    },
+    it: {
+      nav_gameplay: "Gameplay", nav_features: "Caratteristiche", nav_shop: "Prezzi", nav_screens: "Screenshot", nav_download: "Download",
+      lang_label: "Lingua",
+      hero_eyebrow: "Gratis · Windows e macOS · bot e LAN",
+      hero_lead: "Terroristi contro SWAT su una mappa nel deserto. Pianta la bomba, disinnescala o elimina l’altra squadra, contro i bot o con gli amici sulla stessa Wi‑Fi.",
+      hero_win: "Scarica per Windows", hero_mac: "Scarica per macOS",
+      hero_note: "Versione 1.11 · Windows 34 MB · macOS 42 MB, Intel e Apple Silicon",
+      hud_round: "Round 1 · si vince a 8", hud_alive: "5 vivi", hud_buy: "Premi B per comprare",
+      cap_hero: "Un round sul sito A: traccianti, casse e la A dipinta",
+      video_title: "Gameplay", video_text: "Un minuto di una vera partita, registrato nel gioco.", video_caption: "Video senza audio.",
+      features_title: "Cosa c’è nel gioco", features_text: "Round di circa due minuti: compra, combatti, pianta o disinnesca.",
+      f_bots_t: "Bot", f_bots_d: "Da 1 contro 1 fino a 5 contro 5 contro bot in Facile, Normale o Difficile. Comprano armi, piantano la bomba e la disinnescano.",
+      f_bomb_t: "La bomba", f_bomb_d: "Pianta la C4 sul sito A o B in 3 secondi. Esplode dopo 40 secondi. Lo SWAT la disinnesca in 10 secondi, o in 5 con il kit.", tag_bomb: "40 s",
+      f_shop_t: "Negozio", f_shop_d: "13 armi, dalla Glock-18 all’RPG. Si compra nel proprio spawn nei primi 25 secondi del round.",
+      f_lan_t: "Partite LAN", f_lan_d: "Crea una partita su un computer e unisciti da un altro sulla stessa Wi‑Fi. I posti liberi vanno ai bot.",
+      f_skins_t: "Skin", f_skins_d: "Un inventario con skin per ogni arma: Gold, Arctic, Desert Camo, Urban Digital e il coltello karambit.",
+      f_perf_t: "Gira sui portatili", f_perf_d: "Grafica Low, Medium o High, limite di fotogrammi e risoluzione 3D. Funziona sui Mac Intel e Apple Silicon.",
+      shop_title: "Listino prezzi", shop_intro: "Il menu acquisti, come nel gioco. T = solo terroristi, SWAT = solo SWAT.",
+      shop_text: "Soldi: $800 all’inizio, $3250 per una vittoria, $300 per uccisione, $1500 per un’uccisione col coltello.",
+      cat_pistols: "Pistole", cat_smg: "Mitragliette e fucile a pompa", cat_rifles: "Fucili e armi pesanti", cat_equipment: "Equipaggiamento",
+      screens_title: "Screenshot", screens_text: "Fai clic su un’immagine per ingrandirla.",
+      cap_team: "Compagni di squadra all’inizio del round", cap_bomb: "Un terrorista con la bomba sul sito A", cap_swat: "SWAT in uno scontro a fuoco nel tunnel",
+      cap_menu: "Menu principale: squadra, giocatori, bot, round e fuoco amico", cap_settings: "Impostazioni: grafica, limite di fotogrammi e risoluzione 3D",
+      cap_inventory: "Inventario con il karambit equipaggiato", cap_lan: "Partita LAN: crea o unisciti nella tua rete",
+      lb_close: "Chiudi", lb_prev: "Precedente", lb_next: "Successiva",
+      controls_title: "Comandi", controls_text: "Tastiera e mouse, come una volta.", key_mouse: "Mouse", key_space: "Spazio",
+      k_move: "Muoversi", k_aim: "Mirare e sparare", k_reload: "Ricaricare", k_weapons: "Cambiare arma", k_jump: "Saltare", k_crouch: "Accovacciarsi",
+      k_walk: "Camminare in silenzio", k_buy: "Menu acquisti", k_plant: "Piantare o disinnescare (tieni premuto)", k_drop: "Lasciare la bomba", k_scores: "Punteggi", k_menu: "Menu e impostazioni",
+      dl_title: "Download", dl_text: "Gratis, senza account. Scegli il tuo computer.", dl_win_meta: "un solo file", dl_mac_meta: "Intel e Apple Silicon",
+      dl_win_1: "Scarica il file e fai doppio clic.", dl_win_2: "Al primo avvio il gioco si estrae, ci vogliono pochi secondi.",
+      dl_win_3: "Se compare Windows SmartScreen, fai clic su «Ulteriori informazioni» e poi su «Esegui comunque».",
+      dl_mac_1: "Scarica lo zip, estrailo e fai doppio clic su DesertStrike.", dl_mac_2: "La prima volta macOS lo blocca. Chiudi il messaggio.",
+      dl_mac_3: "Apri Impostazioni di Sistema > Privacy e sicurezza, fai clic su «Apri comunque» e poi su «Apri».",
+      dl_all: "Tutte le versioni su GitHub", footer_made: "Fatto con Unity e Blender.", footer_code: "Codice sorgente su GitHub"
+    },
+    es: {
+      nav_gameplay: "Jugabilidad", nav_features: "Características", nav_shop: "Precios", nav_screens: "Capturas", nav_download: "Descargar",
+      lang_label: "Idioma",
+      hero_eyebrow: "Gratis · Windows y macOS · bots y LAN",
+      hero_lead: "Terroristas contra SWAT en un mapa del desierto. Planta la bomba, desactívala o elimina al otro equipo, contra bots o con amigos en la misma Wi‑Fi.",
+      hero_win: "Descargar para Windows", hero_mac: "Descargar para macOS",
+      hero_note: "Versión 1.11 · Windows 34 MB · macOS 42 MB, Intel y Apple Silicon",
+      hud_round: "Ronda 1 · a 8 victorias", hud_alive: "5 vivos", hud_buy: "Pulsa B para comprar",
+      cap_hero: "Una ronda en el punto A: trazadoras, cajas y la A pintada",
+      video_title: "Jugabilidad", video_text: "Un minuto de una partida real, grabado en el juego.", video_caption: "Vídeo sin sonido.",
+      features_title: "Qué trae el juego", features_text: "Rondas de unos dos minutos: compra, combate, planta o desactiva.",
+      f_bots_t: "Bots", f_bots_d: "Del 1 contra 1 al 5 contra 5 contra bots en Fácil, Normal o Difícil. Compran armas, plantan la bomba y la desactivan.",
+      f_bomb_t: "La bomba", f_bomb_d: "Planta la C4 en el punto A o B en 3 segundos. Explota a los 40 segundos. Los SWAT la desactivan en 10 segundos, o en 5 con el kit.", tag_bomb: "40 s",
+      f_shop_t: "Tienda", f_shop_d: "13 armas, de la Glock-18 al RPG. Se compra en tu propia base durante los primeros 25 segundos de la ronda.",
+      f_lan_t: "Partidas LAN", f_lan_d: "Crea una partida en un ordenador y únete desde otro en la misma Wi‑Fi. Los bots ocupan los huecos libres.",
+      f_skins_t: "Skins", f_skins_d: "Un inventario con skins para cada arma: Gold, Arctic, Desert Camo, Urban Digital y el cuchillo karambit.",
+      f_perf_t: "Funciona en portátiles", f_perf_d: "Gráficos Low, Medium o High, límite de fotogramas y resolución 3D. Funciona en Mac con Intel y Apple Silicon.",
+      shop_title: "Lista de precios", shop_intro: "El menú de compra, tal como se ve en el juego. T = solo terroristas, SWAT = solo SWAT.",
+      shop_text: "Dinero: $800 al empezar, $3250 por victoria, $300 por baja, $1500 por una baja con cuchillo.",
+      cat_pistols: "Pistolas", cat_smg: "Subfusiles y escopeta", cat_rifles: "Fusiles y armas pesadas", cat_equipment: "Equipo",
+      screens_title: "Capturas", screens_text: "Haz clic en una imagen para verla en grande.",
+      cap_team: "Compañeros al empezar la ronda", cap_bomb: "Un terrorista con la bomba en el punto A", cap_swat: "Los SWAT en un tiroteo en el túnel",
+      cap_menu: "Menú principal: equipo, jugadores, bots, rondas y fuego amigo", cap_settings: "Ajustes: gráficos, límite de fotogramas y resolución 3D",
+      cap_inventory: "Inventario con el karambit equipado", cap_lan: "Partida LAN: crea o únete en tu red",
+      lb_close: "Cerrar", lb_prev: "Anterior", lb_next: "Siguiente",
+      controls_title: "Controles", controls_text: "Teclado y ratón, como siempre.", key_mouse: "Ratón", key_space: "Espacio",
+      k_move: "Moverse", k_aim: "Apuntar y disparar", k_reload: "Recargar", k_weapons: "Cambiar de arma", k_jump: "Saltar", k_crouch: "Agacharse",
+      k_walk: "Caminar en silencio", k_buy: "Menú de compra", k_plant: "Plantar o desactivar (mantener)", k_drop: "Soltar la bomba", k_scores: "Marcador", k_menu: "Menú y ajustes",
+      dl_title: "Descargar", dl_text: "Gratis y sin cuenta. Elige tu ordenador.", dl_win_meta: "un solo archivo", dl_mac_meta: "Intel y Apple Silicon",
+      dl_win_1: "Descarga el archivo y haz doble clic.", dl_win_2: "La primera vez, el juego se descomprime en unos segundos.",
+      dl_win_3: "Si aparece Windows SmartScreen, haz clic en «Más información» y luego en «Ejecutar de todas formas».",
+      dl_mac_1: "Descarga el zip, descomprímelo y haz doble clic en DesertStrike.", dl_mac_2: "La primera vez, macOS lo bloquea. Cierra el mensaje.",
+      dl_mac_3: "Abre Ajustes del Sistema > Privacidad y seguridad, haz clic en «Abrir igualmente» y luego en «Abrir».",
+      dl_all: "Todas las versiones en GitHub", footer_made: "Hecho con Unity y Blender.", footer_code: "Código fuente en GitHub"
+    }
+  };
+  const HTML_LANG = { en: "en-GB", ua: "uk", de: "de", fr: "fr", it: "it", es: "es" };
+  const KEY = "lowstrike.lang";
+  let lang = "en";
+
+  function text(key) { return (T[lang] && T[lang][key]) || T.en[key] || ""; }
+
+  function apply(next) {
+    lang = T[next] ? next : "en";
+    document.documentElement.lang = HTML_LANG[lang];
+    document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = text(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-alt]").forEach(el => { el.alt = text(el.dataset.i18nAlt); });
+    document.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", text(el.dataset.i18nAria)); });
+    document.querySelectorAll(".langs button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    if (box.open) showShot(current);
+  }
+
+  function initialLanguage() {
+    try { const saved = localStorage.getItem(KEY); if (saved && T[saved]) return saved; } catch (e) {}
+    const map = { uk: "ua", de: "de", fr: "fr", it: "it", es: "es", en: "en" };
+    for (const l of navigator.languages || [navigator.language || "en"]) {
+      const code = String(l).toLowerCase().split("-")[0];
+      if (map[code]) return map[code];
+    }
+    return "en";
+  }
+
+  document.querySelectorAll(".langs button").forEach(b => b.addEventListener("click", () => {
+    apply(b.dataset.lang);
+    try { localStorage.setItem(KEY, lang); } catch (e) {}
+  }));
+
+  // Screenshot viewer
+  const shots = Array.from(document.querySelectorAll(".shot"));
+  const box = document.getElementById("lightbox");
+  const boxImg = document.getElementById("lb-img");
+  const boxCap = document.getElementById("lb-caption");
+  let current = 0;
+  function showShot(i) {
+    current = (i + shots.length) % shots.length;
+    const img = shots[current].querySelector("img");
+    boxImg.src = img.getAttribute("src");
+    boxImg.alt = img.alt;
+    boxCap.textContent = text(shots[current].dataset.cap);
+  }
+  shots.forEach((s, i) => s.addEventListener("click", () => {
+    showShot(i);
+    if (typeof box.showModal === "function") box.showModal(); else box.setAttribute("open", "");
+  }));
+  document.getElementById("lb-prev").addEventListener("click", () => showShot(current - 1));
+  document.getElementById("lb-next").addEventListener("click", () => showShot(current + 1));
+  document.getElementById("lb-close").addEventListener("click", () => box.close());
+  box.addEventListener("click", e => { if (e.target === box) box.close(); });
+  box.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft") showShot(current - 1);
+    if (e.key === "ArrowRight") showShot(current + 1);
+  });
+
+  // The round clock in the hero counts down like the game's (1:55 to 0:00, then a new round).
+  const clock = document.getElementById("clock");
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!still) {
+    let left = 115;
+    setInterval(() => {
+      left = left <= 0 ? 115 : left - 1;
+      clock.textContent = Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+    }, 1000);
+  }
+
+  apply(initialLanguage());
+})();
+</script>
