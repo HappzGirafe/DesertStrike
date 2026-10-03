@@ -145,6 +145,16 @@ public static class WeaponModels
             model.localPosition += new Vector3(-main.center.x, y, z);
         }
 
+        if (skin != null && skin.Rotation != Vector3.zero)
+        {
+            // skin.json "rotation": [x, y, z] turns the model in the hand (degrees, Unity's order: Z, then X, then Y),
+            // around the middle of the grip so the handle stays where the hand is.
+            Vector3 pivot = (grips.Count > 0 ? LocalBounds(root, grips) : LocalBounds(root, all)).center;
+            Quaternion turn = Quaternion.Euler(skin.Rotation);
+            model.localPosition = pivot + turn * (model.localPosition - pivot);
+            model.localRotation = turn * model.localRotation;
+        }
+
         main = LocalBounds(root, mains);
         Bounds fitted = LocalBounds(root, all);
         muzzlePosition = new Vector3(0f, main.center.y, fitted.max.z + 0.005f);

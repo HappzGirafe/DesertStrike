@@ -14,7 +14,8 @@
                 "grip": "#7A4A26",
                 "detail": "#202023",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -31,7 +32,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -48,7 +50,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -65,7 +68,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -82,7 +86,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -99,7 +104,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -116,7 +122,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -133,7 +140,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -150,7 +158,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -167,7 +176,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -184,7 +194,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -201,7 +212,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -218,7 +230,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -235,7 +248,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -252,7 +266,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -269,7 +284,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -286,7 +302,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -303,7 +320,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -320,7 +338,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -337,7 +356,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -354,7 +374,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -371,7 +392,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -388,7 +410,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -405,7 +428,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -422,7 +446,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -439,7 +464,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -456,7 +482,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -473,7 +500,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -490,7 +518,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -507,7 +536,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -524,7 +554,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -541,7 +572,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -558,7 +590,12 @@
                 "grip": "",
                 "detail": "#E6E6E6",
                 "smoothness": 0.27000001072883608,
-                "metallic": 0.5
+                "metallic": 0.5,
+                "rotation": [
+                    0.0,
+                    120.0,
+                    0.0
+                ]
             }
         },
         {
@@ -575,7 +612,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -592,7 +630,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -609,7 +648,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -626,7 +666,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -643,7 +684,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -660,7 +702,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -677,7 +720,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -694,7 +738,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -711,7 +756,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -728,7 +774,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -745,7 +792,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -762,7 +810,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -779,7 +828,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -796,7 +846,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -813,7 +864,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -830,7 +882,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -847,7 +900,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -864,7 +918,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -881,7 +936,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -898,7 +954,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -915,7 +972,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -932,7 +990,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -949,7 +1008,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -966,7 +1026,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -983,7 +1044,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1000,7 +1062,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1017,7 +1080,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1034,7 +1098,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1051,7 +1116,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1068,7 +1134,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -1085,7 +1152,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1102,7 +1170,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1119,7 +1188,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1136,7 +1206,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1153,7 +1224,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1170,7 +1242,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -1187,7 +1260,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1204,7 +1278,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1221,7 +1296,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1238,7 +1314,8 @@
                 "grip": "#59616B",
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1255,7 +1332,8 @@
                 "grip": "#4A3B28",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1272,7 +1350,8 @@
                 "grip": "#141414",
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
-                "metallic": 0.8999999761581421
+                "metallic": 0.8999999761581421,
+                "rotation": []
             }
         },
         {
@@ -1289,7 +1368,8 @@
                 "grip": "#2E3524",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1306,7 +1386,8 @@
                 "grip": "",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         },
         {
@@ -1323,7 +1404,8 @@
                 "grip": "#1E1E22",
                 "detail": "",
                 "smoothness": 0.20000000298023225,
-                "metallic": 0.0
+                "metallic": 0.0,
+                "rotation": []
             }
         }
     ],

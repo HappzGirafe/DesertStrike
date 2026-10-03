@@ -93,6 +93,7 @@ public class GameManager : MonoBehaviour
     // -ds-perf (logs FPS and drawn bodies), -ds-nocull, -ds-quality <low|medium|high>, -ds-fps <limit>, -ds-scale <0.25-1>
     bool autoStart, autoHost, autoFind, clientFireTest, perfLog;
     string autoJoin;
+    WeaponSlot? holdSlot;   // -ds-hold <primary|secondary|knife>: the player keeps this weapon out (screenshots)
     int startMoney = StartMoney;
     float timeScale = 1f;
     float quitAt = -1f;
@@ -816,6 +817,8 @@ public class GameManager : MonoBehaviour
     void ReadCommandLine()
     {
         var args = Environment.GetCommandLineArgs();
+        WeaponData equipWeapon = null;
+        string equipSkin = null;
         for (int i = 0; i < args.Length; i++)
         {
             bool hasValue = i + 1 < args.Length;
@@ -859,6 +862,21 @@ public class GameManager : MonoBehaviour
                     break;
                 case "-ds-find":
                     autoFind = true;
+                    break;
+                case "-ds-hold" when hasValue:
+                    if (Enum.TryParse(args[++i], true, out WeaponSlot slot)) holdSlot = slot;
+                    break;
+                case "-ds-equip" when i + 2 < args.Length:
+                    // -ds-equip <weapon> <skin>: uses that skin for this run only (not saved)
+                    equipWeapon = WeaponData.Find(args[++i]);
+                    equipSkin = args[++i];
+                    if (equipWeapon != null) WeaponSkins.EquipThisRun(equipWeapon, equipSkin);
+                    break;
+                case "-ds-rotate" when i + 3 < args.Length:
+                    // -ds-rotate <x> <y> <z>: turns the skin chosen with -ds-equip in the hand, for this run (trying angles)
+                    var turn = new Vector3(float.Parse(args[++i], CultureInfo.InvariantCulture), float.Parse(args[++i], CultureInfo.InvariantCulture),
+                                           float.Parse(args[++i], CultureInfo.InvariantCulture));
+                    if (equipWeapon != null && WeaponSkins.Find(equipWeapon, equipSkin) is WeaponSkin turned) turned.Rotation = turn;
                     break;
                 case "-ds-perf":
                     perfLog = true;
@@ -922,6 +940,9 @@ public class GameManager : MonoBehaviour
     void RunAutomation()
     {
         float now = Time.realtimeSinceStartup;
+        if (holdSlot.HasValue && Player != null && Player.Self.IsAlive && Player.Self.Current != null
+            && Player.Self.Current.Data.Slot != holdSlot.Value)
+            Player.Self.Equip(holdSlot.Value);
         // Hosting test: start the match once a client has joined.
         if (autoHost && autoStart && State == MatchState.Menu && Net.Peers.Count > 0) StartMatch();
         // Discovery test: join the first game found on the network.

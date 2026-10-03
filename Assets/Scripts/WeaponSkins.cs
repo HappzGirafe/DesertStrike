@@ -12,6 +12,7 @@ public class SkinInfo
     public string detail;
     public float smoothness = 0.2f;
     public float metallic;
+    public float[] rotation;          // [x, y, z] degrees: turns a skin's model in the hand, around the grip
 }
 
 /// <summary>One skin folder, as listed in Skins/index.json (written by the editor, see SkinIndexBuilder).</summary>
@@ -70,6 +71,7 @@ public class WeaponSkin
     public readonly Color?[] Colors = new Color?[3];       // per SkinPart: color (tint), or null
     public float Smoothness = 0.2f;
     public float Metallic;
+    public Vector3 Rotation;                               // extra turn of the model in the hand (degrees)
 }
 
 /// <summary>
@@ -89,6 +91,7 @@ public static class WeaponSkins
     static WeaponData[] skinnable;
     static readonly Dictionary<string, GameObject> models = new Dictionary<string, GameObject>();
     static readonly Dictionary<string, Material> materials = new Dictionary<string, Material>();
+    static readonly Dictionary<string, string> runChoices = new Dictionary<string, string>();   // weapon id -> skin id
 
     /// <summary>Weapons that have at least one skin, in shop order.</summary>
     public static WeaponData[] SkinnableWeapons
@@ -116,11 +119,15 @@ public static class WeaponSkins
 
     public static WeaponSkin Equipped(WeaponData weapon)
     {
+        if (runChoices.TryGetValue(weapon.Id, out var chosen) && Find(weapon, chosen) is WeaponSkin forRun) return forRun;
         string id = PlayerPrefs.GetString(PrefsKey(weapon), "");
         foreach (var skin in For(weapon))
             if (string.Equals(skin.Id, id, StringComparison.OrdinalIgnoreCase)) return skin;
         return DefaultFor(weapon);
     }
+
+    /// <summary>Uses this skin for this run only, without saving (the -ds-equip test option).</summary>
+    public static void EquipThisRun(WeaponData weapon, string skinId) => runChoices[weapon.Id] = skinId;
 
     public static void Equip(WeaponData weapon, WeaponSkin skin)
     {
@@ -267,6 +274,7 @@ public static class WeaponSkins
                 Smoothness = info.smoothness,
                 Metallic = info.metallic,
             };
+            if (info.rotation != null && info.rotation.Length == 3) skin.Rotation = new Vector3(info.rotation[0], info.rotation[1], info.rotation[2]);
             if (entry.hasMain) skin.Textures[(int)SkinPart.Main] = entry.folder + "/main";
             if (entry.hasGrip) skin.Textures[(int)SkinPart.Grip] = entry.folder + "/grip";
             if (entry.hasDetail) skin.Textures[(int)SkinPart.Detail] = entry.folder + "/detail";

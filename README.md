@@ -19,6 +19,7 @@ Both files are in the [`Builds`](Builds) folder of this repository, and every ve
 - **Windows:** download `DesertStrike-Windows.exe` and double-click it.
   It is the whole game in one file: the first time (and after an update) it unpacks the game to
   `%LOCALAPPDATA%\DesertStrike`, then starts it. If Windows SmartScreen appears, click *More info* > *Run anyway*.
+  If it does not start, `%LOCALAPPDATA%\DesertStrike-launcher.log` says why.
 - **macOS** (Intel and Apple Silicon): download `DesertStrike-macOS.zip` and unzip it. The game is not signed
   with a paid Apple Developer ID, so the first time macOS says it "cannot be opened" (unidentified developer).
   Allow it once:
@@ -160,6 +161,9 @@ A skin folder can hold any of these:
 | `detail.png` | Texture for the rest: barrel, magazine, scope, guard, silencer |
 | `model.fbx` | A model that replaces the weapon's own (like the knife skin) |
 | `skin.json` | Optional settings, e.g. `{ "name": "Gold", "main": "#D4AF37", "grip": "#141414", "detail": "#8A6E22", "smoothness": 0.75, "metallic": 0.9 }` |
+
+`skin.json` can also turn a skin's own model in the hand: `"rotation": [x, y, z]` in degrees, around the grip
+(the karambit uses `[0, 120, 0]`). The game first points every model's blade or barrel forward by itself, then adds this turn.
 
 Colors in `skin.json` tint the texture of that part, or paint it when there is no texture. Parts with neither
 keep their normal look. The weapon folder must be named like the weapon in the shop (`AK-47`, `Glock-18`,
