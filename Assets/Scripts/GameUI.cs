@@ -37,11 +37,8 @@ public class GameUI : MonoBehaviour
     bool lanOpen;
     string joinAddress = "";
 
-    // Settings screen and FPS counter
+    // Settings screen
     bool settingsOpen;
-    int fpsFrames;
-    float fpsTime;
-    float fps;
 
     const string NameKey = "DesertStrike.name";
 
@@ -72,6 +69,12 @@ public class GameUI : MonoBehaviour
 
     void OnGUI()
     {
+        // IMGUI runs OnGUI once for every input event as well as for drawing, and a Mac sends many mouse-move
+        // events per frame. The HUD has nothing to click, so during play only the drawing pass does any work.
+        bool interactive = gm.State == MatchState.Menu || gm.State == MatchState.MatchOver || gm.BuyMenuOpen || gm.IsPaused;
+        if (Event.current.type != EventType.Repaint && !interactive) return;
+        if (Event.current.type == EventType.Repaint) RenderScaler.Present();
+
         scale = Screen.height / RefHeight;
         width = Screen.width / scale;
         GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
@@ -419,31 +422,26 @@ public class GameUI : MonoBehaviour
         y += 24f;
         y = OptionRow(x, y, "Frame limit (lower = cooler and longer battery)", new[] { "30 FPS", "60 FPS", "120 FPS" },
                       Array.IndexOf(GameSettings.FrameLimits, GameSettings.FrameLimit), i => GameSettings.SetFrameLimit(GameSettings.FrameLimits[i]));
+        y = OptionRow(x, y, "3D resolution (lower = faster, a little blurrier; menus stay sharp)", new[] { "100%", "75%", "50%" },
+                      Array.IndexOf(GameSettings.RenderScales, GameSettings.RenderScale), i => GameSettings.SetRenderScale(GameSettings.RenderScales[i]));
         y = OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1));
         SensitivitySlider(x + 40f, y, w - 80f);
 
         if (Button(new Rect(x + w / 2f - 150f, 110f + 820f - 80f, 300f, 56f), "BACK")) settingsOpen = false;
     }
 
-    void Update()
-    {
-        // Frames counted over half a second, for the FPS counter.
-        fpsFrames++;
-        fpsTime += Time.unscaledDeltaTime;
-        if (fpsTime >= 0.5f)
-        {
-            fps = fpsFrames / fpsTime;
-            fpsFrames = 0;
-            fpsTime = 0f;
-        }
-    }
-
+    // FPS, then how many milliseconds the CPU and the graphics chip (GPU) spend on a frame: when one of them is
+    // close to 1000 / FPS, that one is what holds the frame rate back.
     void DrawFps(float x, float y)
     {
         if (!GameSettings.ShowFps) return;
-        Fill(new Rect(x, y, 110f, 30f), PanelColor);
-        Label(new Rect(x + 10f, y, 100f, 30f), $"{Mathf.RoundToInt(fps)} FPS", 20,
+        float fps = PerfStats.Fps;
+        Fill(new Rect(x, y, 420f, 74f), PanelColor);
+        Label(new Rect(x + 10f, y + 2f, 110f, 30f), $"{Mathf.RoundToInt(fps)} FPS", 22,
               fps >= GameSettings.FrameLimit * 0.9f ? MoneyGreen : fps >= 30f ? Gold : Danger);
+        string gpu = PerfStats.GpuMs > 0f ? $"{PerfStats.GpuMs:0.0} ms" : "n/a";
+        Label(new Rect(x + 120f, y + 2f, 300f, 30f), $"CPU {PerfStats.CpuMs:0.0} ms    GPU {gpu}", 18, Color.white);
+        Label(new Rect(x + 10f, y + 36f, 405f, 30f), PerfStats.Device, 15, Dim);
     }
 
     void DrawPauseMenu()
@@ -737,9 +735,10 @@ public class GameUI : MonoBehaviour
         foreach (var c in gm.Combatants)
         {
             if (!c.IsAlive || c.IsPlayer || (me != null && c.Team != me.Team)) continue;
-            Vector3 screen = cam.WorldToScreenPoint(c.transform.position + Vector3.up * 2.1f);
-            if (screen.z < 0.5f || screen.z > 70f) continue;
-            var rect = new Rect(screen.x / scale - 100f, (Screen.height - screen.y) / scale - 14f, 200f, 28f);
+            // Viewport coordinates, because the camera may draw to a smaller texture than the screen (RenderScaler).
+            Vector3 view = cam.WorldToViewportPoint(c.transform.position + Vector3.up * 2.1f);
+            if (view.z < 0.5f || view.z > 70f) continue;
+            var rect = new Rect(view.x * width - 100f, (1f - view.y) * RefHeight - 14f, 200f, 28f);
             Label(rect, c.DisplayName, 16, TeamColor(c.Team), TextAnchor.MiddleCenter);
         }
     }

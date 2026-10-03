@@ -90,7 +90,7 @@ public class GameManager : MonoBehaviour
 
     // Command-line automation (used for smoke tests): -ds-autostart, -ds-side, -ds-money, -ds-quit-after,
     // -ds-capture, -ds-timescale, -ds-host, -ds-join <ip>, -ds-find, -ds-name <name>, -ds-client-fire,
-    // -ds-perf (logs FPS and drawn bodies), -ds-nocull, -ds-quality <low|medium|high>, -ds-fps <limit>
+    // -ds-perf (logs FPS and drawn bodies), -ds-nocull, -ds-quality <low|medium|high>, -ds-fps <limit>, -ds-scale <0.25-1>
     bool autoStart, autoHost, autoFind, clientFireTest, perfLog;
     string autoJoin;
     int startMoney = StartMoney;
@@ -100,6 +100,8 @@ public class GameManager : MonoBehaviour
     float nextCaptureAt, nextTestShot;
     int captureIndex;
     float perfSince = -1f;
+    string profileFile;   // -ds-profile <file>: records 600 frames of a live round with Unity's profiler (development builds)
+    int profileFramesLeft = 600;
     int perfFrames, perfDrawn, perfInView;
 
     void Awake()
@@ -112,6 +114,8 @@ public class GameManager : MonoBehaviour
         Map.Build(transform);
         MainCamera = CreateCamera();
         gameObject.AddComponent<VisibilityCuller>();
+        gameObject.AddComponent<RenderScaler>();
+        gameObject.AddComponent<PerfStats>();
         Net = gameObject.AddComponent<NetSession>();
         Bomb = gameObject.AddComponent<BombManager>();
         if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();
@@ -281,6 +285,7 @@ public class GameManager : MonoBehaviour
         UpdateCursor();
         RunAutomation();
         if (perfLog) LogPerformance();
+        if (profileFile != null) RecordProfile();
     }
 
     void RunRound()
@@ -706,6 +711,8 @@ public class GameManager : MonoBehaviour
         }
         cam.nearClipPlane = 0.03f;
         cam.farClipPlane = 300f;   // the fog is solid from 260 m
+        // No HDR: the camera then draws straight to the screen instead of to an extra buffer that is copied over.
+        cam.allowHDR = false;
         cam.fieldOfView = 75f;
         cam.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.62f, 0.75f, 0.9f);
@@ -856,11 +863,17 @@ public class GameManager : MonoBehaviour
                 case "-ds-perf":
                     perfLog = true;
                     break;
+                case "-ds-profile" when hasValue:
+                    profileFile = args[++i];
+                    break;
                 case "-ds-nocull":
                     VisibilityCuller.Disabled = true;
                     break;
                 case "-ds-quality" when hasValue:
                     if (Enum.TryParse(args[++i], true, out GraphicsQuality quality)) GameSettings.Override(quality, GameSettings.FrameLimit);
+                    break;
+                case "-ds-scale" when hasValue:
+                    GameSettings.RenderScaleThisRun(float.Parse(args[++i], CultureInfo.InvariantCulture));
                     break;
                 case "-ds-fps" when hasValue:
                     GameSettings.Override(GameSettings.Quality, int.Parse(args[++i], CultureInfo.InvariantCulture));
@@ -868,6 +881,24 @@ public class GameManager : MonoBehaviour
             }
         }
         if (Side != PlayerSide.Spectate) Net.PreferredTeam = Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat;
+    }
+
+    void RecordProfile()
+    {
+        if (!UnityEngine.Profiling.Profiler.enabled)
+        {
+            if (State != MatchState.Live || Time.time - roundStartedAt < 8f) return;
+            UnityEngine.Profiling.Profiler.logFile = profileFile;
+            UnityEngine.Profiling.Profiler.enableBinaryLog = true;
+            UnityEngine.Profiling.Profiler.enabled = true;
+            Debug.Log("[perf] profiling started: " + profileFile);
+            return;
+        }
+        if (--profileFramesLeft > 0) return;
+        UnityEngine.Profiling.Profiler.enabled = false;
+        UnityEngine.Profiling.Profiler.logFile = "";
+        Debug.Log("[perf] profiling finished");
+        profileFile = null;
     }
 
     // Every 5 seconds: frames per second, and how many of the bodies inside the view were actually drawn.
@@ -880,7 +911,9 @@ public class GameManager : MonoBehaviour
         perfDrawn += VisibilityCuller.Drawn;
         if (now - perfSince < 5f) return;
         Debug.Log($"[perf] {State} {GameSettings.Quality} limit {GameSettings.FrameLimit}: {perfFrames / (now - perfSince):0.0} fps, " +
-                  $"bodies in view {perfInView / (float)perfFrames:0.0}, drawn {perfDrawn / (float)perfFrames:0.0}" +
+                  $"bodies in view {perfInView / (float)perfFrames:0.0}, drawn {perfDrawn / (float)perfFrames:0.0}, " +
+                  $"CPU {PerfStats.CpuMs:0.00} ms, GPU {PerfStats.GpuMs:0.00} ms, batches {PerfStats.Batches}, setpass {PerfStats.SetPassCalls}, " +
+                  $"tris {PerfStats.Triangles}, {PerfStats.Device}" +
                   (VisibilityCuller.Disabled ? " (culling off)" : ""));
         perfSince = now;
         perfFrames = perfInView = perfDrawn = 0;

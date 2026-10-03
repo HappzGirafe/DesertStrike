@@ -10,15 +10,20 @@ public enum GraphicsQuality { Low, Medium, High }
 public static class GameSettings
 {
     public static readonly int[] FrameLimits = { 30, 60, 120 };
+    public static readonly float[] RenderScales = { 1f, 0.75f, 0.5f };
 
     const string QualityKey = "DesertStrike.quality";
     const string FrameLimitKey = "DesertStrike.fps";
     const string ShowFpsKey = "DesertStrike.showFps";
     const string SensitivityKey = "DesertStrike.sensitivity";
+    const string RenderScaleKey = "DesertStrike.renderScale";
 
     public static GraphicsQuality Quality { get; private set; } = GraphicsQuality.High;
     public static int FrameLimit { get; private set; } = 60;
     public static bool ShowFps { get; private set; }
+
+    /// <summary>The 3D view is drawn at this fraction of the screen resolution and stretched (menus and HUD stay sharp).</summary>
+    public static float RenderScale { get; private set; } = 1f;
 
     /// <summary>Real lights for muzzle flashes and rockets (each one makes nearby objects draw again).</summary>
     public static bool DynamicLights => Quality == GraphicsQuality.High;
@@ -32,6 +37,7 @@ public static class GameSettings
         Quality = (GraphicsQuality)Mathf.Clamp(PlayerPrefs.GetInt(QualityKey, (int)fallback), 0, 2);
         FrameLimit = PlayerPrefs.GetInt(FrameLimitKey, 60);
         ShowFps = PlayerPrefs.GetInt(ShowFpsKey, 0) == 1;
+        RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(RenderScaleKey, 1f), 0.5f, 1f);
         PlayerController.MouseSensitivity = PlayerPrefs.GetFloat(SensitivityKey, 2f);
         Apply();
     }
@@ -48,6 +54,12 @@ public static class GameSettings
         FrameLimit = fps;
         PlayerPrefs.SetInt(FrameLimitKey, fps);
         Apply();
+    }
+
+    public static void SetRenderScale(float scale)
+    {
+        RenderScale = scale;
+        PlayerPrefs.SetFloat(RenderScaleKey, scale);
     }
 
     public static void SetShowFps(bool show)
@@ -71,6 +83,8 @@ public static class GameSettings
     }
 
     public static void ShowFpsThisRun() => ShowFps = true;
+
+    public static void RenderScaleThisRun(float scale) => RenderScale = Mathf.Clamp(scale, 0.25f, 1f);
 
     static void Apply()
     {

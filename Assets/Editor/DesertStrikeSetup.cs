@@ -51,6 +51,10 @@ public static class DesertStrikeSetup
     [MenuItem("Desert Strike/Build Windows Game")]
     public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Builds/Windows/DesertStrike.exe");
 
+    /// <summary>A development build for measuring where frame time goes (see ProfileReport).</summary>
+    public static void BuildWindowsProfiling() =>
+        Build(BuildTarget.StandaloneWindows64, "Builds/WindowsProfiling/DesertStrike.exe", BuildOptions.Development);
+
     /// <summary>
     /// Builds a macOS app (Intel and Apple Silicon) — needs Unity's "Mac Build Support" module. A Mac build made
     /// on Windows is not code-signed; see README for the one Terminal command Mac players run once.
@@ -64,8 +68,10 @@ public static class DesertStrikeSetup
         Build(BuildTarget.StandaloneOSX, "Builds/macOS/DesertStrike.app");
     }
 
-    static void Build(BuildTarget target, string path)
+    static void Build(BuildTarget target, string path, BuildOptions options = BuildOptions.None)
     {
+        // CPU and GPU frame times for the FPS counter (FrameTimingManager).
+        PlayerSettings.enableFrameTimingStats = true;
         if (!File.Exists(ScenePath)) CreateScene();
         EnsureMaterials();
         SkinIndexBuilder.Build();
@@ -74,7 +80,7 @@ public static class DesertStrikeSetup
             scenes = new[] { ScenePath },
             locationPathName = path,
             target = target,
-            options = BuildOptions.None,
+            options = options,
         });
         Debug.Log("[DesertStrike] Build " + report.summary.result + ": " + report.summary.outputPath);
         if (Application.isBatchMode && report.summary.result != BuildResult.Succeeded) EditorApplication.Exit(1);

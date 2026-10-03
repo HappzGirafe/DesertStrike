@@ -39,21 +39,37 @@ bot difficulty, the number of rounds to win and friendly fire.
 | --- | --- | --- |
 | Graphics | Low / Medium / High | Low: no shadows or lights, half-size textures. Medium: simple shadows close by. High: everything. Macs start on **Medium**, PCs on High. |
 | Frame limit | 30 / 60 / 120 FPS | Default 60. The game never draws more frames than this, so the computer is not at full load all the time. On a MacBook Air, 30 or 60 keeps it much cooler. |
-| Show FPS counter | Off / On | Shown under the radar |
+| 3D resolution | 100% / 75% / 50% | The 3D view is drawn at fewer pixels and stretched to the screen; menus and the HUD stay sharp. The biggest help when the graphics chip is the limit. |
+| Show FPS counter | Off / On | Shown under the radar, with the CPU and GPU time per frame (see below) |
 | Mouse sensitivity | 0.3 – 8 | |
+
+**Reading the FPS counter:** `CPU` is how many milliseconds the processor works on one frame, `GPU` how many the
+graphics chip does. For 60 FPS both must stay under 16.7 ms. If GPU is the big one, lower Graphics or 3D resolution;
+if CPU is the big one, fewer bots (players per team) helps most. The second line shows the resolution, the graphics
+chip and whether the game runs natively (`arm64` on Apple Silicon Macs, `x64` on Intel).
 
 What the game does to stay light:
 
 - **Players behind walls are not drawn.** Right before every frame, a few line tests go from the camera to each
   player's head, shoulders, hips, feet and gun. Anyone fully behind a wall is skipped (body, gun and shadow); the
   moment any part comes into view they are drawn again in that same frame, so they never pop in late.
-- The map's blocks are merged into a few big meshes when it is built (hundreds of draw calls become a handful).
+- All plain-coloured blocks (map, bodies, bullet holes, blood) share one material: every colour is a pixel of a
+  small palette texture. The map merges into a few big batches and each body is a single mesh (one draw call).
+- The HUD only does work when it is drawn, not for every mouse or keyboard event (a Mac sends many per frame).
+- The camera draws straight to the screen (no HDR buffer that is copied over afterwards).
 - Tracers, muzzle flashes, blood, bullet holes and sounds are reused instead of being created for every shot;
   sounds too far away to hear are not played at all.
 - The Mac version draws at normal resolution instead of Retina (a quarter of the pixels).
 
-Measured on a laptop with Intel UHD 620 graphics, 5v5 bots, no frame limit: High ~147 FPS (~125 without the wall
-culling), Medium ~190, Low ~320. With the 60 FPS limit the graphics chip is idle most of each frame.
+Measured on a laptop with Intel UHD 620 graphics, 1280x720, 5v5 bots, no frame limit:
+
+| Graphics | FPS | CPU / GPU per frame | Draw batches |
+| --- | --- | --- | --- |
+| High | ~160 | 3.8 / 5.6 ms | ~80 |
+| Low | ~400 | 2.1 / 2.0 ms | ~55 |
+| Low, 3D resolution 50% | ~480 | 1.5 / 1.6 ms | |
+
+The gun models and skins make no measurable difference: the models have 24 to 1,424 triangles each.
 
 ### LAN multiplayer (same WiFi)
 
@@ -213,7 +229,15 @@ All in `Assets/Scripts`:
 | `GameSettings.cs` | Graphics quality, frame limit, FPS counter, sensitivity (saved) |
 | `VisibilityCuller.cs` | Skips drawing players hidden behind walls, tested right before each frame |
 | `EffectPool.cs` | Reuses effect and sound objects instead of creating new ones per shot |
+| `RenderScaler.cs` | Draws the 3D view at the chosen 3D resolution and stretches it to the screen |
+| `PerfStats.cs` | FPS, CPU and GPU time per frame, draw-call counts (FPS counter and `-ds-perf`) |
 
-Test options for the built game: `-ds-perf` logs FPS and how many players in view were drawn every 5 s,
-`-ds-nocull` turns the wall culling off for comparing, `-ds-quality low|medium|high` and `-ds-fps <limit>` set
-graphics for one run without saving, `-ds-autostart -ds-side spectate` starts a bots-only match.
+Test options for the built game: `-ds-perf` logs FPS, CPU/GPU time, draw batches and how many players in view were
+drawn every 5 s, `-ds-nocull` turns the wall culling off for comparing, `-ds-quality low|medium|high`,
+`-ds-fps <limit>` and `-ds-scale <0.25-1>` set graphics for one run without saving, `-ds-autostart -ds-side spectate`
+starts a bots-only match.
+
+Profiling: **Desert Strike > Build Windows Game** has a development twin, `DesertStrikeSetup.BuildWindowsProfiling`
+(→ `Builds/WindowsProfiling`). Start that build with `-ds-profile Logs/prof.raw` to record 600 frames of a round,
+then run `Unity -batchmode -quit -projectPath . -executeMethod ProfileReport.Analyze -profileFile Logs/prof.raw`
+for a text report (`Logs/prof.txt`) of where each frame's time goes.

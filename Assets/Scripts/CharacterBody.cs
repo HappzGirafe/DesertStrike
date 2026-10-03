@@ -12,6 +12,8 @@ public class CharacterBody : MonoBehaviour
     /// <summary>Every body in the scene, for the <see cref="VisibilityCuller"/>.</summary>
     public static readonly List<CharacterBody> All = new List<CharacterBody>();
 
+    static readonly Dictionary<Team, Mesh> BodyMeshes = new Dictionary<Team, Mesh>();
+
     public Combatant Self { get; private set; }
 
     CapsuleCollider capsule;
@@ -132,30 +134,11 @@ public class CharacterBody : MonoBehaviour
         visual = new GameObject("Body").transform;
         visual.SetParent(transform, false);
 
-        bool terrorist = Self.Team == Team.Terrorists;
-        Color outfit = terrorist ? new Color(0.55f, 0.45f, 0.3f) : new Color(0.12f, 0.16f, 0.25f);
-        Color trousers = terrorist ? new Color(0.4f, 0.34f, 0.24f) : new Color(0.1f, 0.12f, 0.18f);
-        Color vest = terrorist ? new Color(0.33f, 0.29f, 0.21f) : new Color(0.06f, 0.07f, 0.09f);
-        Color skin = new Color(0.86f, 0.68f, 0.52f);
-
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(-0.12f, 0.42f, 0f), new Vector3(0.18f, 0.84f, 0.22f), trousers);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0.12f, 0.42f, 0f), new Vector3(0.18f, 0.84f, 0.22f), trousers);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0f, 1.15f, 0f), new Vector3(0.5f, 0.62f, 0.3f), outfit);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0f, 1.18f, 0f), new Vector3(0.54f, 0.45f, 0.34f), vest);
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(-0.27f, 1.25f, 0.18f), new Vector3(0.13f, 0.13f, 0.45f), outfit, euler: new Vector3(10f, 20f, 0f));
-        Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0.27f, 1.25f, 0.18f), new Vector3(0.13f, 0.13f, 0.45f), outfit, euler: new Vector3(10f, -20f, 0f));
-        Effects.Shape(PrimitiveType.Sphere, visual, new Vector3(0f, 1.63f, 0f), new Vector3(0.3f, 0.32f, 0.3f), skin);
-        if (terrorist)
-        {
-            // Red bandana
-            Effects.Shape(PrimitiveType.Sphere, visual, new Vector3(0f, 1.69f, -0.01f), new Vector3(0.32f, 0.24f, 0.32f), new Color(0.62f, 0.1f, 0.08f));
-        }
-        else
-        {
-            // Helmet and goggles
-            Effects.Shape(PrimitiveType.Sphere, visual, new Vector3(0f, 1.7f, -0.01f), new Vector3(0.36f, 0.26f, 0.36f), new Color(0.05f, 0.06f, 0.08f));
-            Effects.Shape(PrimitiveType.Cube, visual, new Vector3(0f, 1.64f, 0.14f), new Vector3(0.24f, 0.07f, 0.04f), new Color(0.15f, 0.18f, 0.2f));
-        }
+        // The whole body is one mesh (one draw call), shared by everyone on the team.
+        var model = new GameObject("Model");
+        model.transform.SetParent(visual, false);
+        model.AddComponent<MeshFilter>().sharedMesh = BodyMesh(Self.Team);
+        model.AddComponent<MeshRenderer>().sharedMaterial = Effects.PaletteMaterial;
 
         gunMount = new GameObject("Gun").transform;
         gunMount.SetParent(visual, false);
@@ -165,6 +148,44 @@ public class CharacterBody : MonoBehaviour
         bombOnBack.localPosition = new Vector3(0f, 1.08f, -0.2f);
         bombOnBack.localRotation = Quaternion.Euler(-90f, 0f, 0f);
         bombOnBack.gameObject.SetActive(false);
+    }
+
+    static Mesh BodyMesh(Team team)
+    {
+        if (BodyMeshes.TryGetValue(team, out var mesh) && mesh != null) return mesh;
+
+        bool terrorist = team == Team.Terrorists;
+        Color outfit = terrorist ? new Color(0.55f, 0.45f, 0.3f) : new Color(0.12f, 0.16f, 0.25f);
+        Color trousers = terrorist ? new Color(0.4f, 0.34f, 0.24f) : new Color(0.1f, 0.12f, 0.18f);
+        Color vest = terrorist ? new Color(0.33f, 0.29f, 0.21f) : new Color(0.06f, 0.07f, 0.09f);
+        Color skin = new Color(0.86f, 0.68f, 0.52f);
+
+        var root = new GameObject("Body parts").transform;
+        var parts = new List<GameObject>
+        {
+            Effects.Shape(PrimitiveType.Cube, root, new Vector3(-0.12f, 0.42f, 0f), new Vector3(0.18f, 0.84f, 0.22f), trousers, palette: true),
+            Effects.Shape(PrimitiveType.Cube, root, new Vector3(0.12f, 0.42f, 0f), new Vector3(0.18f, 0.84f, 0.22f), trousers, palette: true),
+            Effects.Shape(PrimitiveType.Cube, root, new Vector3(0f, 1.15f, 0f), new Vector3(0.5f, 0.62f, 0.3f), outfit, palette: true),
+            Effects.Shape(PrimitiveType.Cube, root, new Vector3(0f, 1.18f, 0f), new Vector3(0.54f, 0.45f, 0.34f), vest, palette: true),
+            Effects.Shape(PrimitiveType.Cube, root, new Vector3(-0.27f, 1.25f, 0.18f), new Vector3(0.13f, 0.13f, 0.45f), outfit, euler: new Vector3(10f, 20f, 0f), palette: true),
+            Effects.Shape(PrimitiveType.Cube, root, new Vector3(0.27f, 1.25f, 0.18f), new Vector3(0.13f, 0.13f, 0.45f), outfit, euler: new Vector3(10f, -20f, 0f), palette: true),
+            Effects.Shape(PrimitiveType.Sphere, root, new Vector3(0f, 1.63f, 0f), new Vector3(0.3f, 0.32f, 0.3f), skin, palette: true),
+        };
+        if (terrorist)
+        {
+            // Red bandana
+            parts.Add(Effects.Shape(PrimitiveType.Sphere, root, new Vector3(0f, 1.69f, -0.01f), new Vector3(0.32f, 0.24f, 0.32f), new Color(0.62f, 0.1f, 0.08f), palette: true));
+        }
+        else
+        {
+            // Helmet and goggles
+            parts.Add(Effects.Shape(PrimitiveType.Sphere, root, new Vector3(0f, 1.7f, -0.01f), new Vector3(0.36f, 0.26f, 0.36f), new Color(0.05f, 0.06f, 0.08f), palette: true));
+            parts.Add(Effects.Shape(PrimitiveType.Cube, root, new Vector3(0f, 1.64f, 0.14f), new Vector3(0.24f, 0.07f, 0.04f), new Color(0.15f, 0.18f, 0.2f), palette: true));
+        }
+        mesh = Effects.MergePaletteParts(root, parts, terrorist ? "Terrorist body" : "SWAT body");
+        Destroy(root.gameObject);
+        BodyMeshes[team] = mesh;
+        return mesh;
     }
 
     void RefreshGun()

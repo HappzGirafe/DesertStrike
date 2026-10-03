@@ -127,7 +127,7 @@ public class MapBuilder
     void BuildGround()
     {
         float extent = Size * Cell;
-        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(0f, -0.5f, 0f), new Vector3(extent, 1f, extent), SandFloor, collider: true);
+        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(0f, -0.5f, 0f), new Vector3(extent, 1f, extent), SandFloor, collider: true, palette: true);
 
         // Slightly different sand on the sites and spawns so they read on the ground.
         foreach (var p in patches)
@@ -138,7 +138,7 @@ public class MapBuilder
             Vector3 center = (CellCenter(p.x0, p.z0) + CellCenter(p.x1, p.z1)) * 0.5f;
             center.y = 0.01f;
             var size = new Vector3((p.x1 - p.x0 + 1) * Cell - 0.6f, 0.02f, (p.z1 - p.z0 + 1) * Cell - 0.6f);
-            Effects.Shape(PrimitiveType.Cube, Root, center, size, color);
+            Effects.Shape(PrimitiveType.Cube, Root, center, size, color, palette: true);
         }
     }
 
@@ -160,7 +160,7 @@ public class MapBuilder
                 var color = new Color(WallColor.r + shade, WallColor.g + shade, WallColor.b + shade);
                 Vector3 center = (CellCenter(start, z) + CellCenter(x - 1, z)) * 0.5f;
                 center.y = height / 2f;
-                Effects.Shape(PrimitiveType.Cube, Root, center, new Vector3((x - start) * Cell, height, Cell), color, collider: true);
+                Effects.Shape(PrimitiveType.Cube, Root, center, new Vector3((x - start) * Cell, height, Cell), color, collider: true, palette: true);
             }
         }
     }
@@ -190,12 +190,12 @@ public class MapBuilder
 
         // Open wooden doors at mid and long.
         float midZ = CellCenter(0f, 22f).z + 1.2f;
-        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(-3.85f, 1.75f, midZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true);
-        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(-0.15f, 1.75f, midZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true);
+        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(-3.85f, 1.75f, midZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true, palette: true);
+        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(-0.15f, 1.75f, midZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true, palette: true);
         float longZ = CellCenter(0f, 9.5f).z;
         float longLeft = CellCenter(27f, 0f).x - Cell / 2f, longRight = CellCenter(28f, 0f).x + Cell / 2f;
-        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(longLeft + 0.1f, 1.75f, longZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true);
-        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(longRight - 0.1f, 1.75f, longZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true);
+        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(longLeft + 0.1f, 1.75f, longZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true, palette: true);
+        Effects.Shape(PrimitiveType.Cube, Root, new Vector3(longRight - 0.1f, 1.75f, longZ), new Vector3(0.15f, 3.5f, 2.4f), DoorColor, collider: true, palette: true);
 
         // Roofs make the tunnels dark.
         Roof(3f, 17f, 3 * Cell, 11 * Cell);
@@ -212,11 +212,11 @@ public class MapBuilder
             float shade = (random.Next(5) - 2) * 0.03f;
             var color = new Color(CrateColor.r + shade, CrateColor.g + shade, CrateColor.b + shade);
             var crate = Effects.Shape(PrimitiveType.Cube, Root, basePosition + Vector3.up * (bottom + size / 2f),
-                                      Vector3.one * size, color, collider: true, euler: new Vector3(0f, i * 14f, 0f));
+                                      Vector3.one * size, color, collider: true, euler: new Vector3(0f, i * 14f, 0f), palette: true);
             // Darker frame bands so the boxes read as wooden crates.
             var band = new Color(color.r * 0.6f, color.g * 0.6f, color.b * 0.6f);
             foreach (float y in new[] { -0.45f, 0f, 0.45f })
-                Effects.Shape(PrimitiveType.Cube, crate.transform, new Vector3(0f, y, 0f), new Vector3(1.02f, 0.08f, 1.02f), band);
+                Effects.Shape(PrimitiveType.Cube, crate.transform, new Vector3(0f, y, 0f), new Vector3(1.02f, 0.08f, 1.02f), band, palette: true);
             bottom += size;
         }
     }
@@ -224,15 +224,15 @@ public class MapBuilder
     void Barrel(int x, int z, Color color)
     {
         Vector3 position = CellCenter(x, z) + Vector3.up * 0.65f;
-        Effects.Shape(PrimitiveType.Cylinder, Root, position, new Vector3(0.9f, 0.65f, 0.9f), color, collider: true);
+        Effects.Shape(PrimitiveType.Cylinder, Root, position, new Vector3(0.9f, 0.65f, 0.9f), color, collider: true, palette: true);
     }
 
     void Lintel(float x, float z, float sizeX, float sizeZ) =>
-        Effects.Shape(PrimitiveType.Cube, Root, CellCenter(x, z) + Vector3.up * 5.5f, new Vector3(sizeX, 3f, sizeZ), WallColor, collider: true);
+        Effects.Shape(PrimitiveType.Cube, Root, CellCenter(x, z) + Vector3.up * 5.5f, new Vector3(sizeX, 3f, sizeZ), WallColor, collider: true, palette: true);
 
     void Roof(float x, float z, float sizeX, float sizeZ) =>
         Effects.Shape(PrimitiveType.Cube, Root, CellCenter(x, z) + Vector3.up * 4.75f, new Vector3(sizeX, 0.5f, sizeZ),
-                      new Color(0.7f, 0.6f, 0.44f), collider: true);
+                      new Color(0.7f, 0.6f, 0.44f), collider: true, palette: true);
 
     void BuildSiteLetters()
     {
@@ -253,7 +253,7 @@ public class MapBuilder
             Vector3 b = origin + new Vector3(strokes[i, 2], strokes[i, 3], 0f) * height;
             Vector3 along = b - a;
             var stroke = Effects.Shape(PrimitiveType.Cube, Root, (a + b) * 0.5f,
-                                       new Vector3(along.magnitude + thickness, thickness, 0.04f), PaintColor);
+                                       new Vector3(along.magnitude + thickness, thickness, 0.04f), PaintColor, palette: true);
             stroke.transform.rotation = Quaternion.LookRotation(intoWall, Vector3.Cross(intoWall, along.normalized));
         }
     }
