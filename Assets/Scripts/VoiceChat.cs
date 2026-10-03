@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Voice chat for LAN games: hold V during a match to talk; everyone in the game hears you.
+/// Voice chat for LAN games: hold V during a match to talk (or, with Open mic, just speak); everyone in the game
+/// hears you.
 ///
 /// The microphone is recorded at 16 kHz, cut into 20 ms frames, squeezed to 8 bits per sample (G.711 mu-law,
 /// 16 KB/s, plenty for a LAN) and sent through <see cref="NetSession"/>: a client sends to the host, the host plays
@@ -32,8 +33,11 @@ public class VoiceChat : MonoBehaviour
     /// <summary>V is held during a match (LAN or not): the HUD shows "You" with the microphone level.</summary>
     public bool Holding { get; private set; }
 
-    /// <summary>In a LAN game with V held: the voice is being sent.</summary>
+    /// <summary>In a LAN game with V held, or speaking with Open mic: the voice is being sent.</summary>
     public bool Talking { get; private set; }
+
+    /// <summary>A LAN match is running (the HUD shows the microphone's state).</summary>
+    public bool InMatch { get; private set; }
 
     /// <summary>The microphone test in Settings is running.</summary>
     public bool Testing { get; set; }
@@ -53,7 +57,8 @@ public class VoiceChat : MonoBehaviour
     AudioClip micClip;
     string micDevice;        // null = the system's default input
     int micRate, micPosition;
-    float micStartedAt, lastWanted, silencePeak;
+    float micStartedAt, lastWanted, silencePeak, lastLoud = -10f;
+    float envelope, gain = 1f;
     bool silenceChecked, wasTesting;
     long samplesRead;
     float[] chunk = new float[0];
@@ -86,13 +91,15 @@ public class VoiceChat : MonoBehaviour
         var net = gm.Net;
         InSession = net.IsHost ? net.Peers.Count > 0 : net.IsClient && net.Connected;
         bool inMatch = gm.State != MatchState.Menu && !gm.IsPaused;
+        InMatch = InSession && inMatch;
+        bool openMic = GameSettings.VoiceChat && GameSettings.Voice == VoiceMode.OpenMic && InMatch;
         Holding = GameSettings.VoiceChat && inMatch && Input.GetKey(TalkKey);
         bool pressed = GameSettings.VoiceChat && inMatch && Input.GetKeyDown(TalkKey);
         if (micCheck && !micCheckDone) Testing = true;
         bool testStarted = Testing && !wasTesting;
         wasTesting = Testing;
 
-        bool wantMicrophone = !testTone && (Testing || Holding);
+        bool wantMicrophone = !testTone && (Testing || Holding || openMic);
         if (wantMicrophone)
         {
             lastWanted = Time.unscaledTime;
@@ -114,7 +121,9 @@ public class VoiceChat : MonoBehaviour
             speakers.Clear();
         }
 
-        Talking = InSession && (testTone ? GameSettings.VoiceChat && inMatch : Holding && State == MicState.On);
+        // Open mic sends while you speak (and 0.4 s after, so word endings are not cut off).
+        bool speaking = openMic && Time.unscaledTime - lastLoud < 0.4f;
+        Talking = InSession && (testTone ? GameSettings.VoiceChat && inMatch : (Holding || speaking) && State == MicState.On);
         Capture(Talking);
 
         if (micCheck && !micCheckDone) ReportCheck();
@@ -269,7 +278,12 @@ public class VoiceChat : MonoBehaviour
         }
         while (pending.Count >= FrameSamples)
         {
-            for (int i = 0; i < FrameSamples; i++) frame[i] = MuLaw.Encode(pending[i]);
+            // Quiet microphones (a MacBook's is) are turned up, at most 4 times, towards a comfortable loudness.
+            float peak = 0f;
+            for (int i = 0; i < FrameSamples; i++) peak = Mathf.Max(peak, Mathf.Abs(pending[i]));
+            envelope = Mathf.Max(peak, envelope * 0.92f);
+            gain = Mathf.Lerp(gain, Mathf.Clamp(0.45f / Mathf.Max(envelope, 0.03f), 1f, 4f), 0.2f);
+            for (int i = 0; i < FrameSamples; i++) frame[i] = MuLaw.Encode(Mathf.Clamp(pending[i] * gain, -1f, 1f));
             pending.RemoveRange(0, FrameSamples);
             gm.Net.SendVoice(sequence++, frame);
         }
@@ -297,6 +311,7 @@ public class VoiceChat : MonoBehaviour
             available -= count;
         }
         Level = Mathf.Max(Mathf.Min(1f, peak), Level - Time.unscaledDeltaTime * 1.5f);
+        if (peak > 0.04f) lastLoud = Time.unscaledTime;   // louder than room noise: someone speaks (Open mic)
 
         // A working microphone always picks up a little noise; nothing but exact zeros means the system blocks it.
         if (!silenceChecked)

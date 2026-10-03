@@ -43,7 +43,8 @@ bot difficulty, the number of rounds to win and friendly fire.
 | Setting | Options | |
 | --- | --- | --- |
 | Graphics | Low / Medium / High | Low: no shadows or lights, half-size textures. Medium: simple shadows close by. High: everything. Macs start on **Medium**, PCs on High. |
-| Frame limit | 30 / 60 / 120 FPS | Default 60. The game never draws more frames than this, so the computer is not at full load all the time. On a MacBook Air, 30 or 60 keeps it much cooler. |
+| Display | Fullscreen / Window | The window can be resized by dragging its edges; the game remembers the choice. |
+| Frame limit | 30 / 60 / 120 FPS / Unlimited | Default 60. The game never draws more frames than this, so the computer is not at full load all the time. On a MacBook Air, 30 or 60 keeps it much cooler. |
 | 3D resolution | 100% / 75% / 50% | The 3D view is drawn at fewer pixels and stretched to the screen; menus and the HUD stay sharp. The biggest help when the graphics chip is the limit. |
 | Show FPS counter | Off / On | Shown under the radar, with the CPU and GPU time per frame (see below) |
 | Mouse sensitivity | 0.3 – 8 | |
@@ -87,7 +88,9 @@ The first time, Windows asks whether Desert Strike may use the network: allow it
 The game uses UDP ports 27015 (game) and 27016 (finding games).
 
 **Voice chat:** during a LAN match, hold **V** to talk; everyone in the game hears you, and the names of the
-people talking appear under the radar. The microphone starts the first time you press V (macOS asks for
+people talking appear under the radar. Settings > *When the others hear you* > **Open mic** sends your voice
+whenever you speak, without a key (use headphones). During a LAN match the HUD always shows the microphone:
+"Hold V to talk", "You" with a level bar while talking, "Open mic", or what is wrong. The microphone starts the first time you press V (macOS asks for
 permission once) and stops when the LAN game ends. Settings > *Voice chat in LAN games* turns it off.
 **TEST MICROPHONE** in Settings shows a level bar that moves when you speak, without a second computer. If the
 game cannot use the microphone, it says why (not allowed, no microphone, only silence) and where to turn it on;

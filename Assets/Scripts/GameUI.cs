@@ -385,10 +385,10 @@ public class GameUI : MonoBehaviour
         else Fill(rect, material.color);
     }
 
-    float OptionRow(float x, float y, string title, string[] options, int selected, Action<int> onSelect)
+    float OptionRow(float x, float y, string title, string[] options, int selected, Action<int> onSelect, float rowWidth = 700f)
     {
-        Label(new Rect(x + 40f, y, 700f, 34f), title, 22, Color.white);
-        float buttonWidth = (700f - (options.Length - 1) * 10f) / options.Length;
+        Label(new Rect(x + 40f, y, rowWidth, 34f), title, 22, Color.white);
+        float buttonWidth = (rowWidth - (options.Length - 1) * 10f) / options.Length;
         for (int i = 0; i < options.Length; i++)
             if (Button(new Rect(x + 40f + i * (buttonWidth + 10f), y + 38f, buttonWidth, 48f), options[i], i == selected))
                 onSelect(i);
@@ -412,49 +412,68 @@ public class GameUI : MonoBehaviour
         "High: soft shadows far away, gun-flash lights, smoothed edges.",
     };
 
+    static readonly string[] VoiceModeHelp =
+    {
+        "You are heard only while you hold V.",
+        "You are heard whenever you speak, no key needed (use headphones, or the others hear themselves).",
+    };
+
+    // Two columns: display and graphics on the left, voice and controls on the right.
     void DrawSettings()
     {
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
-        const float top = 60f, height = 920f;
-        float w = 780f, x = (width - w) / 2f, y = top;
-        Fill(new Rect(x, y, w, height), PanelColor);
-        Label(new Rect(x, y + 20f, w, 60f), "SETTINGS", 50, Gold, TextAnchor.MiddleCenter);
-        y += 110f;
+        const float top = 90f, height = 820f;
+        float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
+        float column = (w - 120f) / 2f, right = x + column + 40f;
+        Fill(new Rect(x, top, w, height), PanelColor);
+        Label(new Rect(x, top + 20f, w, 60f), "SETTINGS", 50, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x + 40f, top + 105f, column, 30f), "DISPLAY & GRAPHICS", 18, Gold);
+        Label(new Rect(right + 40f, top + 105f, column, 30f), "VOICE & CONTROLS", 18, Gold);
 
+        float y = top + 145f;
+        y = OptionRow(x, y, "Display", new[] { "Fullscreen", "Window" }, GameSettings.Fullscreen ? 0 : 1,
+                      i => GameSettings.SetFullscreen(i == 0), column);
         y = OptionRow(x, y, "Graphics", new[] { "Low", "Medium", "High" }, (int)GameSettings.Quality,
-                      i => GameSettings.SetQuality((GraphicsQuality)i));
-        Label(new Rect(x + 40f, y - 14f, 700f, 26f), QualityHelp[(int)GameSettings.Quality], 17, Dim);
+                      i => GameSettings.SetQuality((GraphicsQuality)i), column);
+        WrapLabel(new Rect(x + 40f, y - 14f, column, 26f), QualityHelp[(int)GameSettings.Quality], 16, Dim);
         y += 24f;
-        y = OptionRow(x, y, "Frame limit (lower = cooler and longer battery)", new[] { "30 FPS", "60 FPS", "120 FPS" },
-                      Array.IndexOf(GameSettings.FrameLimits, GameSettings.FrameLimit), i => GameSettings.SetFrameLimit(GameSettings.FrameLimits[i]));
-        y = OptionRow(x, y, "3D resolution (lower = faster, a little blurrier; menus stay sharp)", new[] { "100%", "75%", "50%" },
-                      Array.IndexOf(GameSettings.RenderScales, GameSettings.RenderScale), i => GameSettings.SetRenderScale(GameSettings.RenderScales[i]));
-        y = OptionRow(x, y, "Voice chat in LAN games (hold V to talk)", new[] { "Off", "On" }, GameSettings.VoiceChat ? 1 : 0, i => GameSettings.SetVoiceChat(i == 1));
-        y = MicrophoneTest(x, y);
-        y = OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1));
-        SensitivitySlider(x + 40f, y, w - 80f);
+        y = OptionRow(x, y, "Frame limit (lower = cooler and longer battery)", new[] { "30 FPS", "60 FPS", "120 FPS", "Unlimited" },
+                      Array.IndexOf(GameSettings.FrameLimits, GameSettings.FrameLimit), i => GameSettings.SetFrameLimit(GameSettings.FrameLimits[i]), column);
+        y = OptionRow(x, y, "3D resolution (lower = faster; menus stay sharp)", new[] { "100%", "75%", "50%" },
+                      Array.IndexOf(GameSettings.RenderScales, GameSettings.RenderScale), i => GameSettings.SetRenderScale(GameSettings.RenderScales[i]), column);
+        OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1), column);
+
+        y = top + 145f;
+        y = OptionRow(right, y, "Voice chat in LAN games", new[] { "Off", "On" }, GameSettings.VoiceChat ? 1 : 0,
+                      i => GameSettings.SetVoiceChat(i == 1), column);
+        y = OptionRow(right, y, "When the others hear you", new[] { "Hold V", "Open mic" }, (int)GameSettings.Voice,
+                      i => GameSettings.SetVoiceMode((VoiceMode)i), column);
+        WrapLabel(new Rect(right + 40f, y - 14f, column, 26f), VoiceModeHelp[(int)GameSettings.Voice], 16, Dim);
+        y += 24f;
+        y = MicrophoneTest(right, y, column);
+        SensitivitySlider(right + 40f, y, column);
 
         if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) settingsOpen = false;
     }
 
     // Shows whether the game hears the microphone, without a second computer: a level bar that moves when you
     // speak, the microphone's name, or what is wrong and how to fix it.
-    float MicrophoneTest(float x, float y)
+    float MicrophoneTest(float x, float y, float rowWidth)
     {
         var voice = VoiceChat.Instance;
         if (voice == null) return y;
         y -= 12f;
         if (Button(new Rect(x + 40f, y, 250f, 44f), voice.Testing ? "STOP TEST" : "TEST MICROPHONE", voice.Testing, true, 18))
             voice.Testing = !voice.Testing;
-        LevelBar(new Rect(x + 310f, y + 15f, 390f, 14f), voice.Testing && voice.State == VoiceChat.MicState.On ? voice.Level : 0f);
+        LevelBar(new Rect(x + 310f, y + 15f, rowWidth - 270f, 14f), voice.Testing && voice.State == VoiceChat.MicState.On ? voice.Level : 0f);
         string status;
         bool problem = voice.Testing && voice.Problem != null;
         if (!voice.Testing) status = "Check that the game hears you: press the button and speak.";
         else if (problem) status = voice.Problem;
         else if (voice.State != VoiceChat.MicState.On) status = "Starting the microphone...";
         else status = voice.DeviceName + ": speak, the bar should move.";
-        WrapLabel(new Rect(x + 40f, y + 48f, 700f, 40f), status, 15, problem ? Danger : Dim);
-        return y + 100f;
+        WrapLabel(new Rect(x + 40f, y + 48f, rowWidth, 44f), status, 15, problem ? Danger : Dim);
+        return y + 104f;
     }
 
     // FPS, then how many milliseconds the CPU and the graphics chip (GPU) spend on a frame: when one of them is
@@ -465,7 +484,7 @@ public class GameUI : MonoBehaviour
         float fps = PerfStats.Fps;
         Fill(new Rect(x, y, 420f, 74f), PanelColor);
         Label(new Rect(x + 10f, y + 2f, 110f, 30f), $"{Mathf.RoundToInt(fps)} FPS", 22,
-              fps >= GameSettings.FrameLimit * 0.9f ? MoneyGreen : fps >= 30f ? Gold : Danger);
+              fps >= (GameSettings.FrameLimit > 0 ? GameSettings.FrameLimit : 60) * 0.9f ? MoneyGreen : fps >= 30f ? Gold : Danger);
         string gpu = PerfStats.GpuMs > 0f ? $"{PerfStats.GpuMs:0.0} ms" : "n/a";
         Label(new Rect(x + 120f, y + 2f, 300f, 30f), $"CPU {PerfStats.CpuMs:0.0} ms    GPU {gpu}", 18, Color.white);
         Label(new Rect(x + 10f, y + 36f, 405f, 30f), PerfStats.Device, 15, Dim);
@@ -646,32 +665,42 @@ public class GameUI : MonoBehaviour
             Label(new Rect(0f, 220f, width, 60f), gm.Message, 42, Danger, TextAnchor.MiddleCenter);
     }
 
-    // Voice chat, under the radar: while V is held, "You" with the microphone level (or what is wrong with the
-    // microphone); then everyone who can be heard right now.
+    // Voice chat, under the radar. In a LAN match it always shows the microphone: "Hold V to talk", "You" with the
+    // level while V is held, "Open mic" with the level, or what is wrong with the microphone. Then everyone who can
+    // be heard right now. Outside LAN games it shows "You" only while V is held (to check the microphone).
     void DrawVoice()
     {
         var voice = VoiceChat.Instance;
-        if (voice == null || (!voice.InSession && !voice.Holding)) return;
+        if (voice == null || !GameSettings.VoiceChat || (!voice.InMatch && !voice.Holding)) return;
         float y = GameSettings.ShowFps ? 352f : 272f;
-        if (voice.Holding)
+        bool openMic = voice.InMatch && GameSettings.Voice == VoiceMode.OpenMic;
+        bool micWanted = voice.Holding || openMic;
+        if (micWanted && voice.Problem != null)
         {
-            if (voice.Problem != null)
-            {
-                Fill(new Rect(20f, y, 600f, 62f), PanelColor);
-                WrapLabel(new Rect(30f, y + 4f, 580f, 56f), voice.Problem, 16, Danger);
-                y += 66f;
-            }
-            else if (voice.State != VoiceChat.MicState.On)
-            {
-                VoiceRow(y, "Starting the microphone...", Dim);
-                y += 34f;
-            }
-            else
-            {
-                VoiceRow(y, "You", MoneyGreen, voice.Level);
-                if (!voice.InSession) Label(new Rect(272f, y, 420f, 30f), "Voice chat works in LAN games", 16, Dim);
-                y += 34f;
-            }
+            Fill(new Rect(20f, y, 600f, 62f), PanelColor);
+            WrapLabel(new Rect(30f, y + 4f, 580f, 56f), voice.Problem, 16, Danger);
+            y += 66f;
+        }
+        else if (micWanted && voice.State != VoiceChat.MicState.On)
+        {
+            VoiceRow(y, "Starting the microphone...", Dim);
+            y += 34f;
+        }
+        else if (voice.Holding || voice.Talking)
+        {
+            VoiceRow(y, "You", MoneyGreen, voice.Level);
+            if (!voice.InSession) Label(new Rect(272f, y, 420f, 30f), "Voice chat works in LAN games", 16, Dim);
+            y += 34f;
+        }
+        else if (openMic)
+        {
+            VoiceRow(y, "Open mic", Dim, voice.Level);
+            y += 34f;
+        }
+        else
+        {
+            VoiceRow(y, "Hold V to talk", Dim);
+            y += 34f;
         }
         foreach (string name in voice.Speaking())
         {

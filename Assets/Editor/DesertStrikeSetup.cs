@@ -75,6 +75,8 @@ public static class DesertStrikeSetup
     {
         // CPU and GPU frame times for the FPS counter (FrameTimingManager).
         PlayerSettings.enableFrameTimingStats = true;
+        // Settings > Display > Window: the window can be resized by dragging its edges.
+        PlayerSettings.resizableWindow = true;
         if (!File.Exists(ScenePath)) CreateScene();
         EnsureMaterials();
         SkinIndexBuilder.Build();
