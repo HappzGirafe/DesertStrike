@@ -17,6 +17,7 @@ $models = @(
     @("digle_default.blend", "Assets/Resources/Models/Desert Eagle/model.fbx", "--roles", "Main=Cube.001;Grip=Cube", "--copy-textures"),
     # Skins that bring their own model (Assets/Resources/Skins/<weapon name>/<skin name>/model.fbx)
     @("nogektestskin.blend", "Assets/Resources/Skins/Knife/nogektestskin/model.fbx"),
+    @("nogenkerambit.blend", "Assets/Resources/Skins/Knife/karambit/model.fbx", "--roles", "Blade=Cube.008;Grip=Cube.001"),
     @("digle.blend", "Assets/Resources/Skins/Desert Eagle/digle/model.fbx")
 )
 foreach ($model in $models) {

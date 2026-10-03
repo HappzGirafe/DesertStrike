@@ -546,6 +546,23 @@
         },
         {
             "weapon": "knife",
+            "id": "karambit",
+            "folder": "Skins/Knife/karambit",
+            "hasModel": true,
+            "hasMain": true,
+            "hasGrip": true,
+            "hasDetail": false,
+            "info": {
+                "name": "karambit",
+                "main": "",
+                "grip": "",
+                "detail": "#E6E6E6",
+                "smoothness": 0.27000001072883608,
+                "metallic": 0.5
+            }
+        },
+        {
+            "weapon": "knife",
             "id": "nogektestskin",
             "folder": "Skins/Knife/nogektestskin",
             "hasModel": true,

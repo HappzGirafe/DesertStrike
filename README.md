@@ -129,7 +129,7 @@ Hover a skin to preview it and click to equip it; the choice is saved. Bots carr
 
 Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
 Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
-nogektestskin (knife) and digle (Desert Eagle).
+nogektestskin and karambit (knife) and digle (Desert Eagle).
 
 The Glock-18, USP, TEC-DC9, M1911, Desert Eagle (`digle_default.blend`), MP5, M4A1, AK-47 and AWP use Blender
 models. Their **Default** skin is the model's own look from Blender; the other skins ("wraps") paint over it.
