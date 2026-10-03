@@ -74,6 +74,7 @@ public class GameUI : MonoBehaviour
         bool interactive = gm.State == MatchState.Menu || gm.State == MatchState.MatchOver || gm.BuyMenuOpen || gm.IsPaused;
         if (Event.current.type != EventType.Repaint && !interactive) return;
         if (Event.current.type == EventType.Repaint) RenderScaler.Present();
+        if (!settingsOpen && VoiceChat.Instance != null && VoiceChat.Instance.Testing) VoiceChat.Instance.Testing = false;
 
         scale = Screen.height / RefHeight;
         width = Screen.width / scale;
@@ -429,10 +430,31 @@ public class GameUI : MonoBehaviour
         y = OptionRow(x, y, "3D resolution (lower = faster, a little blurrier; menus stay sharp)", new[] { "100%", "75%", "50%" },
                       Array.IndexOf(GameSettings.RenderScales, GameSettings.RenderScale), i => GameSettings.SetRenderScale(GameSettings.RenderScales[i]));
         y = OptionRow(x, y, "Voice chat in LAN games (hold V to talk)", new[] { "Off", "On" }, GameSettings.VoiceChat ? 1 : 0, i => GameSettings.SetVoiceChat(i == 1));
+        y = MicrophoneTest(x, y);
         y = OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1));
         SensitivitySlider(x + 40f, y, w - 80f);
 
         if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) settingsOpen = false;
+    }
+
+    // Shows whether the game hears the microphone, without a second computer: a level bar that moves when you
+    // speak, the microphone's name, or what is wrong and how to fix it.
+    float MicrophoneTest(float x, float y)
+    {
+        var voice = VoiceChat.Instance;
+        if (voice == null) return y;
+        y -= 12f;
+        if (Button(new Rect(x + 40f, y, 250f, 44f), voice.Testing ? "STOP TEST" : "TEST MICROPHONE", voice.Testing, true, 18))
+            voice.Testing = !voice.Testing;
+        LevelBar(new Rect(x + 310f, y + 15f, 390f, 14f), voice.Testing && voice.State == VoiceChat.MicState.On ? voice.Level : 0f);
+        string status;
+        bool problem = voice.Testing && voice.Problem != null;
+        if (!voice.Testing) status = "Check that the game hears you: press the button and speak.";
+        else if (problem) status = voice.Problem;
+        else if (voice.State != VoiceChat.MicState.On) status = "Starting the microphone...";
+        else status = voice.DeviceName + ": speak, the bar should move.";
+        WrapLabel(new Rect(x + 40f, y + 48f, 700f, 40f), status, 15, problem ? Danger : Dim);
+        return y + 100f;
     }
 
     // FPS, then how many milliseconds the CPU and the graphics chip (GPU) spend on a frame: when one of them is
@@ -624,22 +646,32 @@ public class GameUI : MonoBehaviour
             Label(new Rect(0f, 220f, width, 60f), gm.Message, 42, Danger, TextAnchor.MiddleCenter);
     }
 
-    // Voice chat, under the radar: "You" while V is held, then everyone who can be heard right now.
+    // Voice chat, under the radar: while V is held, "You" with the microphone level (or what is wrong with the
+    // microphone); then everyone who can be heard right now.
     void DrawVoice()
     {
         var voice = VoiceChat.Instance;
-        if (voice == null || gm.Net.Role == NetSession.Mode.Off) return;
+        if (voice == null || (!voice.InSession && !voice.Holding)) return;
         float y = GameSettings.ShowFps ? 352f : 272f;
-        if (voice.Problem != null && Input.GetKey(VoiceChat.TalkKey))
+        if (voice.Holding)
         {
-            Fill(new Rect(20f, y, 320f, 30f), PanelColor);
-            Label(new Rect(30f, y, 310f, 30f), voice.Problem, 18, Danger);
-            y += 34f;
-        }
-        if (voice.Talking)
-        {
-            VoiceRow(y, "You", MoneyGreen);
-            y += 34f;
+            if (voice.Problem != null)
+            {
+                Fill(new Rect(20f, y, 600f, 62f), PanelColor);
+                WrapLabel(new Rect(30f, y + 4f, 580f, 56f), voice.Problem, 16, Danger);
+                y += 66f;
+            }
+            else if (voice.State != VoiceChat.MicState.On)
+            {
+                VoiceRow(y, "Starting the microphone...", Dim);
+                y += 34f;
+            }
+            else
+            {
+                VoiceRow(y, "You", MoneyGreen, voice.Level);
+                if (!voice.InSession) Label(new Rect(272f, y, 420f, 30f), "Voice chat works in LAN games", 16, Dim);
+                y += 34f;
+            }
         }
         foreach (string name in voice.Speaking())
         {
@@ -648,11 +680,19 @@ public class GameUI : MonoBehaviour
         }
     }
 
-    void VoiceRow(float y, string name, Color color)
+    void VoiceRow(float y, string name, Color color, float level = -1f)
     {
         Fill(new Rect(20f, y, 240f, 30f), PanelColor);
         Fill(new Rect(30f, y + 9f, 12f, 12f), color);   // a small "talking" light
         Label(new Rect(52f, y, 205f, 30f), name, 18, color);
+        if (level >= 0f) LevelBar(new Rect(150f, y + 11f, 100f, 8f), level);
+    }
+
+    // How loud the microphone is (square root, so quiet speech still shows).
+    void LevelBar(Rect rect, float level)
+    {
+        Fill(rect, new Color(0f, 0f, 0f, 0.5f));
+        Fill(new Rect(rect.x, rect.y, rect.width * Mathf.Sqrt(Mathf.Clamp01(level)), rect.height), MoneyGreen);
     }
 
     Color SpeakerColor(string name)
@@ -906,6 +946,19 @@ public class GameUI : MonoBehaviour
         var style = Style(size, anchor);
         GUI.color = new Color(0f, 0f, 0f, 0.8f * color.a);
         GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
+        GUI.color = color;
+        GUI.Label(rect, text, style);
+        GUI.color = Color.white;
+    }
+
+    void WrapLabel(Rect rect, string text, int size, Color color)
+    {
+        int key = 1000000 + size;
+        if (!styles.TryGetValue(key, out var style))
+        {
+            style = new GUIStyle(Style(size, TextAnchor.UpperLeft)) { wordWrap = true, clipping = TextClipping.Clip };
+            styles[key] = style;
+        }
         GUI.color = color;
         GUI.Label(rect, text, style);
         GUI.color = Color.white;

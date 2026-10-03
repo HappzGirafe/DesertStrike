@@ -89,6 +89,9 @@ The game uses UDP ports 27015 (game) and 27016 (finding games).
 **Voice chat:** during a LAN match, hold **V** to talk; everyone in the game hears you, and the names of the
 people talking appear under the radar. The microphone starts the first time you press V (macOS asks for
 permission once) and stops when the LAN game ends. Settings > *Voice chat in LAN games* turns it off.
+**TEST MICROPHONE** in Settings shows a level bar that moves when you speak, without a second computer. If the
+game cannot use the microphone, it says why (not allowed, no microphone, only silence) and where to turn it on;
+on a Mac that is System Settings > Privacy & Security > Microphone > Desert Strike (then restart the game).
 While in a LAN game the game keeps running when its window is not in front, so the others are not affected.
 
 ### Building

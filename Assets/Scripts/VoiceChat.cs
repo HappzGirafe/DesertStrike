@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,8 +8,13 @@ using UnityEngine;
 ///
 /// The microphone is recorded at 16 kHz, cut into 20 ms frames, squeezed to 8 bits per sample (G.711 mu-law,
 /// 16 KB/s, plenty for a LAN) and sent through <see cref="NetSession"/>: a client sends to the host, the host plays
-/// it and passes it on to the other clients. The microphone only starts the first time someone presses V in a
-/// LAN game (that is when macOS asks for permission) and stops when the LAN game ends.
+/// it and passes it on to the other clients.
+///
+/// The microphone starts the first time V is pressed in a match (or with TEST MICROPHONE in Settings): the game
+/// asks for permission (macOS shows its question then), tries the default microphone and then each one by name,
+/// at 16 kHz and at the device's own rate, and checks that real sound arrives. When something is wrong,
+/// <see cref="Problem"/> says what and how to fix it, and the HUD and Settings show it. During a LAN game the
+/// microphone stays on (no delay on the next V); otherwise it closes shortly after use.
 /// </summary>
 public class VoiceChat : MonoBehaviour
 {
@@ -16,18 +22,40 @@ public class VoiceChat : MonoBehaviour
     public const KeyCode TalkKey = KeyCode.V;
     const int FrameSamples = SampleRate / 50;   // 20 ms per packet
 
+    public enum MicState { Off, Starting, On, Failed }
+
     public static VoiceChat Instance { get; private set; }
 
-    /// <summary>The local player is holding V and their voice is being sent.</summary>
+    /// <summary>A LAN game with someone to talk to.</summary>
+    public bool InSession { get; private set; }
+
+    /// <summary>V is held during a match (LAN or not): the HUD shows "You" with the microphone level.</summary>
+    public bool Holding { get; private set; }
+
+    /// <summary>In a LAN game with V held: the voice is being sent.</summary>
     public bool Talking { get; private set; }
 
-    /// <summary>Why the microphone does not work ("No microphone found"), or null.</summary>
+    /// <summary>The microphone test in Settings is running.</summary>
+    public bool Testing { get; set; }
+
+    public MicState State { get; private set; }
+
+    /// <summary>How loud the microphone is right now, 0 to 1.</summary>
+    public float Level { get; private set; }
+
+    /// <summary>The microphone in use.</summary>
+    public string DeviceName { get; private set; } = "";
+
+    /// <summary>What is wrong with the microphone and how to fix it, or null.</summary>
     public string Problem { get; private set; }
 
     GameManager gm;
     AudioClip micClip;
+    string micDevice;        // null = the system's default input
     int micRate, micPosition;
-    bool micFailed;
+    float micStartedAt, lastWanted, silencePeak;
+    bool silenceChecked, wasTesting;
+    long samplesRead;
     float[] chunk = new float[0];
     readonly List<float> pending = new List<float>();   // 16 kHz samples not sent yet
     float resampleCarry;
@@ -35,12 +63,11 @@ public class VoiceChat : MonoBehaviour
     readonly byte[] frame = new byte[FrameSamples];
 
     // -ds-voice-test sends a tone instead of the microphone (testing two copies of the game on one PC);
-    // -ds-voice-log logs what arrives every two seconds; -ds-mic-check reads the microphone for 4 seconds and
-    // logs only how many samples came in and how loud they were (nothing is sent, played or kept).
+    // -ds-voice-log logs what arrives every two seconds; -ds-mic-check runs the microphone test for 4 seconds and
+    // logs only which microphone answered and how loud it was (nothing is sent, played or kept).
     bool testTone, log, micCheck, micCheckDone;
-    double tonePhase, checkLevel;
-    float nextLog, checkStarted;
-    long checkSamples;
+    double tonePhase;
+    float nextLog;
 
     readonly Dictionary<string, VoiceOutput> speakers = new Dictionary<string, VoiceOutput>();
 
@@ -52,35 +79,45 @@ public class VoiceChat : MonoBehaviour
         testTone = Array.IndexOf(args, "-ds-voice-test") >= 0;
         log = Array.IndexOf(args, "-ds-voice-log") >= 0;
         micCheck = Array.IndexOf(args, "-ds-mic-check") >= 0;
-        if (log) Debug.Log("[Voice] Microphones found: " + Microphone.devices.Length);
     }
 
     void Update()
     {
-        if (micCheck)
-        {
-            CheckMicrophone();
-            return;
-        }
         var net = gm.Net;
-        bool session = net.IsHost ? net.Peers.Count > 0 : net.IsClient && net.Connected;
-        if (!session)
+        InSession = net.IsHost ? net.Peers.Count > 0 : net.IsClient && net.Connected;
+        bool inMatch = gm.State != MatchState.Menu && !gm.IsPaused;
+        Holding = GameSettings.VoiceChat && inMatch && Input.GetKey(TalkKey);
+        bool pressed = GameSettings.VoiceChat && inMatch && Input.GetKeyDown(TalkKey);
+        if (micCheck && !micCheckDone) Testing = true;
+        bool testStarted = Testing && !wasTesting;
+        wasTesting = Testing;
+
+        bool wantMicrophone = !testTone && (Testing || Holding);
+        if (wantMicrophone)
+        {
+            lastWanted = Time.unscaledTime;
+            if (State == MicState.Failed && (pressed || testStarted))
+            {
+                State = MicState.Off;   // try again on a new press of V or a new test
+                Problem = null;
+            }
+            if (State == MicState.Off) StartCoroutine(OpenMicrophone());
+        }
+        else if (State == MicState.On && !InSession && Time.unscaledTime - lastWanted > 1.5f)
         {
             StopMicrophone();
-            foreach (var speaker in speakers.Values) Destroy(speaker.gameObject);
-            speakers.Clear();
-            micFailed = false;
-            Problem = null;
-            Talking = false;
-            return;
         }
 
-        bool inMatch = gm.State != MatchState.Menu && !gm.IsPaused;
-        bool wantsToTalk = GameSettings.VoiceChat && inMatch && (testTone || Input.GetKey(TalkKey));
-        if (wantsToTalk && !testTone && micClip == null && !micFailed) StartMicrophone();
-        Talking = wantsToTalk && (testTone || micClip != null);
+        if (!InSession && speakers.Count > 0)
+        {
+            foreach (var speaker in speakers.Values) Destroy(speaker.gameObject);
+            speakers.Clear();
+        }
+
+        Talking = InSession && (testTone ? GameSettings.VoiceChat && inMatch : Holding && State == MicState.On);
         Capture(Talking);
 
+        if (micCheck && !micCheckDone) ReportCheck();
         if (log && Time.unscaledTime >= nextLog)
         {
             nextLog = Time.unscaledTime + 2f;
@@ -112,37 +149,99 @@ public class VoiceChat : MonoBehaviour
         output.Push(data, offset, count);
     }
 
-    void StartMicrophone()
+    IEnumerator OpenMicrophone()
     {
-        if (Microphone.devices.Length == 0)
+        State = MicState.Starting;
+        Problem = null;
+        if (!Application.HasUserAuthorization(UserAuthorization.Microphone))
+            yield return Application.RequestUserAuthorization(UserAuthorization.Microphone);
+        bool allowed = Application.HasUserAuthorization(UserAuthorization.Microphone);
+        string[] devices = Microphone.devices;
+        Debug.Log($"[Voice] Microphone allowed: {allowed}; microphones: {devices.Length}" +
+                  (devices.Length > 0 ? " (" + string.Join(", ", devices) + ")" : ""));
+        if (!allowed)
         {
-            micFailed = true;
-            Problem = "No microphone found";
-            Debug.Log("[Voice] No microphone found");
-            return;
+            Fail("The game is not allowed to use the microphone.");
+            yield break;
         }
-        Microphone.GetDeviceCaps(null, out int min, out int max);
-        micRate = min == 0 && max == 0 ? SampleRate : Mathf.Clamp(SampleRate, min, max);
-        micClip = Microphone.Start(null, true, 1, micRate);
-        micPosition = 0;
-        resampleCarry = 0f;
-        if (micClip == null)
+        if (devices.Length == 0)
         {
-            micFailed = true;
-            Problem = "The microphone could not be started";
-            Debug.Log("[Voice] The microphone could not be started");
-            return;
+            Fail("No microphone found.");
+            yield break;
         }
-        Debug.Log($"[Voice] Microphone on: {Microphone.devices[0]} at {micRate} Hz");
+
+        // The system's default microphone first, then each by name; at 16 kHz, then at the device's own rates.
+        var candidates = new List<string> { null };
+        candidates.AddRange(devices);
+        foreach (string device in candidates)
+        {
+            Microphone.GetDeviceCaps(device, out int min, out int max);
+            var rates = min == 0 && max == 0
+                ? new List<int> { SampleRate, 48000, 44100 }
+                : new List<int> { Mathf.Clamp(SampleRate, min, max), max };
+            foreach (int rate in rates)
+            {
+                var clip = Microphone.Start(device, true, 1, rate);
+                if (clip == null) continue;
+                float until = Time.unscaledTime + 1.5f;
+                while (Microphone.GetPosition(device) <= 0 && Time.unscaledTime < until) yield return null;
+                if (Microphone.GetPosition(device) > 0)
+                {
+                    micClip = clip;
+                    micDevice = device;
+                    micRate = rate;
+                    micPosition = Microphone.GetPosition(device);
+                    resampleCarry = 0f;
+                    DeviceName = device ?? devices[0];
+                    micStartedAt = Time.unscaledTime;
+                    silencePeak = 0f;
+                    silenceChecked = false;
+                    State = MicState.On;
+                    Debug.Log($"[Voice] Microphone on: {(device ?? "default (" + devices[0] + ")")} at {rate} Hz, {clip.channels} channel(s)");
+                    yield break;
+                }
+                Microphone.End(device);
+                Destroy(clip);
+                Debug.Log($"[Voice] {(device ?? "The default microphone")} at {rate} Hz sent nothing");
+            }
+        }
+        Fail("The microphone does not start.");
+    }
+
+    void Fail(string what)
+    {
+        State = MicState.Failed;
+        Level = 0f;
+        Problem = what + FixHint();
+        Debug.Log("[Voice] " + Problem);
+    }
+
+    static string FixHint()
+    {
+        switch (Application.platform)
+        {
+            case RuntimePlatform.OSXPlayer:
+            case RuntimePlatform.OSXEditor:
+                return " On a Mac: System Settings > Privacy & Security > Microphone > turn on Desert Strike, then restart the game.";
+            case RuntimePlatform.WindowsPlayer:
+            case RuntimePlatform.WindowsEditor:
+                return " On Windows: Settings > Privacy & security > Microphone > let desktop apps use the microphone.";
+            default:
+                return "";
+        }
     }
 
     void StopMicrophone()
     {
-        if (micClip == null) return;
-        Microphone.End(null);
-        Destroy(micClip);
-        micClip = null;
+        if (micClip != null)
+        {
+            Microphone.End(micDevice);
+            Destroy(micClip);
+            micClip = null;
+        }
+        if (State == MicState.On) State = MicState.Off;
         pending.Clear();
+        Level = 0f;
     }
 
     void Capture(bool send)
@@ -176,49 +275,58 @@ public class VoiceChat : MonoBehaviour
         }
     }
 
-    // Everything recorded since the last call; kept (as 16 kHz samples in pending) only when keep is set.
+    // Everything recorded since the last call: updates the level, checks for silence, and keeps the sound
+    // (as 16 kHz samples in pending) when keep is set.
     void ReadMicrophone(bool keep)
     {
-        if (micClip != null)
+        if (micClip == null || State != MicState.On) return;
+        int position = Microphone.GetPosition(micDevice);
+        int length = micClip.samples;
+        int available = (position - micPosition + length) % length;
+        int channels = micClip.channels;
+        float peak = 0f;
+        while (available > 0)
         {
-            int position = Microphone.GetPosition(null);
-            int length = micClip.samples;
-            int available = (position - micPosition + length) % length;
-            while (available > 0)
+            int count = Mathf.Min(available, length - micPosition);
+            if (chunk.Length != count * channels) chunk = new float[count * channels];
+            micClip.GetData(chunk, micPosition);
+            for (int i = 0; i < chunk.Length; i += channels) peak = Mathf.Max(peak, Mathf.Abs(chunk[i]));
+            if (keep) AddResampled(chunk, channels);
+            samplesRead += count;
+            micPosition = (micPosition + count) % length;
+            available -= count;
+        }
+        Level = Mathf.Max(Mathf.Min(1f, peak), Level - Time.unscaledDeltaTime * 1.5f);
+
+        // A working microphone always picks up a little noise; nothing but exact zeros means the system blocks it.
+        if (!silenceChecked)
+        {
+            silencePeak = Mathf.Max(silencePeak, peak);
+            if (Time.unscaledTime - micStartedAt > 2f)
             {
-                int count = Mathf.Min(available, length - micPosition);
-                if (chunk.Length != count * micClip.channels) chunk = new float[count * micClip.channels];
-                micClip.GetData(chunk, micPosition);
-                if (keep) AddResampled(chunk, micClip.channels);
-                micPosition = (micPosition + count) % length;
-                available -= count;
+                silenceChecked = true;
+                if (silencePeak == 0f)
+                {
+                    StopMicrophone();
+                    Fail("The microphone only sends silence.");
+                }
             }
         }
     }
 
-    void CheckMicrophone()
+    void ReportCheck()
     {
-        if (micCheckDone) return;
-        if (micClip == null && !micFailed)
-        {
-            StartMicrophone();
-            checkStarted = Time.unscaledTime;
-        }
-        if (micFailed)
+        if (State == MicState.Failed)
         {
             micCheckDone = true;
+            Testing = false;
             return;
         }
-        ReadMicrophone(true);
-        foreach (float sample in pending) checkLevel += sample * sample;
-        checkSamples += pending.Count;
-        pending.Clear();
-        float elapsed = Time.unscaledTime - checkStarted;
-        if (elapsed < 4f) return;
-        Debug.Log($"[Voice] Microphone check: {checkSamples / elapsed:0} samples per second (16000 expected), " +
-                  $"level {Math.Sqrt(checkLevel / Math.Max(1, checkSamples)):0.0000}");
-        StopMicrophone();
+        if (State != MicState.On || Time.unscaledTime - micStartedAt < 4f) return;
+        Debug.Log($"[Voice] Microphone check: {DeviceName} at {micRate} Hz, {samplesRead / (Time.unscaledTime - micStartedAt):0} samples per second, " +
+                  $"level now {Level:0.000}, silence check {(silenceChecked ? "passed" : "pending")}");
         micCheckDone = true;
+        Testing = false;
     }
 
     // Microphone samples at micRate to 16 kHz: each output sample is the average of the input samples it covers.
@@ -246,14 +354,14 @@ public class VoiceChat : MonoBehaviour
 
 /// <summary>
 /// Plays one player's voice: frames go into a ring buffer and are mixed into this object's AudioSource on the audio
-/// thread, resampled from 16 kHz to the output rate. Playback starts once 60 ms are buffered, which hides small
-/// network hiccups without much delay.
+/// thread, resampled from 16 kHz to the output rate. Playback starts once 100 ms are buffered, which hides WiFi
+/// hiccups and stutters of the sending computer without much delay.
 /// </summary>
 public class VoiceOutput : MonoBehaviour
 {
-    const int StartSamples = VoiceChat.SampleRate * 60 / 1000;
-    const int CatchUpSamples = VoiceChat.SampleRate * 150 / 1000;   // more behind than this: play 6% faster
-    const int MaxSamples = VoiceChat.SampleRate * 400 / 1000;       // more behind than this: skip ahead
+    const int StartSamples = VoiceChat.SampleRate * 100 / 1000;
+    const int CatchUpSamples = VoiceChat.SampleRate * 250 / 1000;   // more behind than this: play 6% faster
+    const int MaxSamples = VoiceChat.SampleRate * 600 / 1000;       // more behind than this: skip ahead
 
     static AudioClip silence;
 
