@@ -243,6 +243,15 @@
   .os li::marker { color: var(--orange); font-weight: 700; }
   .os .buy { align-self: flex-start; margin-top: auto; }
   .all { margin: 22px 0 0; }
+  /* Download counter: the number in the game's money green, like a scoreboard */
+  .dl-counter {
+    margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px;
+    background: var(--scrim); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 22px;
+  }
+  .dl-counter .label { font: 700 12.5px/1.3 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .dl-counter .number { font: 700 clamp(34px, 5vw, 46px)/1 var(--font-mono); color: var(--money); font-variant-numeric: tabular-nums; }
+  .dl-counter .split { font: 500 14px/1.4 var(--font-mono); color: var(--sand); font-variant-numeric: tabular-nums; }
+  .dl-counter .source { flex-basis: 100%; font-size: 13px; color: var(--muted); }
 
   footer { border-top: 1px solid var(--line); padding-block: 28px 36px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
@@ -303,8 +312,8 @@
         <h1>LOW<span class="dash">-</span>STRIKE</h1>
         <p class="lead">Terroristas contra SWAT en un mapa del desierto. Planta la bomba, desactívala o elimina al otro equipo, contra bots o con amigos en la misma Wi‑Fi.</p>
         <div class="buy-row">
-          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span>Descargar para Windows</span><span class="price">$0</span></a>
-          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span>Descargar para macOS</span><span class="price">$0</span></a>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span>Descargar para Windows</span><span class="price">$0</span></a>
+          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span>Descargar para macOS</span><span class="price">$0</span></a>
         </div>
         <p class="note">Versión 1.14 · Windows 34 MB · macOS 42 MB, Intel y Apple Silicon</p>
       </div>
@@ -461,7 +470,7 @@
             <li>La primera vez, el juego se descomprime en unos segundos.</li>
             <li>Si aparece Windows SmartScreen, haz clic en «Más información» y luego en «Ejecutar de todas formas».</li>
           </ol>
-          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span>Descargar para Windows</span><span class="price">$0</span></a>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span>Descargar para Windows</span><span class="price">$0</span></a>
         </article>
         <article class="os">
           <h3>macOS</h3>
@@ -471,8 +480,14 @@
             <li>La primera vez, macOS lo bloquea. Cierra el mensaje.</li>
             <li>Abre Ajustes del Sistema &gt; Privacidad y seguridad, haz clic en «Abrir igualmente» y luego en «Abrir».</li>
           </ol>
-          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span>Descargar para macOS</span><span class="price">$0</span></a>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span>Descargar para macOS</span><span class="price">$0</span></a>
         </article>
+      </div>
+      <div class="dl-counter" id="dl-counter" hidden>
+        <span class="label">Descargas hasta ahora</span>
+        <span class="number" id="dl-total">0</span>
+        <span class="split" id="dl-split">Windows 0 · macOS 0</span>
+        <span class="source">Todas las versiones, contadas por GitHub.</span>
       </div>
       <p class="all"><a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener">Todas las versiones en GitHub</a></p>
     </div>
@@ -522,6 +537,35 @@
     if (e.key === "ArrowLeft") showShot(current - 1);
     if (e.key === "ArrowRight") showShot(current + 1);
   });
+  // How many times the game was downloaded: the download counts of every release on GitHub (Windows + macOS),
+  // kept for 10 minutes so reloading the page does not ask GitHub again.
+  (function loadDownloadCount() {
+    const counter = document.getElementById("dl-counter");
+    if (!counter) return;
+    const show = data => {
+      const fmt = n => Number(n).toLocaleString(document.documentElement.lang || "en");
+      document.getElementById("dl-total").textContent = fmt(data.win + data.mac);
+      document.getElementById("dl-split").textContent = "Windows " + fmt(data.win) + " · macOS " + fmt(data.mac);
+      counter.hidden = false;
+    };
+    try {
+      const cached = JSON.parse(sessionStorage.getItem("lowstrike.downloads") || "null");
+      if (cached && Date.now() - cached.at < 10 * 60 * 1000) { show(cached); return; }
+    } catch (e) {}
+    fetch("https://api.github.com/repos/HappzGirafe/DesertStrike/releases?per_page=100")
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(releases => {
+        const data = { win: 0, mac: 0, at: Date.now() };
+        for (const release of releases)
+          for (const asset of release.assets || []) {
+            if (/windows/i.test(asset.name)) data.win += asset.download_count;
+            else if (/mac/i.test(asset.name)) data.mac += asset.download_count;
+          }
+        try { sessionStorage.setItem("lowstrike.downloads", JSON.stringify(data)); } catch (e) {}
+        show(data);
+      })
+      .catch(() => {});
+  })();
   const clock = document.getElementById("clock");
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     let left = 115;

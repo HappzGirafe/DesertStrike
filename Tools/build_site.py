@@ -86,6 +86,35 @@ STATIC_SCRIPT = """<script>
     if (e.key === "ArrowLeft") showShot(current - 1);
     if (e.key === "ArrowRight") showShot(current + 1);
   });
+  // How many times the game was downloaded: the download counts of every release on GitHub (Windows + macOS),
+  // kept for 10 minutes so reloading the page does not ask GitHub again.
+  (function loadDownloadCount() {
+    const counter = document.getElementById("dl-counter");
+    if (!counter) return;
+    const show = data => {
+      const fmt = n => Number(n).toLocaleString(document.documentElement.lang || "en");
+      document.getElementById("dl-total").textContent = fmt(data.win + data.mac);
+      document.getElementById("dl-split").textContent = "Windows " + fmt(data.win) + " · macOS " + fmt(data.mac);
+      counter.hidden = false;
+    };
+    try {
+      const cached = JSON.parse(sessionStorage.getItem("lowstrike.downloads") || "null");
+      if (cached && Date.now() - cached.at < 10 * 60 * 1000) { show(cached); return; }
+    } catch (e) {}
+    fetch("https://api.github.com/repos/HappzGirafe/DesertStrike/releases?per_page=100")
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(releases => {
+        const data = { win: 0, mac: 0, at: Date.now() };
+        for (const release of releases)
+          for (const asset of release.assets || []) {
+            if (/windows/i.test(asset.name)) data.win += asset.download_count;
+            else if (/mac/i.test(asset.name)) data.mac += asset.download_count;
+          }
+        try { sessionStorage.setItem("lowstrike.downloads", JSON.stringify(data)); } catch (e) {}
+        show(data);
+      })
+      .catch(() => {});
+  })();
   const clock = document.getElementById("clock");
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     let left = 115;

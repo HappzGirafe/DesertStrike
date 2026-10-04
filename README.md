@@ -12,8 +12,8 @@ Terrorists vs SWAT, round-based, with a buy menu and bots, on **de_dune**, a des
 
 | System | File | |
 | --- | --- | --- |
-| Windows | [**DesertStrike-Windows.exe**](https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe) | the whole game in one file |
-| macOS | [**DesertStrike-macOS.zip**](https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip) | Intel and Apple Silicon |
+| Windows | [**DesertStrike-Windows.exe**](https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-Windows.exe) | the whole game in one file |
+| macOS | [**DesertStrike-macOS.zip**](https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-macOS.zip) | Intel and Apple Silicon |
 
 Both files are in the [`Builds`](Builds) folder of this repository, and every version is also on the
 [Releases](https://github.com/HappzGirafe/DesertStrike/releases) page.

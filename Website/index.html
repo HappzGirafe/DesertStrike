@@ -214,6 +214,15 @@
   .os li::marker { color: var(--orange); font-weight: 700; }
   .os .buy { align-self: flex-start; margin-top: auto; }
   .all { margin: 22px 0 0; }
+  /* Download counter: the number in the game's money green, like a scoreboard */
+  .dl-counter {
+    margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px;
+    background: var(--scrim); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 22px;
+  }
+  .dl-counter .label { font: 700 12.5px/1.3 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .dl-counter .number { font: 700 clamp(34px, 5vw, 46px)/1 var(--font-mono); color: var(--money); font-variant-numeric: tabular-nums; }
+  .dl-counter .split { font: 500 14px/1.4 var(--font-mono); color: var(--sand); font-variant-numeric: tabular-nums; }
+  .dl-counter .source { flex-basis: 100%; font-size: 13px; color: var(--muted); }
 
   footer { border-top: 1px solid var(--line); padding-block: 28px 36px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
@@ -264,8 +273,8 @@
         <h1>LOW<span class="dash">-</span>STRIKE</h1>
         <p class="lead" data-i18n="hero_lead">Terrorists against SWAT on a desert map. Plant the bomb, defuse it or take out the other team, against bots or with friends on the same WiFi.</p>
         <div class="buy-row">
-          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span data-i18n="hero_win">Download for Windows</span><span class="price">$0</span></a>
-          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span data-i18n="hero_mac">Download for macOS</span><span class="price">$0</span></a>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span data-i18n="hero_win">Download for Windows</span><span class="price">$0</span></a>
+          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span data-i18n="hero_mac">Download for macOS</span><span class="price">$0</span></a>
         </div>
         <p class="note" data-i18n="hero_note">Version 1.14 · Windows 34 MB · macOS 42 MB, Intel and Apple Silicon</p>
       </div>
@@ -422,7 +431,7 @@
             <li data-i18n="dl_win_2">The first start unpacks the game, which takes a few seconds.</li>
             <li data-i18n="dl_win_3">If Windows SmartScreen appears, click More info, then Run anyway.</li>
           </ol>
-          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span data-i18n="hero_win">Download for Windows</span><span class="price">$0</span></a>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-Windows.exe" target="_blank" rel="noopener"><span data-i18n="hero_win">Download for Windows</span><span class="price">$0</span></a>
         </article>
         <article class="os">
           <h3>macOS</h3>
@@ -432,8 +441,14 @@
             <li data-i18n="dl_mac_2">The first time, macOS blocks it. Close the message.</li>
             <li data-i18n="dl_mac_3">Open System Settings &gt; Privacy &amp; Security, click Open Anyway, then Open.</li>
           </ol>
-          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/raw/main/Builds/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span data-i18n="hero_mac">Download for macOS</span><span class="price">$0</span></a>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-macOS.zip" target="_blank" rel="noopener"><span data-i18n="hero_mac">Download for macOS</span><span class="price">$0</span></a>
         </article>
+      </div>
+      <div class="dl-counter" id="dl-counter" hidden>
+        <span class="label" data-i18n="dl_count_label">Downloads so far</span>
+        <span class="number" id="dl-total">0</span>
+        <span class="split" id="dl-split">Windows 0 · macOS 0</span>
+        <span class="source" data-i18n="dl_count_note">All versions, counted by GitHub.</span>
       </div>
       <p class="all"><a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener" data-i18n="dl_all">All versions on GitHub</a></p>
     </div>
@@ -494,7 +509,7 @@
       dl_win_3: "If Windows SmartScreen appears, click More info, then Run anyway.",
       dl_mac_1: "Download the zip, unzip it and double-click DesertStrike.", dl_mac_2: "The first time, macOS blocks it. Close the message.",
       dl_mac_3: "Open System Settings > Privacy & Security, click Open Anyway, then Open.",
-      dl_all: "All versions on GitHub", footer_made: "Made with Unity and Blender.", footer_code: "Source code on GitHub"
+      dl_all: "All versions on GitHub", dl_count_label: "Downloads so far", dl_count_note: "All versions, counted by GitHub.", footer_made: "Made with Unity and Blender.", footer_code: "Source code on GitHub"
     },
     ua: {
       nav_gameplay: "Геймплей", nav_features: "Можливості", nav_shop: "Ціни", nav_screens: "Скриншоти", nav_download: "Завантажити",
@@ -529,7 +544,7 @@
       dl_win_3: "Якщо з’явиться Windows SmartScreen, натисни «Докладніше», а потім «Усе одно запустити».",
       dl_mac_1: "Завантаж архів, розпакуй його й двічі клацни DesertStrike.", dl_mac_2: "Першого разу macOS блокує гру. Закрий повідомлення.",
       dl_mac_3: "Відкрий Системні параметри > Приватність і безпека, натисни «Однаково відкрити», потім «Відкрити».",
-      dl_all: "Усі версії на GitHub", footer_made: "Створено в Unity та Blender.", footer_code: "Код на GitHub"
+      dl_all: "Усі версії на GitHub", dl_count_label: "Усього завантажень", dl_count_note: "Усі версії, рахує GitHub.", footer_made: "Створено в Unity та Blender.", footer_code: "Код на GitHub"
     },
     de: {
       nav_gameplay: "Gameplay", nav_features: "Funktionen", nav_shop: "Preise", nav_screens: "Screenshots", nav_download: "Download",
@@ -564,7 +579,7 @@
       dl_win_3: "Wenn Windows SmartScreen erscheint, auf „Weitere Informationen“ und dann „Trotzdem ausführen“ klicken.",
       dl_mac_1: "ZIP herunterladen, entpacken und DesertStrike doppelklicken.", dl_mac_2: "Beim ersten Mal blockiert macOS das Spiel. Meldung schließen.",
       dl_mac_3: "Systemeinstellungen > Datenschutz & Sicherheit öffnen, auf „Dennoch öffnen“ und dann „Öffnen“ klicken.",
-      dl_all: "Alle Versionen auf GitHub", footer_made: "Gemacht mit Unity und Blender.", footer_code: "Quellcode auf GitHub"
+      dl_all: "Alle Versionen auf GitHub", dl_count_label: "Downloads bisher", dl_count_note: "Alle Versionen, gezählt von GitHub.", footer_made: "Gemacht mit Unity und Blender.", footer_code: "Quellcode auf GitHub"
     },
     fr: {
       nav_gameplay: "Gameplay", nav_features: "Contenu", nav_shop: "Prix", nav_screens: "Captures", nav_download: "Télécharger",
@@ -599,7 +614,7 @@
       dl_win_3: "Si Windows SmartScreen s’affiche, clique sur « Informations complémentaires », puis « Exécuter quand même ».",
       dl_mac_1: "Télécharge le zip, décompresse-le et double-clique sur DesertStrike.", dl_mac_2: "La première fois, macOS le bloque. Ferme le message.",
       dl_mac_3: "Ouvre Réglages Système > Confidentialité et sécurité, clique sur « Ouvrir quand même », puis « Ouvrir ».",
-      dl_all: "Toutes les versions sur GitHub", footer_made: "Fait avec Unity et Blender.", footer_code: "Code source sur GitHub"
+      dl_all: "Toutes les versions sur GitHub", dl_count_label: "Téléchargements à ce jour", dl_count_note: "Toutes les versions, comptées par GitHub.", footer_made: "Fait avec Unity et Blender.", footer_code: "Code source sur GitHub"
     },
     it: {
       nav_gameplay: "Gameplay", nav_features: "Caratteristiche", nav_shop: "Prezzi", nav_screens: "Screenshot", nav_download: "Download",
@@ -634,7 +649,7 @@
       dl_win_3: "Se compare Windows SmartScreen, fai clic su «Ulteriori informazioni» e poi su «Esegui comunque».",
       dl_mac_1: "Scarica lo zip, estrailo e fai doppio clic su DesertStrike.", dl_mac_2: "La prima volta macOS lo blocca. Chiudi il messaggio.",
       dl_mac_3: "Apri Impostazioni di Sistema > Privacy e sicurezza, fai clic su «Apri comunque» e poi su «Apri».",
-      dl_all: "Tutte le versioni su GitHub", footer_made: "Fatto con Unity e Blender.", footer_code: "Codice sorgente su GitHub"
+      dl_all: "Tutte le versioni su GitHub", dl_count_label: "Download finora", dl_count_note: "Tutte le versioni, contate da GitHub.", footer_made: "Fatto con Unity e Blender.", footer_code: "Codice sorgente su GitHub"
     },
     es: {
       nav_gameplay: "Jugabilidad", nav_features: "Características", nav_shop: "Precios", nav_screens: "Capturas", nav_download: "Descargar",
@@ -669,7 +684,7 @@
       dl_win_3: "Si aparece Windows SmartScreen, haz clic en «Más información» y luego en «Ejecutar de todas formas».",
       dl_mac_1: "Descarga el zip, descomprímelo y haz doble clic en DesertStrike.", dl_mac_2: "La primera vez, macOS lo bloquea. Cierra el mensaje.",
       dl_mac_3: "Abre Ajustes del Sistema > Privacidad y seguridad, haz clic en «Abrir igualmente» y luego en «Abrir».",
-      dl_all: "Todas las versiones en GitHub", footer_made: "Hecho con Unity y Blender.", footer_code: "Código fuente en GitHub"
+      dl_all: "Todas las versiones en GitHub", dl_count_label: "Descargas hasta ahora", dl_count_note: "Todas las versiones, contadas por GitHub.", footer_made: "Hecho con Unity y Blender.", footer_code: "Código fuente en GitHub"
     }
   };
   const HTML_LANG = { en: "en-GB", ua: "uk", de: "de", fr: "fr", it: "it", es: "es" };
@@ -729,6 +744,35 @@
     if (e.key === "ArrowRight") showShot(current + 1);
   });
 
+  // How many times the game was downloaded: the download counts of every release on GitHub (Windows + macOS).
+  function loadDownloadCount() {
+    const box = document.getElementById("dl-counter");
+    if (!box) return;
+    const show = data => {
+      const fmt = n => Number(n).toLocaleString(document.documentElement.lang || "en");
+      document.getElementById("dl-total").textContent = fmt(data.win + data.mac);
+      document.getElementById("dl-split").textContent = "Windows " + fmt(data.win) + " · macOS " + fmt(data.mac);
+      box.hidden = false;
+    };
+    try {
+      const cached = JSON.parse(sessionStorage.getItem("lowstrike.downloads") || "null");
+      if (cached && Date.now() - cached.at < 10 * 60 * 1000) { show(cached); return; }
+    } catch (e) {}
+    fetch("https://api.github.com/repos/HappzGirafe/DesertStrike/releases?per_page=100")
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(releases => {
+        const data = { win: 0, mac: 0, at: Date.now() };
+        for (const release of releases)
+          for (const asset of release.assets || []) {
+            if (/windows/i.test(asset.name)) data.win += asset.download_count;
+            else if (/mac/i.test(asset.name)) data.mac += asset.download_count;
+          }
+        try { sessionStorage.setItem("lowstrike.downloads", JSON.stringify(data)); } catch (e) {}
+        show(data);
+      })
+      .catch(() => {});
+  }
+
   // The round clock in the hero counts down like the game's (1:55 to 0:00, then a new round).
   const clock = document.getElementById("clock");
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -740,6 +784,7 @@
     }, 1000);
   }
 
+  loadDownloadCount();
   apply(initialLanguage());
 })();
 </script>
