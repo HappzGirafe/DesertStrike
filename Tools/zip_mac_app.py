@@ -3,7 +3,7 @@
 Windows does not keep the Unix "executable" permission, so a plain zip of the app arrives on the Mac with a
 program that is not allowed to run. This zip marks the files in Contents/MacOS (and libraries) executable.
 
-    python Tools/zip_mac_app.py Builds/macOS/DesertStrike.app Builds/DesertStrike-macOS.zip ["Tools/How to open on Mac.txt" ...]
+    python Tools/zip_mac_app.py "Builds/macOS/Low Strike.app" Builds/LowStrike-macOS.zip ["Tools/How to open on Mac.txt" ...]
 Any extra files are put next to the app in the zip.
 (Blender's Python works too: "C:/Program Files/Blender Foundation/Blender 5.2/5.2/python/bin/python.exe")
 """

@@ -256,7 +256,7 @@ public static class WeaponSkins
         var asset = Resources.Load<TextAsset>(Root + "/index");
         if (asset == null)
         {
-            Debug.LogWarning("[Skins] Skins/index.json is missing; use Desert Strike > Rebuild Skin Index in the editor.");
+            Debug.LogWarning("[Skins] Skins/index.json is missing; use Low Strike > Rebuild Skin Index in the editor.");
             return;
         }
 

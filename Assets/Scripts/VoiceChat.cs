@@ -231,7 +231,7 @@ public class VoiceChat : MonoBehaviour
         {
             case RuntimePlatform.OSXPlayer:
             case RuntimePlatform.OSXEditor:
-                return " On a Mac: System Settings > Privacy & Security > Microphone > turn on Desert Strike, then restart the game.";
+                return " On a Mac: System Settings > Privacy & Security > Microphone > turn on Low Strike, then restart the game.";
             case RuntimePlatform.WindowsPlayer:
             case RuntimePlatform.WindowsEditor:
                 return " On Windows: Settings > Privacy & security > Microphone > let desktop apps use the microphone.";

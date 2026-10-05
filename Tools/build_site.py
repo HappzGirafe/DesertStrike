@@ -39,12 +39,12 @@ LANGUAGES = [
 SWITCHER_ORDER = ["ua", "en", "de", "fr", "it", "es"]   # as on the page: UA, UK, DEU, FR, IT, ES
 
 TITLES = {
-    "en": "Low-Strike: free shooter with bots and LAN for Windows and macOS",
-    "ua": "Low-Strike: безкоштовний шутер з ботами та LAN для Windows і macOS",
-    "de": "Low-Strike: kostenloser Shooter mit Bots und LAN für Windows und macOS",
-    "fr": "Low-Strike : jeu de tir gratuit avec bots et LAN pour Windows et macOS",
-    "it": "Low-Strike: sparatutto gratuito con bot e LAN per Windows e macOS",
-    "es": "Low-Strike: shooter gratis con bots y LAN para Windows y macOS",
+    "en": "Low Strike: free shooter with bots and LAN for Windows and macOS",
+    "ua": "Low Strike: безкоштовний шутер з ботами та LAN для Windows і macOS",
+    "de": "Low Strike: kostenloser Shooter mit Bots und LAN für Windows und macOS",
+    "fr": "Low Strike : jeu de tir gratuit avec bots et LAN pour Windows et macOS",
+    "it": "Low Strike: sparatutto gratuito con bot e LAN per Windows e macOS",
+    "es": "Low Strike: shooter gratis con bots y LAN para Windows y macOS",
 }
 
 # Extra styles for the static pages: the language switcher is made of links there.
@@ -211,7 +211,7 @@ def head(code, t, verification):
     game = {
         "@context": "https://schema.org",
         "@type": "VideoGame",
-        "name": "Low-Strike",
+        "name": "Low Strike",
         "url": url,
         "description": description,
         "inLanguage": lang,
@@ -226,7 +226,7 @@ def head(code, t, verification):
         "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
         "trailer": {
             "@type": "VideoObject",
-            "name": "Low-Strike gameplay",
+            "name": "Low Strike gameplay",
             "description": t["video_text"],
             "thumbnailUrl": SITE + "media/poster.jpg",
             "contentUrl": SITE + "media/gameplay.mp4",
@@ -245,7 +245,7 @@ def head(code, t, verification):
 <link rel="canonical" href="{url}">
 {alternates}
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Low-Strike">
+<meta property="og:site_name" content="Low Strike">
 <meta property="og:title" content="{html.escape(TITLES[code])}">
 <meta property="og:description" content="{html.escape(description)}">
 <meta property="og:url" content="{url}">

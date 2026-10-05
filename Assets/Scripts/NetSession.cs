@@ -822,7 +822,7 @@ public class NetSession : MonoBehaviour
             {
                 string target = hostEndPoint.Address.ToString();
                 Stop();
-                Status = $"No answer from {target}. Is a game hosted there, and did that PC allow Desert Strike through its firewall?";
+                Status = $"No answer from {target}. Is a game hosted there, and did that PC allow Low Strike through its firewall?";
             }
             return;
         }

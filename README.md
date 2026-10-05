@@ -1,35 +1,35 @@
-# Desert Strike
+# Low Strike
 
 A small Counter-Strike-style shooter made in Unity 6.3 (built-in render pipeline, no extra packages or assets).
 Terrorists vs SWAT, round-based, with a buy menu and bots, on **de_dune**, a desert map with a Dust-2-style layout
 (outside long, long doors, long A, catwalk/short A, mid doors, upper and lower tunnels to B).
 
-**Website: [happzgirafe.github.io/DesertStrike](https://happzgirafe.github.io/DesertStrike/)** (the game as
-*Low-Strike*, in English, Ukrainian, German, French, Italian and Spanish). Its pages are built from
+**Website: [happzgirafe.github.io/DesertStrike](https://happzgirafe.github.io/DesertStrike/)** (in English,
+Ukrainian, German, French, Italian and Spanish). Its pages are built from
 `Website/index.html` by `python Tools/build_site.py` into `docs/`, which GitHub Pages serves.
 
 ## Download
 
 | System | File | |
 | --- | --- | --- |
-| Windows | [**DesertStrike-Windows.exe**](https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-Windows.exe) | the whole game in one file |
-| macOS | [**DesertStrike-macOS.zip**](https://github.com/HappzGirafe/DesertStrike/releases/latest/download/DesertStrike-macOS.zip) | Intel and Apple Silicon |
+| Windows | [**LowStrike-Windows.exe**](https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Windows.exe) | the whole game in one file |
+| macOS | [**LowStrike-macOS.zip**](https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-macOS.zip) | Intel and Apple Silicon |
 
 Both files are in the [`Builds`](Builds) folder of this repository, and every version is also on the
 [Releases](https://github.com/HappzGirafe/DesertStrike/releases) page.
 
 ## Play
 
-- **Windows:** download `DesertStrike-Windows.exe` and double-click it.
+- **Windows:** download `LowStrike-Windows.exe` and double-click it.
   It is the whole game in one file: the first time (and after an update) it unpacks the game to
-  `%LOCALAPPDATA%\DesertStrike`, then starts it. If Windows SmartScreen appears, click *More info* > *Run anyway*.
-  If it does not start, `%LOCALAPPDATA%\DesertStrike-launcher.log` says why.
-- **macOS** (Intel and Apple Silicon): download `DesertStrike-macOS.zip` and unzip it. The game is not signed
+  `%LOCALAPPDATA%\LowStrike`, then starts it. If Windows SmartScreen appears, click *More info* > *Run anyway*.
+  If it does not start, `%LOCALAPPDATA%\LowStrike-launcher.log` says why.
+- **macOS** (Intel and Apple Silicon): download `LowStrike-macOS.zip` and unzip it. The game is not signed
   with a paid Apple Developer ID, so the first time macOS says it "cannot be opened" (unidentified developer).
   Allow it once:
-  1. Double-click **DesertStrike**, then click **Done** / **OK** on the warning.
+  1. Double-click **Low Strike**, then click **Done** / **OK** on the warning.
   2. Open **System Settings > Privacy & Security**, scroll down, click **Open Anyway** next to
-     *"DesertStrike" was blocked*, and enter your Mac password.
+     *"Low Strike" was blocked*, and enter your Mac password.
   3. Click **Open**. From then on it opens normally. (The zip also contains these steps as a text file.)
 - **In Unity:** open this folder in Unity Hub, open `Assets/Scenes/DesertStrike.unity` (it opens automatically), press Play.
 
@@ -84,7 +84,7 @@ The gun models and skins make no measurable difference: the models have 24 to 1,
    (or type the host's IP address, shown on the host's screen).
 3. The host clicks **START MATCH**. Bots fill the empty places on both teams.
 
-The first time, Windows asks whether Desert Strike may use the network: allow it (at least on private networks).
+The first time, Windows asks whether Low Strike may use the network: allow it (at least on private networks).
 The game uses UDP ports 27015 (game) and 27016 (finding games).
 
 **Voice chat:** during a LAN match, hold **V** to talk; everyone in the game hears you, and the names of the
@@ -94,18 +94,18 @@ whenever you speak, without a key (use headphones). During a LAN match the HUD a
 permission once) and stops when the LAN game ends. Settings > *Voice chat in LAN games* turns it off.
 **TEST MICROPHONE** in Settings shows a level bar that moves when you speak, without a second computer. If the
 game cannot use the microphone, it says why (not allowed, no microphone, only silence) and where to turn it on;
-on a Mac that is System Settings > Privacy & Security > Microphone > Desert Strike (then restart the game).
+on a Mac that is System Settings > Privacy & Security > Microphone > Low Strike (then restart the game).
 While in a LAN game the game keeps running when its window is not in front, so the others are not affected.
 
 ### Building
 
-- Unity menu **Desert Strike > Build Windows Game** → `Builds/Windows/`
-- Unity menu **Desert Strike > Build macOS Game** (needs Unity's Mac Build Support module) → `Builds/macOS/DesertStrike.app`
-- One-file Windows exe: `powershell -ExecutionPolicy Bypass -File Tools/build_launcher.ps1` → `Builds/DesertStrike-Windows.exe`
+- Unity menu **Low Strike > Build Windows Game** → `Builds/Windows/`
+- Unity menu **Low Strike > Build macOS Game** (needs Unity's Mac Build Support module) → `Builds/macOS/Low Strike.app`
+- One-file Windows exe: `powershell -ExecutionPolicy Bypass -File Tools/build_launcher.ps1` → `Builds/LowStrike-Windows.exe`
 - Sign the Mac app (ad-hoc, so Macs do not call it "damaged") with the free
-  [rcodesign](https://github.com/indygreg/apple-platform-rs/releases) tool: `rcodesign sign Builds/macOS/DesertStrike.app`
+  [rcodesign](https://github.com/indygreg/apple-platform-rs/releases) tool: `rcodesign sign "Builds/macOS/Low Strike.app"`
 - Mac zip that keeps the app runnable, with the opening steps:
-  `python Tools/zip_mac_app.py Builds/macOS/DesertStrike.app Builds/DesertStrike-macOS.zip "Tools/How to open on Mac.txt"`
+  `python Tools/zip_mac_app.py "Builds/macOS/Low Strike.app" Builds/LowStrike-macOS.zip "Tools/How to open on Mac.txt"`
 - Removing the "unidentified developer" warning completely needs an Apple Developer ID ($99/year) and notarization.
 
 ## Controls
@@ -186,7 +186,7 @@ keep their normal look. The weapon folder must be named like the weapon in the s
 `Desert Eagle`, `Knife`, ...). The `Default` folder is the weapon's default skin.
 
 To add a skin, create a new folder: Unity updates `Skins/index.json` by itself, and the skin shows up in the inventory.
-(If it does not, use the menu **Desert Strike > Rebuild Skin Index**.)
+(If it does not, use the menu **Low Strike > Rebuild Skin Index**.)
 
 ### Blender models
 
@@ -257,7 +257,7 @@ drawn every 5 s, `-ds-nocull` turns the wall culling off for comparing, `-ds-qua
 `-ds-fps <limit>` and `-ds-scale <0.25-1>` set graphics for one run without saving, `-ds-autostart -ds-side spectate`
 starts a bots-only match.
 
-Profiling: **Desert Strike > Build Windows Game** has a development twin, `DesertStrikeSetup.BuildWindowsProfiling`
+Profiling: **Low Strike > Build Windows Game** has a development twin, `DesertStrikeSetup.BuildWindowsProfiling`
 (→ `Builds/WindowsProfiling`). Start that build with `-ds-profile Logs/prof.raw` to record 600 frames of a round,
 then run `Unity -batchmode -quit -projectPath . -executeMethod ProfileReport.Analyze -profileFile Logs/prof.raw`
 for a text report (`Logs/prof.txt`) of where each frame's time goes.

@@ -10,8 +10,8 @@
 # Built game: only the two ready-to-play files are kept in the repository (Builds/), not the raw build folders
 /[Bb]uild/
 /[Bb]uilds/*
-!/[Bb]uilds/DesertStrike-Windows.exe
-!/[Bb]uilds/DesertStrike-macOS.zip
+!/[Bb]uilds/LowStrike-Windows.exe
+!/[Bb]uilds/LowStrike-macOS.zip
 
 # Blender automatic backups
 *.blend1

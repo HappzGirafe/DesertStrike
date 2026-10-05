@@ -12,6 +12,9 @@ public static class DesertStrikeSetup
 {
     public const string ScenePath = "Assets/Scenes/DesertStrike.unity";
 
+    /// <summary>The game's name: window title, Mac app name, where its settings are saved.</summary>
+    public const string GameName = "Low Strike";
+
     static DesertStrikeSetup()
     {
         // Open the game scene instead of an empty untitled scene when the project is opened.
@@ -24,7 +27,7 @@ public static class DesertStrikeSetup
         };
     }
 
-    [MenuItem("Desert Strike/Recreate Game Scene")]
+    [MenuItem("Low Strike/Recreate Game Scene")]
     public static void CreateScene()
     {
         EnsureMaterials();
@@ -43,23 +46,23 @@ public static class DesertStrikeSetup
 
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
-        PlayerSettings.productName = "Desert Strike";
+        PlayerSettings.productName = GameName;
         AssetDatabase.SaveAssets();
         Debug.Log("[DesertStrike] Scene created at " + ScenePath);
     }
 
-    [MenuItem("Desert Strike/Build Windows Game")]
-    public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Builds/Windows/DesertStrike.exe");
+    [MenuItem("Low Strike/Build Windows Game")]
+    public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Builds/Windows/LowStrike.exe");
 
     /// <summary>A development build for measuring where frame time goes (see ProfileReport).</summary>
     public static void BuildWindowsProfiling() =>
-        Build(BuildTarget.StandaloneWindows64, "Builds/WindowsProfiling/DesertStrike.exe", BuildOptions.Development);
+        Build(BuildTarget.StandaloneWindows64, "Builds/WindowsProfiling/LowStrike.exe", BuildOptions.Development);
 
     /// <summary>
     /// Builds a macOS app (Intel and Apple Silicon) — needs Unity's "Mac Build Support" module. A Mac build made
     /// on Windows is not code-signed; see README for the one Terminal command Mac players run once.
     /// </summary>
-    [MenuItem("Desert Strike/Build macOS Game")]
+    [MenuItem("Low Strike/Build macOS Game")]
     public static void BuildMac()
     {
         SetMacArchitecture("x64ARM64");
@@ -67,12 +70,13 @@ public static class DesertStrikeSetup
         PlayerSettings.macRetinaSupport = false;
         // Voice chat: macOS asks the player once, the first time they hold V in a LAN game, and shows this text.
         // (Unity keeps one setting for this on Apple platforms; it becomes NSMicrophoneUsageDescription.)
-        PlayerSettings.iOS.microphoneUsageDescription = "Desert Strike uses the microphone for voice chat in LAN games while you hold V.";
-        Build(BuildTarget.StandaloneOSX, "Builds/macOS/DesertStrike.app");
+        PlayerSettings.iOS.microphoneUsageDescription = "Low Strike uses the microphone for voice chat in LAN games while you hold V.";
+        Build(BuildTarget.StandaloneOSX, "Builds/macOS/Low Strike.app");
     }
 
     static void Build(BuildTarget target, string path, BuildOptions options = BuildOptions.None)
     {
+        PlayerSettings.productName = GameName;
         // CPU and GPU frame times for the FPS counter (FrameTimingManager).
         PlayerSettings.enableFrameTimingStats = true;
         // Settings > Display > Window: the window can be resized by dragging its edges.

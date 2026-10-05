@@ -14,7 +14,7 @@ public class SkinIndexBuilder : AssetPostprocessor
     const string ModelsFolder = "Assets/Resources/Models";
     const string IndexPath = SkinsFolder + "/index.json";
 
-    [MenuItem("Desert Strike/Rebuild Skin Index")]
+    [MenuItem("Low Strike/Rebuild Skin Index")]
     public static void Build()
     {
         var index = new SkinIndex();

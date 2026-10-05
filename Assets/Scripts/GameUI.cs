@@ -18,7 +18,7 @@ public class GameUI : MonoBehaviour
     const string ControlsHelp =
         "WASD move  ·  Mouse aim  ·  Left click shoot  ·  R reload  ·  Space jump\n" +
         "Right click: AWP scope  ·  TEC-DC9 / M1911 switch semi-auto and full-auto\n" +
-        "1 / 2 / 3 weapons  ·  Q last weapon  ·  Ctrl crouch  ·  Shift walk (silent)\n" +
+        "1 / 2 / 3 weapons  ·  Q last weapon  ·  Ctrl crouch  ·  Shift walk (silent)  ·  V talk (LAN)\n" +
         "E plant / defuse the bomb  ·  G drop the bomb  ·  B buy (in your spawn)  ·  Tab scores  ·  Esc pause";
 
     GameManager gm;
@@ -114,7 +114,7 @@ public class GameUI : MonoBehaviour
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.3f));
         float w = 780f, x = (width - w) / 2f, y = 70f;
         Fill(new Rect(x, y, w, 940f), PanelColor);
-        Label(new Rect(x, y + 20f, w, 80f), "DESERT STRIKE", 66, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 20f, w, 80f), "LOW STRIKE", 66, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 95f, w, 30f), "Terrorists vs SWAT on de_dune, a Dust-style desert map", 22, Dim, TextAnchor.MiddleCenter);
         y += 150f;
 
@@ -223,7 +223,7 @@ public class GameUI : MonoBehaviour
         Label(new Rect(x + 40f, y, w - 80f, 30f), "Voice chat: in the match, hold V to talk. Everyone in the game hears you.", 15, Dim);
         y += 30f;
         Label(new Rect(x + 40f, y, w - 80f, 60f),
-              "Windows may ask whether Desert Strike may use the network: allow it (at least on private networks).",
+              "Windows may ask whether Low Strike may use the network: allow it (at least on private networks).",
               15, Dim);
 
         if (Button(new Rect(x + w / 2f - 150f, 70f + 940f - 80f, 300f, 56f), "BACK"))
