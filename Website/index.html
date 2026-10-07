@@ -144,7 +144,7 @@
 
   /* video */
   .film { margin: 0; }
-  .film video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius); border: 1px solid var(--line); }
+  .film video { width: 100%; height: auto; aspect-ratio: 320 / 157; background: #000; border-radius: var(--radius); border: 1px solid var(--line); }
   .film figcaption { margin-top: 10px; font: 500 13px/1.4 var(--font-mono); color: var(--muted); }
 
   /* features */
@@ -277,7 +277,7 @@
         <p class="note" data-i18n="hero_note">Version 1.15 · Windows 37 MB · macOS 45 MB, Intel and Apple Silicon</p>
       </div>
       <figure class="screen">
-        <img src="media/poster.jpg" alt="A round on site A: tracers, crates and the painted letter A" data-i18n-alt="cap_hero" width="1280" height="720">
+        <img src="media/poster.jpg" alt="A round on the Village map: houses, a fence and an MP5" data-i18n-alt="cap_hero" width="1280" height="720">
         <div class="hud-top" aria-hidden="true">
           <div class="hud-score"><span class="t">T 0</span><span class="clock" id="clock">1:55</span><span class="s">0 SWAT</span></div>
           <div class="hud-sub"><span data-i18n="hud_alive">5 alive</span><span data-i18n="hud_round">Round 1 · first to 8</span><span data-i18n="hud_alive">5 alive</span></div>
@@ -292,9 +292,9 @@
   <section id="gameplay">
     <div class="wrap">
       <h2 data-i18n="video_title">Gameplay</h2>
-      <p class="intro" data-i18n="video_text">One minute from a real match, recorded in the game.</p>
+      <p class="intro" data-i18n="video_text">Almost two minutes from a real match on the Village map, recorded in the game.</p>
       <figure class="film">
-        <video id="film" controls playsinline muted preload="metadata" poster="media/poster.jpg" width="1280" height="720">
+        <video id="film" controls playsinline muted preload="metadata" poster="media/video-poster.jpg" width="1280" height="628">
           <source src="media/gameplay.mp4" type="video/mp4">
         </video>
         <figcaption data-i18n="video_caption">Video without sound.</figcaption>
@@ -496,8 +496,8 @@
       hero_win: "Download for Windows", hero_mac: "Download for macOS",
       hero_note: "Version 1.15 · Windows 37 MB · macOS 45 MB, Intel and Apple Silicon",
       hud_round: "Round 1 · first to 8", hud_alive: "5 alive", hud_buy: "Press B to buy",
-      cap_hero: "A round on site A: tracers, crates and the painted letter A",
-      video_title: "Gameplay", video_text: "One minute from a real match, recorded in the game.", video_caption: "Video without sound.",
+      cap_hero: "A round on the Village map: houses, a fence and an MP5",
+      video_title: "Gameplay", video_text: "Almost two minutes from a real match on the Village map, recorded in the game.", video_caption: "Video without sound.",
       features_title: "What's in the game", features_text: "Rounds of about two minutes: buy, fight, plant or defuse.",
       f_bots_t: "Bots", f_bots_d: "From 1v1 up to 5v5 against bots on Easy, Normal, Hard or Extreme. They buy weapons, plant the bomb and defuse it.",
       f_bomb_t: "The bomb", f_bomb_d: "Plant the C4 on site A or B in 3 seconds. It explodes after 40 seconds. SWAT defuse it in 10 seconds, or 5 with a kit.", tag_bomb: "40 s",
@@ -533,8 +533,8 @@
       hero_win: "Завантажити для Windows", hero_mac: "Завантажити для macOS",
       hero_note: "Версія 1.15 · Windows 37 МБ · macOS 45 МБ, Intel і Apple Silicon",
       hud_round: "Раунд 1 · до 8 перемог", hud_alive: "5 живих", hud_buy: "Натисни B, щоб купити",
-      cap_hero: "Раунд на точці A: трасери, ящики й намальована літера A",
-      video_title: "Геймплей", video_text: "Хвилина справжнього матчу, записана в грі.", video_caption: "Відео без звуку.",
+      cap_hero: "Раунд на карті Village: будинки, паркан і MP5",
+      video_title: "Геймплей", video_text: "Майже дві хвилини справжнього матчу на карті Village, записані в грі.", video_caption: "Відео без звуку.",
       features_title: "Що є в грі", features_text: "Раунди приблизно по дві хвилини: купи, бийся, заклади або знешкодь.",
       f_bots_t: "Боти", f_bots_d: "Від 1 на 1 до 5 на 5 проти ботів: легкі, звичайні, складні або екстремальні. Вони купують зброю, закладають і знешкоджують бомбу.",
       f_bomb_t: "Бомба", f_bomb_d: "Заклади C4 на точці A або B за 3 секунди. Вона вибухає через 40 секунд. SWAT знешкоджує її за 10 секунд, а з набором сапера за 5.", tag_bomb: "40 с",
@@ -570,8 +570,8 @@
       hero_win: "Für Windows herunterladen", hero_mac: "Für macOS herunterladen",
       hero_note: "Version 1.15 · Windows 37 MB · macOS 45 MB, Intel und Apple Silicon",
       hud_round: "Runde 1 · bis 8 Siege", hud_alive: "5 am Leben", hud_buy: "B zum Kaufen",
-      cap_hero: "Eine Runde auf Platz A: Leuchtspuren, Kisten und das gemalte A",
-      video_title: "Gameplay", video_text: "Eine Minute aus einem echten Match, im Spiel aufgenommen.", video_caption: "Video ohne Ton.",
+      cap_hero: "Eine Runde auf der Karte Village: Häuser, ein Zaun und eine MP5",
+      video_title: "Gameplay", video_text: "Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.", video_caption: "Video ohne Ton.",
       features_title: "Was im Spiel steckt", features_text: "Runden von etwa zwei Minuten: kaufen, kämpfen, Bombe legen oder entschärfen.",
       f_bots_t: "Bots", f_bots_d: "Von 1 gegen 1 bis 5 gegen 5 gegen Bots auf Leicht, Normal, Schwer oder Extrem. Sie kaufen Waffen, legen die Bombe und entschärfen sie.",
       f_bomb_t: "Die Bombe", f_bomb_d: "Leg die C4 in 3 Sekunden auf Bombenplatz A oder B. Sie explodiert nach 40 Sekunden. SWAT entschärft sie in 10 Sekunden, mit Entschärfungsset in 5.", tag_bomb: "40 s",
@@ -607,8 +607,8 @@
       hero_win: "Télécharger pour Windows", hero_mac: "Télécharger pour macOS",
       hero_note: "Version 1.15 · Windows 37 Mo · macOS 45 Mo, Intel et Apple Silicon",
       hud_round: "Manche 1 · en 8 victoires", hud_alive: "5 en vie", hud_buy: "B pour acheter",
-      cap_hero: "Une manche sur le site A : traçantes, caisses et le A peint",
-      video_title: "Gameplay", video_text: "Une minute d’un vrai match, enregistrée dans le jeu.", video_caption: "Vidéo sans son.",
+      cap_hero: "Une manche sur la carte Village : des maisons, une clôture et un MP5",
+      video_title: "Gameplay", video_text: "Près de deux minutes d’un vrai match sur la carte Village, enregistrées dans le jeu.", video_caption: "Vidéo sans son.",
       features_title: "Ce qu’il y a dans le jeu", features_text: "Des manches d’environ deux minutes : acheter, combattre, poser ou désamorcer.",
       f_bots_t: "Bots", f_bots_d: "Du 1 contre 1 au 5 contre 5 face à des bots en Facile, Normal, Difficile ou Extrême. Ils achètent des armes, posent la bombe et la désamorcent.",
       f_bomb_t: "La bombe", f_bomb_d: "Pose le C4 sur le site A ou B en 3 secondes. Il explose au bout de 40 secondes. Le SWAT le désamorce en 10 secondes, ou en 5 avec un kit.", tag_bomb: "40 s",
@@ -644,8 +644,8 @@
       hero_win: "Scarica per Windows", hero_mac: "Scarica per macOS",
       hero_note: "Versione 1.15 · Windows 37 MB · macOS 45 MB, Intel e Apple Silicon",
       hud_round: "Round 1 · si vince a 8", hud_alive: "5 vivi", hud_buy: "Premi B per comprare",
-      cap_hero: "Un round sul sito A: traccianti, casse e la A dipinta",
-      video_title: "Gameplay", video_text: "Un minuto di una vera partita, registrato nel gioco.", video_caption: "Video senza audio.",
+      cap_hero: "Un round sulla mappa Village: case, una staccionata e un MP5",
+      video_title: "Gameplay", video_text: "Quasi due minuti di una vera partita sulla mappa Village, registrati nel gioco.", video_caption: "Video senza audio.",
       features_title: "Cosa c’è nel gioco", features_text: "Round di circa due minuti: compra, combatti, pianta o disinnesca.",
       f_bots_t: "Bot", f_bots_d: "Da 1 contro 1 fino a 5 contro 5 contro bot in Facile, Normale, Difficile o Estremo. Comprano armi, piantano la bomba e la disinnescano.",
       f_bomb_t: "La bomba", f_bomb_d: "Pianta la C4 sul sito A o B in 3 secondi. Esplode dopo 40 secondi. Lo SWAT la disinnesca in 10 secondi, o in 5 con il kit.", tag_bomb: "40 s",
@@ -681,8 +681,8 @@
       hero_win: "Descargar para Windows", hero_mac: "Descargar para macOS",
       hero_note: "Versión 1.15 · Windows 37 MB · macOS 45 MB, Intel y Apple Silicon",
       hud_round: "Ronda 1 · a 8 victorias", hud_alive: "5 vivos", hud_buy: "Pulsa B para comprar",
-      cap_hero: "Una ronda en el punto A: trazadoras, cajas y la A pintada",
-      video_title: "Jugabilidad", video_text: "Un minuto de una partida real, grabado en el juego.", video_caption: "Vídeo sin sonido.",
+      cap_hero: "Una ronda en el mapa Village: casas, una valla y un MP5",
+      video_title: "Jugabilidad", video_text: "Casi dos minutos de una partida real en el mapa Village, grabados en el juego.", video_caption: "Vídeo sin sonido.",
       features_title: "Qué trae el juego", features_text: "Rondas de unos dos minutos: compra, combate, planta o desactiva.",
       f_bots_t: "Bots", f_bots_d: "Del 1 contra 1 al 5 contra 5 contra bots en Fácil, Normal, Difícil o Extremo. Compran armas, plantan la bomba y la desactivan.",
       f_bomb_t: "La bomba", f_bomb_d: "Planta la C4 en el punto A o B en 3 segundos. Explota a los 40 segundos. Los SWAT la desactivan en 10 segundos, o en 5 con el kit.", tag_bomb: "40 s",

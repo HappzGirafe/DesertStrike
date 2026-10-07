@@ -27,7 +27,7 @@
 <meta name="theme-color" content="#15110d">
 <link rel="icon" type="image/png" sizes="192x192" href="https://happzgirafe.github.io/DesertStrike/favicon.png">
 <link rel="apple-touch-icon" href="https://happzgirafe.github.io/DesertStrike/favicon.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Low Strike", "url": "https://happzgirafe.github.io/DesertStrike/de/", "description": "Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.", "inLanguage": "de", "image": "https://happzgirafe.github.io/DesertStrike/media/poster.jpg", "genre": ["Shooter", "Tactical shooter"], "gamePlatform": ["Windows", "macOS"], "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer", "applicationCategory": "GameApplication", "playMode": ["SinglePlayer", "MultiPlayer"], "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10}, "author": {"@type": "Person", "name": "HappzGirafe", "url": "https://github.com/HappzGirafe"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "trailer": {"@type": "VideoObject", "name": "Low Strike gameplay", "description": "Eine Minute aus einem echten Match, im Spiel aufgenommen.", "thumbnailUrl": "https://happzgirafe.github.io/DesertStrike/media/poster.jpg", "contentUrl": "https://happzgirafe.github.io/DesertStrike/media/gameplay.mp4", "uploadDate": "2026-10-03", "duration": "PT1M3S"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Low Strike", "url": "https://happzgirafe.github.io/DesertStrike/de/", "description": "Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.", "inLanguage": "de", "image": "https://happzgirafe.github.io/DesertStrike/media/poster.jpg", "genre": ["Shooter", "Tactical shooter"], "gamePlatform": ["Windows", "macOS"], "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer", "applicationCategory": "GameApplication", "playMode": ["SinglePlayer", "MultiPlayer"], "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10}, "author": {"@type": "Person", "name": "HappzGirafe", "url": "https://github.com/HappzGirafe"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "trailer": {"@type": "VideoObject", "name": "Low Strike gameplay", "description": "Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.", "thumbnailUrl": "https://happzgirafe.github.io/DesertStrike/media/video-poster.jpg", "contentUrl": "https://happzgirafe.github.io/DesertStrike/media/gameplay.mp4", "uploadDate": "2026-10-07", "duration": "PT1M42S"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Tektur:wdth,wght@75..100,500..900&display=swap">
@@ -173,7 +173,7 @@
 
   /* video */
   .film { margin: 0; }
-  .film video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius); border: 1px solid var(--line); }
+  .film video { width: 100%; height: auto; aspect-ratio: 320 / 157; background: #000; border-radius: var(--radius); border: 1px solid var(--line); }
   .film figcaption { margin-top: 10px; font: 500 13px/1.4 var(--font-mono); color: var(--muted); }
 
   /* features */
@@ -316,7 +316,7 @@
         <p class="note">Version 1.15 · Windows 37 MB · macOS 45 MB, Intel und Apple Silicon</p>
       </div>
       <figure class="screen">
-        <img src="../media/poster.jpg" alt="Eine Runde auf Platz A: Leuchtspuren, Kisten und das gemalte A" width="1280" height="720">
+        <img src="../media/poster.jpg" alt="Eine Runde auf der Karte Village: Häuser, ein Zaun und eine MP5" width="1280" height="720">
         <div class="hud-top" aria-hidden="true">
           <div class="hud-score"><span class="t">T 0</span><span class="clock" id="clock">1:55</span><span class="s">0 SWAT</span></div>
           <div class="hud-sub"><span>5 am Leben</span><span>Runde 1 · bis 8 Siege</span><span>5 am Leben</span></div>
@@ -331,9 +331,9 @@
   <section id="gameplay">
     <div class="wrap">
       <h2>Gameplay</h2>
-      <p class="intro">Eine Minute aus einem echten Match, im Spiel aufgenommen.</p>
+      <p class="intro">Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.</p>
       <figure class="film">
-        <video id="film" controls playsinline muted preload="metadata" poster="../media/poster.jpg" width="1280" height="720">
+        <video id="film" controls playsinline muted preload="metadata" poster="../media/video-poster.jpg" width="1280" height="628">
           <source src="../media/gameplay.mp4" type="video/mp4">
         </video>
         <figcaption>Video ohne Ton.</figcaption>

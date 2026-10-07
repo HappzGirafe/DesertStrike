@@ -228,10 +228,10 @@ def head(code, t, verification):
             "@type": "VideoObject",
             "name": "Low Strike gameplay",
             "description": t["video_text"],
-            "thumbnailUrl": SITE + "media/poster.jpg",
+            "thumbnailUrl": SITE + "media/video-poster.jpg",
             "contentUrl": SITE + "media/gameplay.mp4",
-            "uploadDate": "2026-10-03",
-            "duration": "PT1M3S",
+            "uploadDate": "2026-10-07",
+            "duration": "PT1M42S",
         },
     }
     meta_verification = f'\n<meta name="google-site-verification" content="{html.escape(verification)}">' if verification else ""
