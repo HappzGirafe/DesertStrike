@@ -353,7 +353,8 @@ map and shows them from the side (with `-ds-capture`: a picture to check the ani
 (with `-ds-money 5000`, also on a LAN client) buys and sells in round 1 by itself and logs each step, and `-ds-give rpg -ds-equip rpg Web -ds-fire-test` gives the
 player a weapon and skin and fires every 3 s, with `-ds-capture <folder>` (a full path) taking a screenshot just after.
 Otherwise `-ds-capture <folder>` takes a screenshot every 8 s (`-ds-capture-every <seconds>` changes it).
-`-ds-background` keeps a test running when its window is not in front. Tests skip the log-in screen
+`-ds-hidefps` hides the FPS counter for one run (clean screenshots), and `-ds-background` keeps a test running
+when its window is not in front. Tests skip the log-in screen
 (`-ds-account-screen [signup]` shows it); `-ds-login <nickname> <password>` logs in (signing up when there is no such
 account), and `-ds-accounts-file <file>` keeps test accounts out of the real `accounts.json`.
 `-ds-difficulty <easy|normal|hard|extreme>` sets the bots, `-ds-players <1-5>` the players per team, and

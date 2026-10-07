@@ -127,6 +127,8 @@ public static class GameSettings
 
     public static void ShowFpsThisRun() => ShowFps = true;
 
+    public static void HideFpsThisRun() => ShowFps = false;
+
     public static void RenderScaleThisRun(float scale) => RenderScale = Mathf.Clamp(scale, 0.25f, 1f);
 
     static void Apply()

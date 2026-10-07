@@ -69,6 +69,7 @@ public class GameUI : MonoBehaviour
         lanOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-find") >= 0;   // smoke test: search the network
         settingsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-settings") >= 0;   // smoke-test screenshots
         if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-showfps") >= 0) GameSettings.ShowFpsThisRun();
+        if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-hidefps") >= 0) GameSettings.HideFpsThisRun();   // clean screenshots
 
         // -ds-inventory [weapon id] [skin id] opens the inventory at startup (used for smoke-test screenshots).
         var args = Environment.GetCommandLineArgs();
