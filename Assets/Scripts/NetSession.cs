@@ -20,7 +20,7 @@ public class NetSession : MonoBehaviour
 {
     public const int GamePort = 27015;
     public const int DiscoveryPort = 27016;
-    const int ProtocolVersion = 1;
+    const int ProtocolVersion = 3;   // 2: the map is part of the lobby and of every snapshot; 3: selling guns
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
     const float InputInterval = 1f / 60f;
@@ -429,6 +429,7 @@ public class NetSession : MonoBehaviour
             w.Write((byte)Msg.Lobby);
             w.Write(HostName);
             w.Write(gm.MatchDescription());
+            w.Write(gm.Map.Id);
             w.Write((byte)names.Count);
             foreach (var name in names) w.Write(name);
         });
@@ -472,6 +473,7 @@ public class NetSession : MonoBehaviour
         w.Write(gm.FriendlyFire);
         w.Write(gm.Message ?? "");
         w.Write(gm.MessageUntil - Time.time);
+        w.Write(gm.Map.Id);
     }
 
     void WriteBomb(BinaryWriter w)
@@ -507,6 +509,8 @@ public class NetSession : MonoBehaviour
             w.Write((byte)Mathf.Clamp(c.Deaths, 0, 255));
             w.Write((byte)WeaponData.IndexOf(c.Primary?.Data));
             w.Write((byte)WeaponData.IndexOf(c.Secondary?.Data));
+            w.Write((ushort)Mathf.Clamp(c.Primary?.SellPrice ?? 0, 0, 65535));
+            w.Write((ushort)Mathf.Clamp(c.Secondary?.SellPrice ?? 0, 0, 65535));
             w.Write((byte)(current != null ? current.Data.Slot : WeaponSlot.Knife));
             w.Write((byte)Mathf.Clamp(current?.Mag ?? 0, 0, 255));
             w.Write((ushort)Mathf.Clamp(current?.Reserve ?? 0, 0, 65535));
@@ -625,6 +629,8 @@ public class NetSession : MonoBehaviour
             case Msg.Lobby:
                 HostName = reader.ReadString();
                 LobbySettings = reader.ReadString();
+                if (gm.State == MatchState.Menu) gm.UseHostMap(reader.ReadString());   // the host's map shows behind the lobby
+                else reader.ReadString();
                 LobbyPlayers.Clear();
                 int count = reader.ReadByte();
                 for (int i = 0; i < count; i++) LobbyPlayers.Add(reader.ReadString());
@@ -673,6 +679,7 @@ public class NetSession : MonoBehaviour
         match.FriendlyFire = r.ReadBoolean();
         match.Message = r.ReadString();
         match.MessageLeft = r.ReadSingle();
+        match.MapId = r.ReadString();
 
         var bombState = (BombState)r.ReadByte();
         int carrierId = r.ReadUInt16();
@@ -708,6 +715,8 @@ public class NetSession : MonoBehaviour
             s.Deaths = r.ReadByte();
             s.Primary = WeaponData.FromIndex(r.ReadByte());
             s.Secondary = WeaponData.FromIndex(r.ReadByte());
+            s.PrimarySell = r.ReadUInt16();
+            s.SecondarySell = r.ReadUInt16();
             s.Slot = (WeaponSlot)r.ReadByte();
             s.Mag = r.ReadByte();
             s.Reserve = r.ReadUInt16();
@@ -738,6 +747,7 @@ public class NetSession : MonoBehaviour
         }
 
         MyNetId = myId;
+        if (gm.Map.Id != match.MapId) gm.UseHostMap(match.MapId);
         if (!gm.IsClient) gm.BeginClientMatch();
         gm.ApplyNetMatch(match, resupply);
         var ids = new HashSet<int>();

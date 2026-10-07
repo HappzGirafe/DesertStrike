@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public enum BotDifficulty { Easy, Normal, Hard }
+public enum BotDifficulty { Easy, Normal, Hard, Extreme }   // Extreme needs an account (see Accounts)
 
 /// <summary>
 /// CS-style bot. Each round it follows a plan from <see cref="PlanRound"/> (rush a site or hold an
@@ -22,27 +22,6 @@ public class BotController : MonoBehaviour, ICombatantController
         public bool Strafe;
     }
 
-    static readonly string[][] TerroristRoutesA =
-    {
-        new[] { "OutsideLong", "LongDoors", "Long", "LongCorner", "ASite" },
-        new[] { "Mid", "Catwalk", "Short", "ASite" },
-    };
-
-    static readonly string[][] TerroristRoutesB =
-    {
-        new[] { "OutsideTunnels", "TunnelHall", "Tunnels", "TunnelExit", "BSite" },
-        new[] { "Mid", "LowerTunnels", "Tunnels", "TunnelExit", "BSite" },
-    };
-
-    static readonly (string[] Route, string LookAt)[] SwatPosts =
-    {
-        (new[] { "CTtoA", "AHoldLong" }, "LongCorner"),
-        (new[] { "BDoors", "BHold" }, "TunnelExit"),
-        (new[] { "CTMid" }, "Mid"),
-        (new[] { "CTtoA", "AHoldShort" }, "Short"),
-        (new[] { "BDoors", "BHold2" }, "TunnelExit"),
-    };
-
     public Combatant Self { get; private set; }
 
     NavMeshAgent agent;
@@ -58,6 +37,8 @@ public class BotController : MonoBehaviour, ICombatantController
     float holdUntil;
     float startMovingAt;
     bool hunting;
+    string goingFor;   // a Terrorist's site this round ("A" or "B"): the bomb goes there
+    bool crouchHolding;   // crouches while holding the angle at the end of its route
 
     // Combat and awareness
     Combatant target;
@@ -83,6 +64,8 @@ public class BotController : MonoBehaviour, ICombatantController
                 return new Skill { Reaction = 0.75f, AimError = 4.5f, HeadChance = 0.08f, TurnSpeed = 220f, SightRange = 70f };
             case BotDifficulty.Hard:
                 return new Skill { Reaction = 0.22f, AimError = 1.3f, HeadChance = 0.35f, TurnSpeed = 540f, SightRange = 140f, Strafe = true };
+            case BotDifficulty.Extreme:
+                return new Skill { Reaction = 0.12f, AimError = 0.7f, HeadChance = 0.55f, TurnSpeed = 760f, SightRange = 170f, Strafe = true };
             default:
                 return new Skill { Reaction = 0.42f, AimError = 2.4f, HeadChance = 0.18f, TurnSpeed = 360f, SightRange = 100f, Strafe = true };
         }
@@ -121,6 +104,8 @@ public class BotController : MonoBehaviour, ICombatantController
     public void Respawn(Vector3 position, float yaw)
     {
         body.Revive();
+        crouchHolding = false;
+        Self.Height = Combatant.StandHeight;
         agent.enabled = false;
         transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
         agent.enabled = true;
@@ -174,19 +159,27 @@ public class BotController : MonoBehaviour, ICombatantController
         me.Equip(me.BestSlot(), instant: true);
     }
 
-    /// <summary>Terrorists all go for one site by two routes; SWAT spread over the defensive posts.</summary>
-    public static void PlanRound(List<BotController> terrorists, List<BotController> swat, MapBuilder map, float startTime)
-    {
-        bool attackA = Random.value < 0.5f;
-        var routes = attackA ? TerroristRoutesA : TerroristRoutesB;
-        Vector3 watch = map.Point(attackA ? "CTtoA" : "BDoors");
-        for (int i = 0; i < terrorists.Count; i++)
-            terrorists[i].Plan(map.PointsFor(routes[i % routes.Length]), watch, Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
+    /// <summary>Terrorists all go for one site by two routes; SWAT spread over the defensive posts (the map knows where).</summary>
+    /// <summary>-ds-attack a|b: the Terrorists always go for that site (tests); null = a random one each round.</summary>
+    public static bool? ForcedSiteA;
 
+    public static void PlanRound(List<BotController> terrorists, List<BotController> swat, GameMap map, float startTime)
+    {
+        bool attackA = ForcedSiteA ?? Random.value < 0.5f;
+        Debug.Log($"[Bots] The Terrorists go for site {(attackA ? "A" : "B")}");
+        var routes = map.TerroristRoutes(attackA);
+        Vector3 watch = map.TerroristWatch(attackA);
+        for (int i = 0; i < terrorists.Count; i++)
+        {
+            terrorists[i].Plan(routes[i % routes.Count], watch, Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
+            terrorists[i].goingFor = attackA ? "A" : "B";
+        }
+
+        var posts = map.SwatPosts();
         for (int i = 0; i < swat.Count; i++)
         {
-            var post = SwatPosts[i % SwatPosts.Length];
-            swat[i].Plan(map.PointsFor(post.Route), map.Point(post.LookAt), Random.Range(35f, 60f), startTime + Random.Range(0f, 0.5f));
+            var post = posts[i % posts.Count];
+            swat[i].Plan(post.Route, post.LookAt, Random.Range(35f, 60f), startTime + Random.Range(0f, 0.5f));
         }
     }
 
@@ -200,6 +193,14 @@ public class BotController : MonoBehaviour, ICombatantController
         {
             Halt();
             return;
+        }
+
+        // Crouched while holding an angle; up again to move on. Eyes (and the gun) come down with the body.
+        float height = HoldingAngle && crouchHolding ? Combatant.CrouchHeight : Combatant.StandHeight;
+        if (Self.Height != height)
+        {
+            Self.Height = Mathf.MoveTowards(Self.Height, height, 3f * Time.deltaTime);
+            Self.Eye.localPosition = new Vector3(0f, Self.Height - 0.18f, 0f);
         }
 
         if (Time.time >= nextScan)
@@ -249,11 +250,13 @@ public class BotController : MonoBehaviour, ICombatantController
         switch (bomb.State)
         {
             case BombState.Carried when bomb.Carrier == Self:
-                // Plant as soon as we stand on a site; otherwise the round plan walks us to one.
-                if (gm.Map.SiteAt(transform.position) == null)
+                // Plant as soon as we stand on the team's site (walking over the other one on the way does not
+                // count); the round plan walks us there, and after it we head for that site.
+                string site = gm.Map.SiteAt(transform.position);
+                if (site == null || (goingFor != null && site != goingFor))
                 {
                     if (routeIndex < route.Count || Time.time < startMovingAt) return false;
-                    MoveTo(gm.Map.Point(Random.value < 0.5f ? "ASite" : "BSite"));
+                    MoveTo(gm.Map.SitePoint(goingFor != "B"));
                     return true;
                 }
                 Halt();
@@ -462,7 +465,11 @@ public class BotController : MonoBehaviour, ICombatantController
     {
         routeIndex++;
         waypointDeadline = Time.time + 30f;
-        if (routeIndex >= route.Count) holdUntil = Time.time + holdDuration;
+        if (routeIndex >= route.Count)
+        {
+            holdUntil = Time.time + holdDuration;
+            crouchHolding = Random.value < 0.4f;   // some hold their angle crouched, as players do
+        }
     }
 
     void StartHunting()

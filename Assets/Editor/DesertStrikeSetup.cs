@@ -131,6 +131,33 @@ public static class DesertStrikeSetup
             glow.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             AssetDatabase.CreateAsset(glow, folder + "/Glow.mat");
         }
+
+        // Cut-out (webs, the crane's lattice), cut-out that glows (pumpkin faces) and see-through (painted letters):
+        // the Standard shader's own settings for those rendering modes.
+        EnsureTransparentMaterial(shader, folder + "/Cutout.mat", fade: false, glow: false);
+        EnsureTransparentMaterial(shader, folder + "/CutoutGlow.mat", fade: false, glow: true);
+        EnsureTransparentMaterial(shader, folder + "/Fade.mat", fade: true, glow: false);
         AssetDatabase.SaveAssets();
+    }
+
+    static void EnsureTransparentMaterial(Shader shader, string path, bool fade, bool glow)
+    {
+        if (AssetDatabase.LoadAssetAtPath<Material>(path) != null) return;
+        var material = new Material(shader);
+        material.SetFloat("_Mode", fade ? 2f : 1f);
+        material.SetOverrideTag("RenderType", fade ? "Transparent" : "TransparentCutout");
+        material.SetInt("_SrcBlend", (int)(fade ? UnityEngine.Rendering.BlendMode.SrcAlpha : UnityEngine.Rendering.BlendMode.One));
+        material.SetInt("_DstBlend", (int)(fade ? UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha : UnityEngine.Rendering.BlendMode.Zero));
+        material.SetInt("_ZWrite", fade ? 0 : 1);
+        if (fade) material.EnableKeyword("_ALPHABLEND_ON");
+        else material.EnableKeyword("_ALPHATEST_ON");
+        material.renderQueue = (int)(fade ? UnityEngine.Rendering.RenderQueue.Transparent : UnityEngine.Rendering.RenderQueue.AlphaTest);
+        if (glow)
+        {
+            material.EnableKeyword("_EMISSION");
+            material.SetColor("_EmissionColor", Color.white);
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+        }
+        AssetDatabase.CreateAsset(material, path);
     }
 }

@@ -1,74 +1,136 @@
 {
   "parts": [
     {
-      "name": "Main",
-      "texture": "",
-      "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
-    },
-    {
       "name": "Grip",
-      "texture": "",
+      "texture": "skin1_nogen_rychka",
       "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
     },
     {
       "name": "Grip.001",
-      "texture": "",
+      "texture": "m1911ruchka",
       "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
     },
     {
-      "name": "Detail",
-      "texture": "",
+      "name": "Main",
+      "texture": "teg92",
       "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
-    },
-    {
-      "name": "Detail.001",
-      "texture": "",
-      "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
-    },
-    {
-      "name": "Detail.002",
-      "texture": "",
-      "color": "#E6E6E6",
-      "metallic": 0.0,
-      "smoothness": 0.3
-    },
-    {
-      "name": "Detail.003",
-      "texture": "",
-      "color": "#E6E6E6",
-      "metallic": 0.0,
-      "smoothness": 0.3
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
     },
     {
       "name": "Grip.002",
-      "texture": "",
+      "texture": "m1911ruchka",
       "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.2,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.001",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.002",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.003",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.004",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.005",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.006",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.33,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
     },
     {
       "name": "Main.001",
-      "texture": "",
+      "texture": "teg92",
       "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
-    },
-    {
-      "name": "Main.002",
-      "texture": "",
-      "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.3
+      "metallic": 0.5,
+      "smoothness": 0.33,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
     }
   ]
 }

@@ -12,8 +12,8 @@ public class PlayerController : MonoBehaviour, ICombatantController
 
     const float Gravity = -20f;
     const float JumpSpeed = 6.6f;
-    const float StandHeight = 1.8f;
-    const float CrouchHeight = 1.2f;
+    const float StandHeight = Combatant.StandHeight;
+    const float CrouchHeight = Combatant.CrouchHeight;
     const float NormalFov = 75f;
     static readonly Vector3 ViewModelOffset = new Vector3(0.2f, -0.2f, 0.52f);
 

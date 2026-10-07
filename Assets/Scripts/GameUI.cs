@@ -40,6 +40,16 @@ public class GameUI : MonoBehaviour
     // Settings screen
     bool settingsOpen;
 
+    // Log-in / sign-up screen: asked at every start (tests skip it unless -ds-account-screen), and opened by
+    // clicking something that needs an account.
+    bool askAccount;
+    bool accountOpen;
+    bool accountSignUp;
+    string accountName;
+    string accountPassword = "", accountRepeat = "";
+    string accountMessage;
+    bool accountFocus = true;
+
     const string NameKey = "DesertStrike.name";
 
     public static Color TeamColor(Team team) => team == Team.Terrorists ? TerroristColor : SwatColor;
@@ -51,6 +61,11 @@ public class GameUI : MonoBehaviour
         scopeMask = BuildScopeMask(512);
         preview = gameObject.AddComponent<SkinPreview>();
         gm.Net.PlayerName = PlayerPrefs.GetString(NameKey, Environment.UserName);
+        Accounts.Changed += () => gm.Net.PlayerName = Accounts.LoggedIn ? Accounts.Current : PlayerPrefs.GetString(NameKey, Environment.UserName);
+        var commandLine = Environment.GetCommandLineArgs();
+        int accountArg = Array.IndexOf(commandLine, "-ds-account-screen");   // [signup]: screenshots of it
+        askAccount = accountArg >= 0 || !Array.Exists(commandLine, a => a.StartsWith("-ds-"));
+        accountSignUp = accountArg >= 0 && accountArg + 1 < commandLine.Length && commandLine[accountArg + 1] == "signup";
         lanOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-find") >= 0;   // smoke test: search the network
         settingsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-settings") >= 0;   // smoke-test screenshots
         if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-showfps") >= 0) GameSettings.ShowFpsThisRun();
@@ -74,6 +89,7 @@ public class GameUI : MonoBehaviour
         bool interactive = gm.State == MatchState.Menu || gm.State == MatchState.MatchOver || gm.BuyMenuOpen || gm.IsPaused;
         if (Event.current.type != EventType.Repaint && !interactive) return;
         if (Event.current.type == EventType.Repaint) RenderScaler.Present();
+        if (gm.ShowingViews) return;
         if (!settingsOpen && VoiceChat.Instance != null && VoiceChat.Instance.Testing) VoiceChat.Instance.Testing = false;
 
         scale = Screen.height / RefHeight;
@@ -82,11 +98,17 @@ public class GameUI : MonoBehaviour
 
         if (gm.State == MatchState.Menu)
         {
-            bool searching = lanOpen && !inventoryOpen && gm.Net.Role == NetSession.Mode.Off;
+            if (askAccount)
+            {
+                askAccount = false;
+                accountOpen = !Accounts.LoggedIn;   // -ds-login has logged in already
+            }
+            bool searching = lanOpen && !inventoryOpen && !accountOpen && gm.Net.Role == NetSession.Mode.Off;
             if (searching) gm.Net.StartDiscovery();
             else gm.Net.StopDiscovery();
 
-            if (inventoryOpen) DrawInventory();
+            if (accountOpen) DrawAccount();
+            else if (inventoryOpen) DrawInventory();
             else if (gm.Net.IsHost) DrawHostLobby();
             else if (gm.Net.IsClient) DrawClientLobby();
             else if (lanOpen) DrawLanMenu();
@@ -109,22 +131,32 @@ public class GameUI : MonoBehaviour
 
     // ----------------------------------------------------------------- menus
 
+    // Two columns: who plays on the left, where and how on the right; the buttons and controls below.
     void DrawMainMenu()
     {
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.3f));
-        float w = 780f, x = (width - w) / 2f, y = 70f;
-        Fill(new Rect(x, y, w, 940f), PanelColor);
-        Label(new Rect(x, y + 20f, w, 80f), "LOW STRIKE", 66, Gold, TextAnchor.MiddleCenter);
-        Label(new Rect(x, y + 95f, w, 30f), "Terrorists vs SWAT on de_dune, a Dust-style desert map", 22, Dim, TextAnchor.MiddleCenter);
-        y += 150f;
+        const float top = 70f;
+        float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
+        float column = (w - 120f) / 2f, right = x + column + 40f;
+        Fill(new Rect(x, top, w, 720f), PanelColor);
+        Label(new Rect(x, top + 20f, w, 80f), "LOW STRIKE", 66, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, top + 95f, w, 30f), $"Terrorists vs SWAT on {gm.Map.Description}", 22, Dim, TextAnchor.MiddleCenter);
+        DrawAccountBox(x + 24f, top + 22f);
 
-        y = TeamRow(x, y, allowSpectate: true);
-        y = MatchSettingsRows(x, y);
+        float y = top + 150f;
+        float leftEnd = TeamRow(x, y, allowSpectate: true, column);
+        leftEnd = PlayersRow(x, leftEnd, column);
+        leftEnd = DifficultyRow(x, leftEnd, column);
+        float rightEnd = MapRow(right, y, column);
+        rightEnd = RoundsRow(right, rightEnd, column);
+        rightEnd = FriendlyFireRow(right, rightEnd, column);
+        y = Mathf.Max(leftEnd, rightEnd) + 6f;
 
-        if (Button(new Rect(x + 40f, y, 280f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
-        if (Button(new Rect(x + 330f, y, 130f, 66f), "LAN GAME", false, true, 20)) OpenLan();
-        if (Button(new Rect(x + 470f, y, 130f, 66f), "INVENTORY", false, true, 20)) inventoryOpen = true;
-        if (Button(new Rect(x + 610f, y, 130f, 66f), "SETTINGS", false, true, 20)) settingsOpen = true;
+        float buttons = 320f + 3f * 200f + 3f * 14f, bx = x + (w - buttons) / 2f;
+        if (Button(new Rect(bx, y, 320f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
+        if (Button(new Rect(bx + 334f, y, 200f, 66f), "LAN GAME", false, true, 22)) OpenLan();
+        if (Button(new Rect(bx + 548f, y, 200f, 66f), "INVENTORY", false, true, 22)) inventoryOpen = true;
+        if (Button(new Rect(bx + 762f, y, 200f, 66f), "SETTINGS", false, true, 22)) settingsOpen = true;
         y += 82f;
         if (!string.IsNullOrEmpty(gm.MenuNotice))
         {
@@ -134,7 +166,7 @@ public class GameUI : MonoBehaviour
         Label(new Rect(x + 20f, y, w - 40f, 100f), ControlsHelp, 16, Dim, TextAnchor.UpperCenter);
     }
 
-    float TeamRow(float x, float y, bool allowSpectate)
+    float TeamRow(float x, float y, bool allowSpectate, float rowWidth = 700f)
     {
         string[] options = allowSpectate ? new[] { "Terrorists", "SWAT", "Watch bots" } : new[] { "Terrorists", "SWAT" };
         int selected = (int)gm.Side;
@@ -143,17 +175,38 @@ public class GameUI : MonoBehaviour
         {
             gm.Side = (PlayerSide)i;
             if (gm.Side != PlayerSide.Spectate) gm.Net.PreferredTeam = gm.Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat;
-        });
+        }, rowWidth);
     }
 
-    float MatchSettingsRows(float x, float y)
+    /// <summary>The map: choosing one loads it at once, so it shows behind the menu.</summary>
+    float MapRow(float x, float y, float rowWidth)
     {
-        y = OptionRow(x, y, "Players per team", new[] { "1v1", "2v2", "3v3", "4v4", "5v5" }, gm.TeamSize - 1, i => gm.TeamSize = i + 1);
-        y = OptionRow(x, y, "Bot difficulty", new[] { "Easy", "Normal", "Hard" }, (int)gm.Difficulty, i => gm.Difficulty = (BotDifficulty)i);
-        int[] rounds = { 3, 5, 8, 16 };
-        y = OptionRow(x, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, gm.RoundsToWin), i => gm.RoundsToWin = rounds[i]);
-        return OptionRow(x, y, "Friendly fire (teammates can hurt each other)", new[] { "Off", "On" }, gm.FriendlyFire ? 1 : 0, i => gm.FriendlyFire = i == 1);
+        var names = new string[MapCatalog.All.Length];
+        int selected = -1;
+        for (int i = 0; i < names.Length; i++)
+        {
+            names[i] = MapCatalog.All[i].Name;
+            if (MapCatalog.All[i].Id == gm.Map.Id) selected = i;
+        }
+        return OptionRow(x, y, "Map", names, selected, i => gm.SelectMap(MapCatalog.All[i].Id), rowWidth,
+                         i => MapCatalog.All[i].AccountOnly && !Accounts.LoggedIn);
     }
+
+    float PlayersRow(float x, float y, float rowWidth) =>
+        OptionRow(x, y, "Players per team", new[] { "1v1", "2v2", "3v3", "4v4", "5v5" }, gm.TeamSize - 1, i => gm.TeamSize = i + 1, rowWidth);
+
+    float DifficultyRow(float x, float y, float rowWidth) =>
+        OptionRow(x, y, "Bot difficulty", new[] { "Easy", "Normal", "Hard", "Extreme" }, (int)gm.Difficulty, i => gm.Difficulty = (BotDifficulty)i, rowWidth,
+                  i => (BotDifficulty)i == BotDifficulty.Extreme && !Accounts.LoggedIn);
+
+    float RoundsRow(float x, float y, float rowWidth)
+    {
+        int[] rounds = { 3, 5, 8, 16 };
+        return OptionRow(x, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, gm.RoundsToWin), i => gm.RoundsToWin = rounds[i], rowWidth);
+    }
+
+    float FriendlyFireRow(float x, float y, float rowWidth) =>
+        OptionRow(x, y, "Friendly fire (teammates can hurt each other)", new[] { "Off", "On" }, gm.FriendlyFire ? 1 : 0, i => gm.FriendlyFire = i == 1, rowWidth);
 
     void OpenLan()
     {
@@ -175,11 +228,16 @@ public class GameUI : MonoBehaviour
         y += 125f;
 
         Label(new Rect(x + 40f, y, 200f, 40f), "Your name", 22, Color.white);
-        string name = GUI.TextField(new Rect(x + 220f, y + 2f, w - 260f, 36f), gm.Net.PlayerName ?? "", 16, InputStyle());
-        if (name != gm.Net.PlayerName)
+        if (Accounts.LoggedIn)
+            Label(new Rect(x + 220f, y + 2f, w - 260f, 36f), $"{Accounts.Current}   (your account)", 22, Gold);
+        else
         {
-            gm.Net.PlayerName = name;
-            PlayerPrefs.SetString(NameKey, name);
+            string name = GUI.TextField(new Rect(x + 220f, y + 2f, w - 260f, 36f), gm.Net.PlayerName ?? "", 16, InputStyle());
+            if (name != gm.Net.PlayerName)
+            {
+                gm.Net.PlayerName = name;
+                PlayerPrefs.SetString(NameKey, name);
+            }
         }
         y += 60f;
         y = TeamRow(x, y, allowSpectate: false);
@@ -236,35 +294,42 @@ public class GameUI : MonoBehaviour
     void DrawHostLobby()
     {
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
-        float w = 780f, x = (width - w) / 2f, y = 70f;
-        Fill(new Rect(x, y, w, 940f), PanelColor);
-        Label(new Rect(x, y + 20f, w, 60f), "HOSTING A LAN GAME", 44, Gold, TextAnchor.MiddleCenter);
-        Label(new Rect(x, y + 75f, w, 28f), $"Other PCs find this game automatically. Your IP: {string.Join(", ", NetSession.LocalAddresses())}",
+        const float top = 70f;
+        float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
+        float column = (w - 120f) / 2f, right = x + column + 40f;
+        Fill(new Rect(x, top, w, 900f), PanelColor);
+        Label(new Rect(x, top + 20f, w, 60f), "HOSTING A LAN GAME", 44, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, top + 75f, w, 28f), $"Other PCs find this game automatically. Your IP: {string.Join(", ", NetSession.LocalAddresses())}",
               18, Dim, TextAnchor.MiddleCenter);
-        y += 120f;
 
-        Label(new Rect(x + 40f, y, w - 80f, 32f), "Players", 22, Color.white);
+        float y = top + 120f;
+        Label(new Rect(x + 40f, y, column, 32f), "Players", 22, Color.white);
         y += 36f;
         if (gm.Side != PlayerSide.Spectate)
         {
-            Label(new Rect(x + 60f, y, w - 120f, 30f), $"{gm.Net.PlayerName}  ({NetSession.TeamName(gm.Net.PreferredTeam)}, you)", 20, TeamColor(gm.Net.PreferredTeam));
+            Label(new Rect(x + 60f, y, column - 20f, 30f), $"{gm.Net.PlayerName}  ({NetSession.TeamName(gm.Net.PreferredTeam)}, you)", 20, TeamColor(gm.Net.PreferredTeam));
             y += 32f;
         }
         foreach (var peer in gm.Net.Peers)
         {
-            Label(new Rect(x + 60f, y, w - 120f, 30f), $"{peer.Name}  ({NetSession.TeamName(peer.Team)})", 20, TeamColor(peer.Team));
+            Label(new Rect(x + 60f, y, column - 20f, 30f), $"{peer.Name}  ({NetSession.TeamName(peer.Team)})", 20, TeamColor(peer.Team));
             y += 32f;
         }
         if (gm.Net.Peers.Count == 0)
         {
-            Label(new Rect(x + 60f, y, w - 120f, 30f), "Waiting for someone to join...  (bots fill the empty places)", 18, Dim);
+            Label(new Rect(x + 60f, y, column - 20f, 30f), "Waiting for someone to join...  (bots fill the empty places)", 18, Dim);
             y += 32f;
         }
-        y += 14f;
+        float leftEnd = TeamRow(x, y + 14f, allowSpectate: true, column);
 
-        y = TeamRow(x, y, allowSpectate: true);
-        y = MatchSettingsRows(x, y);
-        if (Button(new Rect(x + 40f, y, w - 80f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
+        float rightEnd = MapRow(right, top + 120f, column);
+        rightEnd = PlayersRow(right, rightEnd, column);
+        rightEnd = DifficultyRow(right, rightEnd, column);
+        rightEnd = RoundsRow(right, rightEnd, column);
+        rightEnd = FriendlyFireRow(right, rightEnd, column);
+
+        y = Mathf.Max(leftEnd, rightEnd) + 6f;
+        if (Button(new Rect(x + (w - 640f) / 2f, y, 640f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
         y += 80f;
         if (Button(new Rect(x + w / 2f - 150f, y, 300f, 52f), "STOP HOSTING")) gm.Net.Stop();
     }
@@ -342,12 +407,19 @@ public class GameUI : MonoBehaviour
             var row = new Rect(listX, rowY, listWidth, 56f);
             if (row.Contains(Event.current.mousePosition)) hovered = skin;
             bool isEquipped = skin == equipped;
-            if (Button(row, isEquipped ? $"{skin.Name}\nEQUIPPED" : skin.Name, isEquipped, true, 20))
+            bool locked = !WeaponSkins.CanUse(skin);
+            if (locked && Event.current.type == EventType.MouseDown && row.Contains(Event.current.mousePosition))
             {
-                WeaponSkins.Equip(inventoryWeapon, skin);
+                Event.current.Use();
+                OpenAccount($"Log in or sign up to use the {skin.Name} skin");
+                return;
+            }
+            if (Button(row, isEquipped ? $"{skin.Name}\nEQUIPPED" : skin.Name, isEquipped, !locked, 20) && WeaponSkins.Equip(inventoryWeapon, skin))
+            {
                 previewSkin = null;
                 SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
             }
+            if (locked) DrawLock(row.xMax - 32f, row.y + 18f, LockColor);
             DrawSwatch(new Rect(row.x + 10f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Main));
             DrawSwatch(new Rect(row.x + 40f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Grip));
             rowY += 64f;
@@ -385,14 +457,142 @@ public class GameUI : MonoBehaviour
         else Fill(rect, material.color);
     }
 
-    float OptionRow(float x, float y, string title, string[] options, int selected, Action<int> onSelect, float rowWidth = 700f)
+    /// <summary>A titled row of choices; `locked` marks ones that need an account (clicking one asks to log in).</summary>
+    float OptionRow(float x, float y, string title, string[] options, int selected, Action<int> onSelect, float rowWidth = 700f,
+                    Func<int, bool> locked = null)
     {
         Label(new Rect(x + 40f, y, rowWidth, 34f), title, 22, Color.white);
         float buttonWidth = (rowWidth - (options.Length - 1) * 10f) / options.Length;
         for (int i = 0; i < options.Length; i++)
-            if (Button(new Rect(x + 40f + i * (buttonWidth + 10f), y + 38f, buttonWidth, 48f), options[i], i == selected))
-                onSelect(i);
+        {
+            var rect = new Rect(x + 40f + i * (buttonWidth + 10f), y + 38f, buttonWidth, 48f);
+            bool isLocked = locked != null && locked(i);
+            if (isLocked && Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
+            {
+                Event.current.Use();
+                OpenAccount($"Log in or sign up to unlock {options[i]}");
+            }
+            if (Button(rect, options[i], i == selected, !isLocked)) onSelect(i);
+            if (isLocked) DrawLock(rect.xMax - 26f, rect.y + 14f, LockColor);
+        }
         return y + 105f;
+    }
+
+    // ----------------------------------------------------------------- account
+
+    static readonly Color LockColor = new Color(1f, 0.82f, 0.4f, 0.95f);
+
+    void OpenAccount(string message = null)
+    {
+        if (inventoryOpen) CloseInventory();
+        settingsOpen = false;
+        accountOpen = true;
+        accountMessage = message;
+        accountPassword = accountRepeat = "";
+        accountFocus = true;
+    }
+
+    /// <summary>Top left of the main menu: who is playing, and the way to log in or out.</summary>
+    void DrawAccountBox(float x, float y)
+    {
+        if (Accounts.LoggedIn)
+        {
+            Label(new Rect(x, y, 300f, 28f), $"Logged in as {Accounts.Current}", 20, Gold);
+            if (Button(new Rect(x, y + 32f, 140f, 38f), "LOG OUT", false, true, 18)) Accounts.LogOut();
+        }
+        else
+        {
+            Label(new Rect(x, y, 300f, 28f), "Playing as a guest", 20, Dim);
+            if (Button(new Rect(x, y + 32f, 220f, 38f), "LOG IN / SIGN UP", false, true, 18)) OpenAccount();
+        }
+    }
+
+    /// <summary>
+    /// Log in or sign up (asked at every start): a nickname no other account on this computer has, and a
+    /// password. With an account come the Halloween map, the RPG's Web skin and Extreme bots, and the skins
+    /// equipped are kept with it; "Play as guest" goes on without one.
+    /// </summary>
+    void DrawAccount()
+    {
+        if (accountName == null) accountName = Accounts.LastName;
+        bool submit = Event.current.type == EventType.KeyDown &&
+                      (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
+        if (submit) Event.current.Use();
+
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
+        float w = 760f, h = accountSignUp ? 790f : 700f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        Fill(new Rect(x, y, w, h), PanelColor);
+        Label(new Rect(x, y + 20f, w, 70f), "LOW STRIKE", 58, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 88f, w, 30f), "Log in or sign up", 22, Dim, TextAnchor.MiddleCenter);
+        float fx = x + 60f, fw = w - 120f, cy = y + 140f;
+        if (Button(new Rect(fx, cy, fw / 2f - 5f, 52f), "LOG IN", !accountSignUp))
+        {
+            accountSignUp = false;
+            accountMessage = null;
+            accountFocus = true;
+        }
+        if (Button(new Rect(fx + fw / 2f + 5f, cy, fw / 2f - 5f, 52f), "SIGN UP", accountSignUp))
+        {
+            accountSignUp = true;
+            accountMessage = null;
+            accountFocus = true;
+        }
+        cy += 76f;
+
+        Label(new Rect(fx, cy, fw, 30f), accountSignUp ? "Nickname (3 to 16 letters, digits, _ or -)" : "Nickname", 20, Color.white);
+        GUI.SetNextControlName("account-name");
+        accountName = GUI.TextField(new Rect(fx, cy + 32f, fw, 42f), accountName ?? "", 16, InputStyle());
+        cy += 90f;
+        Label(new Rect(fx, cy, fw, 30f), accountSignUp ? $"Password (at least {Accounts.MinPasswordLength} characters)" : "Password", 20, Color.white);
+        GUI.SetNextControlName("account-password");
+        accountPassword = GUI.PasswordField(new Rect(fx, cy + 32f, fw, 42f), accountPassword, '*', 64, InputStyle());
+        cy += 90f;
+        if (accountSignUp)
+        {
+            Label(new Rect(fx, cy, fw, 30f), "Password again", 20, Color.white);
+            GUI.SetNextControlName("account-repeat");
+            accountRepeat = GUI.PasswordField(new Rect(fx, cy + 32f, fw, 42f), accountRepeat, '*', 64, InputStyle());
+            cy += 90f;
+        }
+        if (accountFocus && Event.current.type == EventType.Repaint)
+        {
+            GUI.FocusControl(string.IsNullOrEmpty(accountName) || accountSignUp ? "account-name" : "account-password");
+            accountFocus = false;
+        }
+
+        if (!string.IsNullOrEmpty(accountMessage))
+            Label(new Rect(x + 20f, cy, w - 40f, 30f), accountMessage, 19, Danger, TextAnchor.MiddleCenter);
+        cy += 42f;
+        if (Button(new Rect(fx, cy, fw, 64f), accountSignUp ? "CREATE ACCOUNT" : "LOG IN", true, true, 28) || submit)
+        {
+            accountMessage = accountSignUp ? Accounts.SignUp(accountName, accountPassword, accountRepeat)
+                                           : Accounts.LogIn(accountName, accountPassword);
+            if (accountMessage == null)
+            {
+                accountOpen = false;
+                accountPassword = accountRepeat = "";
+            }
+        }
+        cy += 80f;
+        if (Button(new Rect(fx, cy, fw, 50f), "PLAY AS GUEST", false, true, 22))
+        {
+            accountOpen = false;
+            accountMessage = null;
+            accountPassword = accountRepeat = "";
+        }
+        cy += 66f;
+        Label(new Rect(x + 30f, cy, w - 60f, 56f),
+              "With an account: the Halloween map, the RPG's Web skin and Extreme bots,\nand the skins you equip are kept with your account on this computer.",
+              17, Dim, TextAnchor.UpperCenter);
+    }
+
+    /// <summary>A small padlock: something that needs an account.</summary>
+    static void DrawLock(float x, float y, Color color)
+    {
+        Fill(new Rect(x, y + 8f, 16f, 12f), color);
+        Fill(new Rect(x + 2.5f, y, 2.5f, 9f), color);
+        Fill(new Rect(x + 11f, y, 2.5f, 9f), color);
+        Fill(new Rect(x + 2.5f, y, 11f, 2.5f), color);
     }
 
     float SensitivitySlider(float x, float y, float w)
@@ -540,11 +740,13 @@ public class GameUI : MonoBehaviour
     void DrawBuyMenu()
     {
         var me = gm.Player.Self;
-        float w = 940f, h = 560f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        bool canBuy = gm.CanBuy(me), canSell = gm.CanSell(me);
+        float w = 940f, h = 690f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
         Fill(new Rect(x, y, w, h), new Color(0f, 0f, 0f, 0.85f));
         Label(new Rect(x + 30f, y + 15f, 400f, 50f), "BUY MENU", 36, Gold);
         Label(new Rect(x + w - 330f, y + 15f, 300f, 50f), $"$ {me.Money}", 36, MoneyGreen, TextAnchor.MiddleRight);
-        Label(new Rect(x + 30f, y + 62f, w - 60f, 28f), $"{Mathf.Max(0f, gm.BuyTimeLeft):0}s of buy time left  ·  B / Esc to close  ·  weapons carry over if you survive", 18, Dim);
+        string buyTime = canBuy ? $"{Mathf.Max(0f, gm.BuyTimeLeft):0}s of buy time left" : "Buy time is over";
+        Label(new Rect(x + 30f, y + 62f, w - 60f, 28f), $"{buyTime}  ·  {Mathf.Max(0f, gm.SellTimeLeft):0}s to sell  ·  B / Esc to close  ·  weapons carry over if you survive", 18, Dim);
 
         string[] titles = { "PISTOLS", "SMG / SHOTGUN", "RIFLES & HEAVY", "EQUIPMENT" };
         WeaponData[][] columns =
@@ -566,7 +768,7 @@ public class GameUI : MonoBehaviour
                     if (!weapon.AvailableTo(me.Team)) continue;
                     bool owned = me.Get(weapon.Slot)?.Data == weapon;
                     string text = $"{weapon.Name}\n{(owned ? "OWNED" : "$" + weapon.Price)}";
-                    if (Button(new Rect(cx, cy, columnWidth, 80f), text, false, !owned && me.Money >= weapon.Price))
+                    if (Button(new Rect(cx, cy, columnWidth, 80f), text, false, canBuy && !owned && me.Money >= weapon.Price))
                         gm.BuyWeapon(weapon);
                     cy += 92f;
                 }
@@ -575,20 +777,36 @@ public class GameUI : MonoBehaviour
             {
                 bool hasVest = me.Armor >= 100;
                 if (Button(new Rect(cx, cy, columnWidth, 80f), $"Kevlar Vest\n{(hasVest ? "OWNED" : "$" + WeaponData.KevlarPrice)}",
-                           false, !hasVest && me.Money >= WeaponData.KevlarPrice))
+                           false, canBuy && !hasVest && me.Money >= WeaponData.KevlarPrice))
                     gm.BuyArmor(false);
                 cy += 92f;
                 bool full = hasVest && me.Helmet;
                 int helmetPrice = hasVest ? WeaponData.KevlarHelmetPrice - WeaponData.KevlarPrice : WeaponData.KevlarHelmetPrice;
                 if (Button(new Rect(cx, cy, columnWidth, 80f), $"Kevlar + Helmet\n{(full ? "OWNED" : "$" + helmetPrice)}",
-                           false, !full && me.Money >= helmetPrice))
+                           false, canBuy && !full && me.Money >= helmetPrice))
                     gm.BuyArmor(true);
                 cy += 92f;
                 if (me.Team == Team.Swat
                     && Button(new Rect(cx, cy, columnWidth, 80f), $"Defuse Kit\n{(me.HasDefuseKit ? "OWNED" : "$" + WeaponData.DefuseKitPrice)}",
-                              false, !me.HasDefuseKit && me.Money >= WeaponData.DefuseKitPrice))
+                              false, canBuy && !me.HasDefuseKit && me.Money >= WeaponData.DefuseKitPrice))
                     gm.BuyDefuseKit();
             }
+        }
+
+        // Selling your own guns back (never the knife).
+        float sy = y + h - 130f;
+        Fill(new Rect(x + 30f, sy - 12f, w - 60f, 1f), new Color(1f, 1f, 1f, 0.15f));
+        Label(new Rect(x + 30f, sy, 400f, 30f), "SELL YOUR WEAPONS", 20, Dim);
+        Label(new Rect(x + w - 530f, sy, 500f, 30f), "full price in the round you bought it, half after that", 16, Dim, TextAnchor.MiddleRight);
+        float sellWidth = (w - 60f - 20f) / 2f;
+        var slots = new[] { WeaponSlot.Primary, WeaponSlot.Secondary };
+        for (int i = 0; i < slots.Length; i++)
+        {
+            var weapon = me.Get(slots[i]);
+            string text = weapon != null ? $"Sell {weapon.Data.Name}   +${weapon.SellPrice}"
+                        : slots[i] == WeaponSlot.Primary ? "No main weapon" : "No pistol";
+            if (Button(new Rect(x + 30f + i * (sellWidth + 20f), sy + 38f, sellWidth, 64f), text, false, canSell && weapon != null))
+                gm.SellWeapon(slots[i]);
         }
     }
 
@@ -812,9 +1030,9 @@ public class GameUI : MonoBehaviour
         }
     }
 
-    static Rect RadarDot(Rect area, Vector3 world, float size)
+    Rect RadarDot(Rect area, Vector3 world, float size)
     {
-        Vector2 p = MapBuilder.ToRadar(world);
+        Vector2 p = gm.Map.ToRadar(world);
         return new Rect(area.x + p.x * area.width - size / 2f, area.y + (1f - p.y) * area.height - size / 2f, size, size);
     }
 
@@ -947,6 +1165,8 @@ public class GameUI : MonoBehaviour
         Label(new Rect(20f, RefHeight - 140f, 300f, 44f), $"$ {me.Money}", 34, MoneyGreen);
         if (gm.CanBuy(me) && !gm.BuyMenuOpen)
             Label(new Rect(0f, RefHeight - 60f, width, 30f), $"Press B to buy  ({gm.BuyTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
+        else if (gm.CanSell(me) && !gm.BuyMenuOpen && (me.Primary != null || me.Secondary != null))
+            Label(new Rect(0f, RefHeight - 60f, width, 30f), $"Press B to sell  ({gm.SellTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
     }
 
     // ----------------------------------------------------------------- drawing helpers

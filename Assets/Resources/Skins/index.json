@@ -8,14 +8,17 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
-                "main": "#3A3A3E",
-                "grip": "#7A4A26",
-                "detail": "#202023",
+                "main": "",
+                "grip": "",
+                "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -26,6 +29,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -33,7 +37,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -44,6 +50,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -51,7 +58,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -62,6 +71,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -69,7 +79,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -80,6 +92,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -87,7 +100,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -98,6 +113,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -105,7 +121,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -116,6 +134,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -123,7 +142,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -134,6 +155,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -141,7 +163,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -152,6 +176,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "AWP_1skin",
                 "main": "",
@@ -159,7 +184,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -170,6 +197,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -177,7 +205,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -188,6 +218,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -195,7 +226,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -206,6 +239,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -213,7 +247,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -224,6 +260,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -231,7 +268,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -242,6 +281,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -249,7 +289,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -260,6 +302,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -267,7 +310,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -278,6 +323,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -285,7 +331,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -296,6 +344,7 @@
             "hasMain": true,
             "hasGrip": true,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "digle",
                 "main": "",
@@ -303,7 +352,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -314,6 +365,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -321,7 +373,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -332,6 +386,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -339,7 +394,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -350,6 +407,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -357,7 +415,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -368,6 +428,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -375,7 +436,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -386,6 +449,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -393,7 +457,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -404,6 +470,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -411,7 +478,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -422,6 +491,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -429,7 +499,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -440,6 +512,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -447,7 +520,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -458,6 +533,7 @@
             "hasMain": true,
             "hasGrip": true,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Pink Scribble",
                 "main": "",
@@ -465,7 +541,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -476,6 +554,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -483,7 +562,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -494,6 +575,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -501,7 +583,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -512,6 +596,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -519,7 +604,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -530,6 +617,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -537,7 +625,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -548,6 +638,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -555,7 +646,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -566,6 +659,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -573,7 +667,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -584,6 +680,7 @@
             "hasMain": true,
             "hasGrip": true,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "karambit",
                 "main": "",
@@ -595,7 +692,9 @@
                     0.0,
                     0.0,
                     180.0
-                ]
+                ],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -606,6 +705,7 @@
             "hasMain": true,
             "hasGrip": true,
             "hasDetail": true,
+            "hasProjectile": false,
             "info": {
                 "name": "nogektestskin",
                 "main": "",
@@ -613,7 +713,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -624,6 +726,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -631,7 +734,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -642,6 +747,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -649,7 +755,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -660,6 +768,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -667,7 +776,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -678,6 +789,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -685,7 +797,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -696,6 +810,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -703,7 +818,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -714,6 +831,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -721,7 +839,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -732,6 +852,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -739,7 +860,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -750,6 +873,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -757,7 +881,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -768,6 +894,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -775,7 +902,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -786,6 +915,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -793,7 +923,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -804,6 +936,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -811,7 +944,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -822,6 +957,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -829,7 +965,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -840,6 +978,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -847,7 +986,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -858,6 +999,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -865,7 +1007,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -876,6 +1020,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -883,7 +1028,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -894,6 +1041,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -901,7 +1049,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -912,6 +1062,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -919,7 +1070,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -930,6 +1083,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -937,7 +1091,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -948,6 +1104,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -955,7 +1112,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -966,6 +1125,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -973,7 +1133,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -984,6 +1146,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -991,7 +1154,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1002,6 +1167,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -1009,7 +1175,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1020,6 +1188,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -1027,7 +1196,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1038,6 +1209,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -1045,7 +1217,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1056,6 +1230,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -1063,7 +1238,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1074,6 +1251,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -1081,7 +1259,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1092,6 +1272,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -1099,7 +1280,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1110,6 +1293,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -1117,7 +1301,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1128,6 +1314,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -1135,7 +1322,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1146,6 +1335,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -1153,7 +1343,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1164,6 +1356,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -1171,7 +1364,34 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "rpg",
+            "id": "Web",
+            "folder": "Skins/RPG/Web",
+            "hasModel": true,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": true,
+            "info": {
+                "name": "Web",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [
+                    0.0,
+                    180.0,
+                    0.0
+                ],
+                "projectileRotation": [],
+                "locked": true
             }
         },
         {
@@ -1182,6 +1402,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -1189,7 +1410,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1200,6 +1423,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -1207,7 +1431,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1218,6 +1444,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -1225,7 +1452,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1236,6 +1465,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -1243,7 +1473,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1254,6 +1486,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -1261,7 +1494,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1272,6 +1507,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -1279,7 +1515,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1290,6 +1528,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Default",
                 "main": "",
@@ -1297,7 +1536,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1308,6 +1549,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Arctic",
                 "main": "#DDE3E8",
@@ -1315,7 +1557,9 @@
                 "detail": "#9AA3AD",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1326,6 +1570,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Desert Camo",
                 "main": "",
@@ -1333,7 +1578,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1344,6 +1591,7 @@
             "hasMain": false,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Gold",
                 "main": "#D4AF37",
@@ -1351,7 +1599,9 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1362,6 +1612,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Jungle",
                 "main": "",
@@ -1369,7 +1620,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1380,6 +1633,7 @@
             "hasMain": true,
             "hasGrip": true,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Pink Scribble",
                 "main": "",
@@ -1387,7 +1641,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         },
         {
@@ -1398,6 +1654,7 @@
             "hasMain": true,
             "hasGrip": false,
             "hasDetail": false,
+            "hasProjectile": false,
             "info": {
                 "name": "Urban Digital",
                 "main": "",
@@ -1405,7 +1662,9 @@
                 "detail": "",
                 "smoothness": 0.20000000298023225,
                 "metallic": 0.0,
-                "rotation": []
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
             }
         }
     ],
@@ -1437,6 +1696,10 @@
         {
             "weapon": "mp5",
             "path": "Models/MP5/model"
+        },
+        {
+            "weapon": "shotgun",
+            "path": "Models/Pump Shotgun/model"
         },
         {
             "weapon": "tec9",

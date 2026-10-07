@@ -8,6 +8,7 @@ public class WeaponInstance
     public int Mag;
     public int Reserve;
     public bool AutoMode;   // only used by select-fire weapons
+    public int SellPrice;   // what selling it back gives: the full price in the round it was bought, half after that
 
     public bool IsAutomatic => Data.Automatic || (Data.SelectFire && AutoMode);
     public float Spread => Data.Spread + (Data.SelectFire && AutoMode ? Data.AutoSpread : 0f);
@@ -37,6 +38,7 @@ public interface ICombatantController
 public class Combatant : MonoBehaviour
 {
     public const float StandHeight = 1.8f;
+    public const float CrouchHeight = 1.2f;
 
     public string DisplayName;
     public Team Team;
@@ -88,6 +90,9 @@ public class Combatant : MonoBehaviour
         Health = 100;
         reloadEndTime = 0f;
         LastResupply = null;
+        // Guns kept from an earlier round sell for half their price (the free starting pistol for nothing).
+        foreach (var weapon in new[] { Primary, Secondary })
+            if (weapon != null) weapon.SellPrice = Mathf.Min(weapon.SellPrice, weapon.Data.Price / 2);
         if (!keepGear || Knife == null)
         {
             Armor = 0;
@@ -156,10 +161,23 @@ public class Combatant : MonoBehaviour
         if (!weapon.AvailableTo(Team) || Money < weapon.Price) return false;
         if (Get(weapon.Slot)?.Data == weapon) return false;
         Money -= weapon.Price;
-        var instance = new WeaponInstance(weapon);
+        var instance = new WeaponInstance(weapon) { SellPrice = weapon.Price };
         if (weapon.Slot == WeaponSlot.Primary) Primary = instance;
         else Secondary = instance;
         SetCurrent(instance, 0.4f);
+        return true;
+    }
+
+    /// <summary>Sells the gun in a slot back (never the knife) for its <see cref="WeaponInstance.SellPrice"/>.</summary>
+    public bool TrySell(WeaponSlot slot)
+    {
+        var weapon = slot == WeaponSlot.Knife ? null : Get(slot);
+        if (weapon == null) return false;
+        Money = Mathf.Min(GameManager.MaxMoney, Money + weapon.SellPrice);
+        if (slot == WeaponSlot.Primary) Primary = null;
+        else Secondary = null;
+        if (Current == weapon) SetCurrent(Get(BestSlot()), 0.4f);
+        if (previous == weapon) previous = null;
         return true;
     }
 
@@ -293,11 +311,13 @@ public class Combatant : MonoBehaviour
     public void HoldPrediction() => predictUntil = Time.time + 0.35f;
 
     public void ApplyNetLoadout(WeaponData primary, WeaponData secondary, WeaponSlot slot, int mag, int reserve,
-                                float reloadProgress, bool autoMode)
+                                float reloadProgress, bool autoMode, int primarySell, int secondarySell)
     {
         if (Knife == null) Knife = new WeaponInstance(WeaponData.Knife);
         if (Primary?.Data != primary) Primary = primary != null ? new WeaponInstance(primary) : null;
         if (Secondary?.Data != secondary) Secondary = secondary != null ? new WeaponInstance(secondary) : null;
+        if (Primary != null) Primary.SellPrice = primarySell;
+        if (Secondary != null) Secondary.SellPrice = secondarySell;
 
         bool predicting = Time.time < predictUntil;
         var wanted = predicting && Current != null && Get(Current.Data.Slot) == Current ? Current : Get(slot) ?? Knife;

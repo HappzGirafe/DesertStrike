@@ -97,7 +97,9 @@ public static class WeaponModels
             Vector3 towardMain = main.center - grip.center;
             towardMain[axis] = 0f;
             var up = Vector3.zero;
-            if (towardMain.magnitude > main.size[axis] * 0.1f)
+            // A gun's grip and stock sit below its body, if only a little (a shotgun's stock is nearly in line);
+            // a knife's handle is in line with its blade.
+            if (towardMain.magnitude > main.size[axis] * (weapon.IsMelee ? 0.1f : 0.03f))
             {
                 int upAxis = LongestAxis(Abs(towardMain));
                 up[upAxis] = towardMain[upAxis] >= 0f ? 1f : -1f;
@@ -124,6 +126,13 @@ public static class WeaponModels
             main = LocalBounds(root, mains);
         }
 
+        // skin.json "rotation": [x, y, z] turns the model further (degrees, Unity's order: Z, then X, then Y).
+        // Rifles and launchers turn before they are fitted, so they still take the box model's place (the Web RPG
+        // turns round, warhead forward); pistols and knives turn in the hand afterwards, below.
+        bool turned = skin != null && skin.Rotation != Vector3.zero;
+        if (turned && weapon.Slot == WeaponSlot.Primary)
+            model.localRotation = Quaternion.Euler(skin.Rotation) * model.localRotation;
+
         if (weapon.Slot == WeaponSlot.Primary)
         {
             // Rifles and other primaries take the length and place of the weapon's box model.
@@ -145,10 +154,9 @@ public static class WeaponModels
             model.localPosition += new Vector3(-main.center.x, y, z);
         }
 
-        if (skin != null && skin.Rotation != Vector3.zero)
+        if (turned && weapon.Slot != WeaponSlot.Primary)
         {
-            // skin.json "rotation": [x, y, z] turns the model in the hand (degrees, Unity's order: Z, then X, then Y),
-            // around the middle of the grip so the handle stays where the hand is.
+            // A pistol or knife turns around the middle of its grip, so the handle stays where the hand is.
             Vector3 pivot = (grips.Count > 0 ? LocalBounds(root, grips) : LocalBounds(root, all)).center;
             Quaternion turn = Quaternion.Euler(skin.Rotation);
             model.localPosition = pivot + turn * (model.localPosition - pivot);
@@ -159,6 +167,37 @@ public static class WeaponModels
         Bounds fitted = LocalBounds(root, all);
         muzzlePosition = new Vector3(0f, main.center.y, fitted.max.z + 0.005f);
         return true;
+    }
+
+    /// <summary>
+    /// A skin's own projectile (the Web RPG's net) under <paramref name="parent"/>, about 1.2 m across, flying along
+    /// +Z with its flattest side first (a net flies open). skin.json "projectileRotation" can turn it further.
+    /// </summary>
+    public static Transform BuildProjectile(WeaponSkin skin, Transform parent)
+    {
+        var prefab = WeaponSkins.LoadProjectile(skin);
+        if (prefab == null) return null;
+        var model = Object.Instantiate(prefab, parent, false).transform;
+        var filters = new List<MeshFilter>(model.GetComponentsInChildren<MeshFilter>());
+        foreach (var filter in filters)
+        {
+            var renderer = filter.GetComponent<Renderer>();
+            renderer.sharedMaterial = WeaponSkins.OwnLook(skin.Projectile, filter.name) ?? Effects.Mat(DarkMetal);
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        Bounds bounds = LocalBounds(parent, filters);
+        int thin = bounds.size.x <= bounds.size.y && bounds.size.x <= bounds.size.z ? 0 : bounds.size.y <= bounds.size.z ? 1 : 2;
+        var forward = Vector3.zero;
+        forward[thin] = 1f;
+        model.localRotation = Quaternion.Inverse(Quaternion.LookRotation(forward, thin == 1 ? Vector3.forward : Vector3.up)) * model.localRotation;
+        model.localRotation = Quaternion.Euler(skin.ProjectileRotation) * model.localRotation;
+
+        bounds = LocalBounds(parent, filters);
+        model.localScale *= 1.2f / Mathf.Max(0.001f, Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z));
+        bounds = LocalBounds(parent, filters);
+        model.localPosition -= bounds.center;
+        return model;
     }
 
     /// <summary>Bounds of the weapon's box model, measured by building it briefly under <paramref name="root"/>.</summary>

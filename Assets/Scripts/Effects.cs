@@ -11,6 +11,7 @@ public static class Effects
     static readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
     static readonly Dictionary<Color, Material> glowMaterials = new Dictionary<Color, Material>();
     static readonly Queue<GameObject> bulletHoles = new Queue<GameObject>();
+    static readonly Dictionary<string, Material> savedTemplates = new Dictionary<string, Material>();
 
     const int PaletteSize = 32;
     static Texture2D palette;
@@ -30,20 +31,58 @@ public static class Effects
         return material;
     }
 
-    public static Material SkinMaterial(Color tint, Texture2D texture, float smoothness, float metallic)
+    public static Material SkinMaterial(Color tint, Texture2D texture, float smoothness, float metallic) =>
+        SurfaceMaterial(tint, texture, smoothness, metallic);
+
+    /// <summary>
+    /// A material for a look from Blender: texture (tinted) or colour, smoothness, metallic, an optional glow
+    /// (colour, and a glow texture) and transparency: "MASK" is cut out where the texture's alpha is below
+    /// <paramref name="cutoff"/> (webs, the crane's lattice), "BLEND" is see-through (letters painted on the ground).
+    /// Each kind starts from a material saved in Resources/DesertStrike, so builds keep its shader variant.
+    /// </summary>
+    public static Material SurfaceMaterial(Color tint, Texture2D texture, float smoothness, float metallic,
+                                           Color? glow = null, Texture2D glowMap = null, string alpha = "OPAQUE", float cutoff = 0.5f)
     {
-        var material = new Material(Template()) { color = tint, mainTexture = texture };
+        Material template;
+        if (alpha == "MASK") template = SavedTemplate(glow.HasValue ? "CutoutGlow" : "Cutout");
+        else if (alpha == "BLEND") template = SavedTemplate("Fade");
+        else template = glow.HasValue ? GlowTemplate() : Template();
+
+        var material = new Material(template) { color = tint, mainTexture = texture };
         material.SetFloat("_Glossiness", smoothness);
         material.SetFloat("_Metallic", metallic);
+        if (alpha == "MASK") material.SetFloat("_Cutoff", cutoff);
+        if (glow.HasValue)
+        {
+            material.EnableKeyword("_EMISSION");
+            material.SetColor("_EmissionColor", glow.Value);
+            if (glowMap != null) material.SetTexture("_EmissionMap", glowMap);
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+        }
         return material;
+    }
+
+    static Material GlowTemplate()
+    {
+        if (glowTemplate == null) glowTemplate = Resources.Load<Material>("DesertStrike/Glow") ?? Template();
+        return glowTemplate;
+    }
+
+    static Material SavedTemplate(string name)
+    {
+        if (!savedTemplates.TryGetValue(name, out var template) || template == null)
+        {
+            template = Resources.Load<Material>("DesertStrike/" + name) ?? Template();
+            savedTemplates[name] = template;
+        }
+        return template;
     }
 
     public static Material Glow(Color color)
     {
         if (!glowMaterials.TryGetValue(color, out var material))
         {
-            if (glowTemplate == null) glowTemplate = Resources.Load<Material>("DesertStrike/Glow") ?? Template();
-            material = new Material(glowTemplate) { color = color };
+            material = new Material(GlowTemplate()) { color = color };
             material.EnableKeyword("_EMISSION");
             material.SetColor("_EmissionColor", color * 1.2f);
             glowMaterials[color] = material;

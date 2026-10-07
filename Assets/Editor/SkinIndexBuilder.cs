@@ -65,6 +65,7 @@ public class SkinIndexBuilder : AssetPostprocessor
                         hasMain = HasFile(skinDir, "main", ".png", ".jpg", ".jpeg"),
                         hasGrip = HasFile(skinDir, "grip", ".png", ".jpg", ".jpeg"),
                         hasDetail = HasFile(skinDir, "detail", ".png", ".jpg", ".jpeg"),
+                        hasProjectile = HasFile(skinDir, "projectile", ".fbx", ".obj"),
                         info = info,
                     });
                 }

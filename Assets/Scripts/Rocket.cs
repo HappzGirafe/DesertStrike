@@ -14,6 +14,7 @@ public class Rocket : MonoBehaviour
     Vector3 velocity;
     float explodeAt;
     bool visualOnly;
+    Transform spinning;   // a skin's projectile turns while it flies
 
     public static void Launch(Combatant shooter, Vector3 position, Vector3 direction, WeaponData weapon, bool visualOnly = false)
     {
@@ -21,6 +22,15 @@ public class Rocket : MonoBehaviour
 
         var go = new GameObject("Rocket");
         go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(direction));
+        // A skin can bring its own projectile (the Web skin fires a spider-web net instead of a rocket).
+        var projectile = WeaponModels.BuildProjectile(WeaponSkins.SkinOf(shooter, weapon), go.transform);
+        if (projectile != null)
+        {
+            var spinner = go.AddComponent<Rocket>();
+            spinner.spinning = projectile;
+            spinner.Setup(shooter, weapon, direction, visualOnly);
+            return;
+        }
         Effects.Shape(PrimitiveType.Cylinder, go.transform, Vector3.zero, new Vector3(0.09f, 0.25f, 0.09f),
                       new Color(0.3f, 0.35f, 0.25f), euler: new Vector3(90f, 0f, 0f));
         Effects.Shape(PrimitiveType.Sphere, go.transform, new Vector3(0f, 0f, 0.26f), new Vector3(0.11f, 0.11f, 0.18f),
@@ -37,16 +47,21 @@ public class Rocket : MonoBehaviour
             light.range = 5f;
         }
 
-        var rocket = go.AddComponent<Rocket>();
-        rocket.shooter = shooter;
-        rocket.weapon = weapon;
-        rocket.velocity = direction * weapon.ProjectileSpeed;
-        rocket.explodeAt = Time.time + Lifetime;
-        rocket.visualOnly = visualOnly;
+        go.AddComponent<Rocket>().Setup(shooter, weapon, direction, visualOnly);
+    }
+
+    void Setup(Combatant shooter, WeaponData weapon, Vector3 direction, bool visualOnly)
+    {
+        this.shooter = shooter;
+        this.weapon = weapon;
+        velocity = direction * weapon.ProjectileSpeed;
+        explodeAt = Time.time + Lifetime;
+        this.visualOnly = visualOnly;
     }
 
     void Update()
     {
+        if (spinning != null) spinning.Rotate(0f, 0f, 240f * Time.deltaTime, Space.Self);
         Vector3 step = velocity * Time.deltaTime;
         if (Ballistics.FirstHit(transform.position, velocity.normalized, step.magnitude, shooter, out var hit))
         {

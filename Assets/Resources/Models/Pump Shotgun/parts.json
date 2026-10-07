@@ -1,0 +1,103 @@
+{
+  "parts": [
+    {
+      "name": "Grip",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Main",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Grip.001",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.001",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.002",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Grip.002",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Main.001",
+      "texture": "",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Main.002",
+      "texture": "",
+      "color": "#E6E6E6",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    }
+  ]
+}

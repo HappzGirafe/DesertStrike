@@ -1,14 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AI;
 
 /// <summary>
 /// Builds "de_dune": a desert map with a Dust-2-style layout (outside long, long doors, long A,
 /// catwalk/short A, mid doors, upper and lower tunnels to B) out of primitives, then bakes a NavMesh
 /// for the bots. The layout is a 32x32 grid of 4 m cells; north (+Z) is the SWAT side, south the
-/// Terrorist side.
+/// Terrorist side. The bots' round plans use the named places of the layout.
 /// </summary>
-public class MapBuilder
+public class MapBuilder : GameMap
 {
     public const int Size = 32;
     public const float Cell = 4f;
@@ -30,23 +29,31 @@ public class MapBuilder
         { 0.6f, 0.36f, 0.6f, 0.14f }, { 0.6f, 0.14f, 0.45f, 0f }, { 0f, 0f, 0.45f, 0f },
     };
 
+    static readonly string[][] TerroristRoutesA =
+    {
+        new[] { "OutsideLong", "LongDoors", "Long", "LongCorner", "ASite" },
+        new[] { "Mid", "Catwalk", "Short", "ASite" },
+    };
+
+    static readonly string[][] TerroristRoutesB =
+    {
+        new[] { "OutsideTunnels", "TunnelHall", "Tunnels", "TunnelExit", "BSite" },
+        new[] { "Mid", "LowerTunnels", "Tunnels", "TunnelExit", "BSite" },
+    };
+
+    static readonly (string[] Route, string LookAt)[] SwatPostNames =
+    {
+        (new[] { "CTtoA", "AHoldLong" }, "LongCorner"),
+        (new[] { "BDoors", "BHold" }, "TunnelExit"),
+        (new[] { "CTMid" }, "Mid"),
+        (new[] { "CTtoA", "AHoldShort" }, "Short"),
+        (new[] { "BDoors", "BHold2" }, "TunnelExit"),
+    };
+
     readonly Area[,] grid = new Area[Size, Size];
     readonly List<(Area area, int x0, int z0, int x1, int z1)> patches = new List<(Area, int, int, int, int)>();
     readonly Dictionary<string, Vector3> points = new Dictionary<string, Vector3>();
     readonly System.Random random = new System.Random(2);
-
-    public Transform Root { get; private set; }
-    public Texture2D Radar { get; private set; }
-    public Bounds SiteA { get; private set; }
-    public Bounds SiteB { get; private set; }
-    public Bounds TerroristBuyZone { get; private set; }
-    public Bounds SwatBuyZone { get; private set; }
-
-    /// <summary>"A" or "B" when the position is on a bombsite, otherwise null.</summary>
-    public string SiteAt(Vector3 position) => SiteA.Contains(position) ? "A" : SiteB.Contains(position) ? "B" : null;
-    public readonly List<Vector3> TerroristSpawns = new List<Vector3>();
-    public readonly List<Vector3> SwatSpawns = new List<Vector3>();
-    public readonly List<Vector3> KeyPoints = new List<Vector3>();
 
     public static Vector3 CellCenter(float x, float z) =>
         new Vector3((x - Size / 2f + 0.5f) * Cell, 0f, (z - Size / 2f + 0.5f) * Cell);
@@ -60,12 +67,28 @@ public class MapBuilder
         return result;
     }
 
-    /// <summary>World position to 0..1 radar coordinates (y up = north).</summary>
-    public static Vector2 ToRadar(Vector3 world) =>
-        new Vector2(world.x / (Size * Cell) + 0.5f, world.z / (Size * Cell) + 0.5f);
+    public override Vector3 SitePoint(bool siteA) => points[siteA ? "ASite" : "BSite"];
 
-    public void Build(Transform parent)
+    public override List<List<Vector3>> TerroristRoutes(bool siteA)
     {
+        var routes = new List<List<Vector3>>();
+        foreach (var route in siteA ? TerroristRoutesA : TerroristRoutesB) routes.Add(PointsFor(route));
+        return routes;
+    }
+
+    public override Vector3 TerroristWatch(bool siteA) => points[siteA ? "CTtoA" : "BDoors"];
+
+    public override List<(List<Vector3> Route, Vector3 LookAt)> SwatPosts()
+    {
+        var posts = new List<(List<Vector3>, Vector3)>();
+        foreach (var post in SwatPostNames) posts.Add((PointsFor(post.Route), points[post.LookAt]));
+        return posts;
+    }
+
+    public override void Build(Transform parent)
+    {
+        radarCenter = Vector3.zero;
+        radarSize = Size * Cell;
         Root = new GameObject("Map").transform;
         Root.SetParent(parent, false);
         CarveLayout();
@@ -322,13 +345,5 @@ public class MapBuilder
         Radar.Apply();
     }
 
-    void BakeNavMesh()
-    {
-        var sources = new List<NavMeshBuildSource>();
-        NavMeshBuilder.CollectSources(Root, ~0, NavMeshCollectGeometry.PhysicsColliders, 0, new List<NavMeshBuildMarkup>(), sources);
-        var settings = NavMesh.GetSettingsByID(0);
-        var bounds = new Bounds(Vector3.zero, new Vector3(Size * Cell + 10f, 40f, Size * Cell + 10f));
-        var data = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
-        NavMesh.AddNavMeshData(data);
-    }
+    void BakeNavMesh() => BakeNavMesh(new Bounds(Vector3.zero, new Vector3(Size * Cell + 10f, 40f, Size * Cell + 10f)));
 }

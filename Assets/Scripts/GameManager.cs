@@ -31,6 +31,7 @@ public class GameManager : MonoBehaviour
 
     public const float FreezeTime = 4f;
     public const float BuyTime = 25f;       // counted from the start of the freeze
+    public const float SellTime = 30f;      // selling your own guns back, counted the same way
     public const float RoundTime = 115f;
     public const float RoundEndDelay = 5f;
     public const int StartMoney = 800;
@@ -43,15 +44,22 @@ public class GameManager : MonoBehaviour
     static readonly string[] TerroristNames = { "Viper", "Jackal", "Cobra", "Scorpion", "Raven", "Wolf", "Dagger", "Ghost" };
     static readonly string[] SwatNames = { "Hawk", "Falcon", "Ranger", "Bishop", "Echo", "Titan", "Sentinel", "Patriot" };
 
+    /// <summary>True for a bot's name (no account may take one).</summary>
+    public static bool IsBotName(string name) =>
+        Array.Exists(TerroristNames, n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase)) ||
+        Array.Exists(SwatNames, n => string.Equals(n, name, StringComparison.OrdinalIgnoreCase));
+
     // Match settings, chosen in the main menu (in a LAN game the host's count).
     public PlayerSide Side = PlayerSide.Terrorists;
     public int TeamSize = 5;
     public BotDifficulty Difficulty = BotDifficulty.Normal;
     public int RoundsToWin = 8;
     public bool FriendlyFire;
+    /// <summary>The map chosen in the menu (saved); in a LAN game the client plays the host's map instead.</summary>
+    public string MapId { get; private set; } = MapCatalog.DefaultId;
 
     public MatchState State { get; private set; } = MatchState.Menu;
-    public MapBuilder Map { get; private set; }
+    public GameMap Map { get; private set; }
     public NetSession Net { get; private set; }
     public BombManager Bomb { get; private set; }
     public Camera MainCamera { get; private set; }
@@ -81,6 +89,7 @@ public class GameManager : MonoBehaviour
     public bool IsClient => clientMatch && Net.IsClient;
     public bool SpectatingNow => State != MatchState.Menu && (Player == null || !Player.Self.IsAlive);
     public float BuyTimeLeft => BuyTime - (Time.time - roundStartedAt);
+    public float SellTimeLeft => SellTime - (Time.time - roundStartedAt);
 
     readonly List<BotController> bots = new List<BotController>();
     float roundStartedAt;
@@ -90,14 +99,26 @@ public class GameManager : MonoBehaviour
 
     // Command-line automation (used for smoke tests): -ds-autostart, -ds-side, -ds-money, -ds-quit-after,
     // -ds-capture, -ds-timescale, -ds-host, -ds-join <ip>, -ds-find, -ds-name <name>, -ds-client-fire,
-    // -ds-perf (logs FPS and drawn bodies), -ds-nocull, -ds-quality <low|medium|high>, -ds-fps <limit>, -ds-scale <0.25-1>
+    // -ds-perf (logs FPS and drawn bodies), -ds-nocull, -ds-quality <low|medium|high>, -ds-fps <limit>, -ds-scale <0.25-1>,
+    // -ds-map <id>
     bool autoStart, autoHost, autoFind, clientFireTest, perfLog;
     string autoJoin;
     WeaponSlot? holdSlot;   // -ds-hold <primary|secondary|knife>: the player keeps this weapon out (screenshots)
+    WeaponData giveWeapon;  // -ds-give <weapon>: the player gets this weapon every round
+    bool fireTest;          // -ds-fire-test: the player fires straight ahead every 3 s, with a screenshot just after
+    string radarFile;       // -ds-radar-png <file>: saves the map's radar picture (checking the map's orientation)
+    string navMeshFile;     // -ds-navmesh-obj <file>: saves where bots can walk, as an .obj (finding cut-off places)
+    string hideParts;       // -ds-hide <text>: map parts whose names contain it are not drawn (finding what costs time)
+    bool poseGallery;       // -ds-pose-gallery: figures in every pose in a row above the map, seen from the side
+    int sellTestStep = -1;  // -ds-sell-test: in round 1 the player buys, sells and opens the shop by itself (logged)
+    List<(Vector3 Eye, Vector3 Target)> views;   // -ds-view "x,y,z,tx,ty,tz;...": the menu camera shows these spots
+    int viewShot = -1;                           // (2 s each, without the menu), with a screenshot of each in -ds-capture
+    bool keepRunning;       // -ds-background: tests keep running when their window is not in front
     int startMoney = StartMoney;
     float timeScale = 1f;
     float quitAt = -1f;
     string captureDirectory;
+    float captureEvery = 8f;   // -ds-capture-every <seconds>
     float nextCaptureAt, nextTestShot;
     int captureIndex;
     float perfSince = -1f;
@@ -110,10 +131,13 @@ public class GameManager : MonoBehaviour
         Instance = this;
         GameSettings.Load();
         SoundFX.Init();
-        SetupLighting();
-        Map = new MapBuilder();
-        Map.Build(transform);
+        CreateSun();
         MainCamera = CreateCamera();
+        // The saved map, unless it needs an account: nobody is logged in yet (OnAccountChanged loads it then).
+        var saved = MapCatalog.Find(PlayerPrefs.GetString(MapKey, MapCatalog.DefaultId));
+        MapId = saved != null && (!saved.AccountOnly || Accounts.LoggedIn) ? saved.Id : MapCatalog.DefaultId;
+        LoadMap(MapId);
+        Accounts.Changed += OnAccountChanged;
         gameObject.AddComponent<VisibilityCuller>();
         gameObject.AddComponent<RenderScaler>();
         gameObject.AddComponent<PerfStats>();
@@ -161,7 +185,7 @@ public class GameManager : MonoBehaviour
         for (int i = swatHumans; i < TeamSize; i++) SpawnBot(Team.Swat, swatNames.Dequeue());
 
         foreach (var c in Combatants) c.Money = startMoney;
-        Debug.Log($"[DesertStrike] Match started: {Side}, {TeamSize}v{TeamSize}, {Difficulty}, first to {RoundsToWin}, friendly fire {(FriendlyFire ? "on" : "off")}, {Net.Peers.Count} remote players");
+        Debug.Log($"[DesertStrike] Match started on {Map.Name}: {Side}, {TeamSize}v{TeamSize}, {Difficulty}, first to {RoundsToWin}, friendly fire {(FriendlyFire ? "on" : "off")}, {Net.Peers.Count} remote players");
         StartRound();
     }
 
@@ -171,6 +195,91 @@ public class GameManager : MonoBehaviour
         Net.Stop();
         clientMatch = false;
         State = MatchState.Menu;
+        LoadMap(MapId);   // after a LAN game on the host's map, back to this player's own choice
+    }
+
+    // ----------------------------------------------------------------- maps
+
+    const string MapKey = "DesertStrike.map";
+
+    /// <summary>The map chosen in the menu: loads it at once (it shows behind the menu) and remembers it.</summary>
+    public void SelectMap(string id)
+    {
+        var entry = MapCatalog.Find(id);
+        if (entry == null || Net.IsClient || (entry.AccountOnly && !Accounts.LoggedIn)) return;
+        MapId = id;
+        PlayerPrefs.SetString(MapKey, id);
+        LoadMap(id);
+    }
+
+    /// <summary>
+    /// After logging in: back to the saved map if it needs an account (Halloween). After logging out: off such a map,
+    /// and Extreme bots become Hard.
+    /// </summary>
+    void OnAccountChanged()
+    {
+        if (State != MatchState.Menu || Net.IsClient) return;
+        var saved = MapCatalog.Find(PlayerPrefs.GetString(MapKey, MapCatalog.DefaultId));
+        if (Accounts.LoggedIn)
+        {
+            if (saved != null && saved.AccountOnly && Map.Id != saved.Id)
+            {
+                MapId = saved.Id;
+                LoadMap(MapId);
+            }
+            return;
+        }
+        if (MapCatalog.Find(Map.Id)?.AccountOnly == true)
+        {
+            MapId = MapCatalog.DefaultId;
+            LoadMap(MapId);
+        }
+        if (Difficulty == BotDifficulty.Extreme) Difficulty = BotDifficulty.Hard;
+    }
+
+    /// <summary>A LAN client plays on the host's map (from the lobby, or when the match starts).</summary>
+    public void UseHostMap(string id)
+    {
+        if (MapCatalog.Find(id) != null) LoadMap(id);
+    }
+
+    /// <summary>Replaces the current map (its objects, NavMesh, radar and lighting) with another one.</summary>
+    public void LoadMap(string id)
+    {
+        if (Map != null && Map.Id == id) return;
+        float started = Time.realtimeSinceStartup;
+        if (Map != null)
+        {
+            Bomb?.Clear();
+            Effects.ClearDecals();
+            // Hidden at once, so the new map's spawn checks and radar picture do not see it before it is gone.
+            if (Map.Root != null) Map.Root.gameObject.SetActive(false);
+            Map.Unload();
+        }
+        var map = MapCatalog.Create(id);
+        ApplyLighting(map.Lighting);
+        map.Build(transform);
+        Map = map;
+        Debug.Log($"[DesertStrike] Map {map.Name} loaded in {(Time.realtimeSinceStartup - started) * 1000f:0} ms");
+    }
+
+    void ApplyLighting(MapLighting lighting)
+    {
+        var sun = RenderSettings.sun;
+        sun.transform.rotation = Quaternion.Euler(lighting.SunAngles);
+        sun.color = lighting.Sun;
+        sun.intensity = lighting.SunIntensity;
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+        RenderSettings.ambientSkyColor = lighting.Sky;
+        RenderSettings.ambientEquatorColor = lighting.Equator;
+        RenderSettings.ambientGroundColor = lighting.Ground;
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.Linear;
+        RenderSettings.fogColor = lighting.Fog;
+        RenderSettings.fogStartDistance = lighting.FogStart;
+        RenderSettings.fogEndDistance = lighting.FogEnd;
+        MainCamera.clearFlags = lighting.Skybox && RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
+        MainCamera.backgroundColor = lighting.Background;
     }
 
     /// <summary>A LAN game ended (the host quit, or the connection was lost).</summary>
@@ -184,6 +293,8 @@ public class GameManager : MonoBehaviour
     public void QuitGame()
     {
         Net.Stop();
+        // Leaving a LAN game lets the game pause when its window is not in front; it must still finish quitting.
+        Application.runInBackground = true;
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -201,7 +312,7 @@ public class GameManager : MonoBehaviour
     }
 
     public string MatchDescription() =>
-        $"{TeamSize}v{TeamSize}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}";
+        $"{Map.Name}  ·  {TeamSize}v{TeamSize}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}";
 
     void StartRound()
     {
@@ -235,7 +346,7 @@ public class GameManager : MonoBehaviour
             bool terrorist = c.Team == Team.Terrorists;
             Vector3 position = terrorist ? terroristSpawns[ti++ % terroristSpawns.Count] : swatSpawns[si++ % swatSpawns.Count];
             c.SpawnCount++;
-            c.GetComponent<ICombatantController>().Respawn(position, terrorist ? 0f : 180f);
+            c.GetComponent<ICombatantController>().Respawn(position, terrorist ? Map.TerroristSpawnYaw : Map.SwatSpawnYaw);
         }
 
         foreach (var bot in bots) bot.BuyGear();
@@ -337,8 +448,8 @@ public class GameManager : MonoBehaviour
         if (IsPaused) return;
 
         if (Player != null && Input.GetKeyDown(KeyCode.B))
-            BuyMenuOpen = !BuyMenuOpen && CanBuy(Player.Self);
-        if (BuyMenuOpen && !CanBuy(Player.Self)) BuyMenuOpen = false;
+            BuyMenuOpen = !BuyMenuOpen && CanShop(Player.Self);
+        if (BuyMenuOpen && !CanShop(Player.Self)) BuyMenuOpen = false;
 
         if (SpectatingNow)
         {
@@ -353,7 +464,7 @@ public class GameManager : MonoBehaviour
         MessageUntil = Time.time + seconds;
     }
 
-    // ----------------------------------------------------------------- buying (only in your spawn, during buy time)
+    // ----------------------------------------------------------------- buying and selling (only in your spawn, early in the round)
 
     public bool InBuyZone(Combatant c) =>
         (c.Team == Team.Terrorists ? Map.TerroristBuyZone : Map.SwatBuyZone).Contains(c.transform.position + Vector3.up * 0.5f);
@@ -362,7 +473,16 @@ public class GameManager : MonoBehaviour
         c != null && c.IsAlive && InBuyZone(c)
         && (State == MatchState.Freeze || (State == MatchState.Live && BuyTimeLeft > 0f));
 
+    public bool CanSell(Combatant c) =>
+        c != null && c.IsAlive && InBuyZone(c)
+        && (State == MatchState.Freeze || (State == MatchState.Live && SellTimeLeft > 0f));
+
+    /// <summary>The shop (B) is open while you can buy or sell.</summary>
+    public bool CanShop(Combatant c) => CanBuy(c) || CanSell(c);
+
     public bool TryBuyWeapon(Combatant c, WeaponData weapon) => weapon != null && CanBuy(c) && c.TryBuy(weapon);
+
+    public bool TrySellWeapon(Combatant c, WeaponSlot slot) => CanSell(c) && c.TrySell(slot);
 
     public bool TryBuyArmor(Combatant c, bool helmet) => CanBuy(c) && c.TryBuyArmor(helmet);
 
@@ -374,6 +494,14 @@ public class GameManager : MonoBehaviour
         if (IsClient) Net.SendAction(NetAction.BuyWeapon, WeaponData.IndexOf(weapon));
         else if (Player == null || !TryBuyWeapon(Player.Self, weapon)) return;
         SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
+    }
+
+    /// <summary>The buy menu: sells the player's gun in that slot (asking the host in a LAN game).</summary>
+    public void SellWeapon(WeaponSlot slot)
+    {
+        if (IsClient) Net.SendAction(NetAction.SellWeapon, (int)slot);
+        else if (Player == null || !TrySellWeapon(Player.Self, slot)) return;
+        SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 0.8f, false);
     }
 
     public void BuyArmor(bool helmet)
@@ -644,7 +772,7 @@ public class GameManager : MonoBehaviour
                 c.SkinChoices[weapon.Id] = s.Skin;
             }
         }
-        c.ApplyNetLoadout(s.Primary, s.Secondary, s.Slot, s.Mag, s.Reserve, s.Reload, s.AutoMode);
+        c.ApplyNetLoadout(s.Primary, s.Secondary, s.Slot, s.Mag, s.Reserve, s.Reload, s.AutoMode, s.PrimarySell, s.SecondarySell);
         if (!created) c.ApplyNetHealth(s.Health);
 
         if (me)
@@ -716,20 +844,29 @@ public class GameManager : MonoBehaviour
         // No HDR: the camera then draws straight to the screen instead of to an extra buffer that is copied over.
         cam.allowHDR = false;
         cam.fieldOfView = 75f;
-        cam.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.62f, 0.75f, 0.9f);
-        return cam;
+        return cam;   // sky or background colour: set with each map's lighting
     }
 
     void OrbitMenuCamera()
     {
-        float angle = Time.unscaledTime * 0.05f;
         var t = MainCamera.transform;
         t.SetParent(null, true);
+        MainCamera.fieldOfView = 60f;
+        if (views != null && views.Count > 0)
+        {
+            // -ds-view: each spot for 2 s, from 3 s after the start (the map has loaded by then).
+            var (eye, target) = views[Mathf.Clamp((int)((Time.realtimeSinceStartup - 3f) / 2f), 0, views.Count - 1)];
+            t.position = eye;
+            t.LookAt(target);
+            return;
+        }
+        float angle = Time.unscaledTime * 0.05f;
         t.position = new Vector3(Mathf.Cos(angle) * 75f, 55f, Mathf.Sin(angle) * 75f);
         t.LookAt(Vector3.zero);
-        MainCamera.fieldOfView = 60f;
     }
+
+    /// <summary>True while -ds-view shows its spots: the menu is hidden for the screenshots.</summary>
+    public bool ShowingViews => views != null && State == MatchState.Menu;
 
     void FollowSpectated()
     {
@@ -775,7 +912,8 @@ public class GameManager : MonoBehaviour
 
     // ----------------------------------------------------------------- setup helpers
 
-    static void SetupLighting()
+    /// <summary>The scene's sun (each map sets its colour, strength and direction).</summary>
+    static void CreateSun()
     {
         Light sun = null;
         foreach (var light in FindObjectsByType<Light>(FindObjectsSortMode.None))
@@ -785,23 +923,9 @@ public class GameManager : MonoBehaviour
             sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
         }
-        sun.transform.rotation = Quaternion.Euler(52f, -35f, 0f);
-        sun.color = new Color(1f, 0.93f, 0.8f);
-        sun.intensity = 0.95f;
         sun.shadows = LightShadows.Soft;
         sun.shadowStrength = 0.7f;
         RenderSettings.sun = sun;
-
-        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = new Color(0.46f, 0.5f, 0.58f);
-        RenderSettings.ambientEquatorColor = new Color(0.44f, 0.4f, 0.34f);
-        RenderSettings.ambientGroundColor = new Color(0.26f, 0.22f, 0.18f);
-        RenderSettings.fog = true;
-        RenderSettings.fogMode = FogMode.Linear;
-        RenderSettings.fogColor = new Color(0.84f, 0.77f, 0.64f);
-        RenderSettings.fogStartDistance = 60f;
-        RenderSettings.fogEndDistance = 260f;
-        // Shadow distance and quality are set by GameSettings.
     }
 
     static List<T> Shuffled<T>(IEnumerable<T> items)
@@ -841,6 +965,9 @@ public class GameManager : MonoBehaviour
                 case "-ds-quit-after" when hasValue:
                     quitAt = float.Parse(args[++i], CultureInfo.InvariantCulture);
                     break;
+                case "-ds-capture-every" when hasValue:
+                    captureEvery = float.Parse(args[++i], CultureInfo.InvariantCulture);
+                    break;
                 case "-ds-capture" when hasValue:
                     captureDirectory = args[++i];
                     Directory.CreateDirectory(captureDirectory);
@@ -879,8 +1006,66 @@ public class GameManager : MonoBehaviour
                                            float.Parse(args[++i], CultureInfo.InvariantCulture));
                     if (equipWeapon != null && WeaponSkins.Find(equipWeapon, equipSkin) is WeaponSkin turned) turned.Rotation = turn;
                     break;
+                case "-ds-login" when i + 2 < args.Length:
+                    // -ds-login <nickname> <password>: logs in at the start (signing up first when there is no such
+                    // account); use it with -ds-accounts-file <file> so tests keep their accounts apart.
+                    string login = args[++i], password = args[++i];
+                    if (Accounts.LogIn(login, password) != null) Accounts.SignUp(login, password, password);
+                    break;
+                case "-ds-difficulty" when hasValue:
+                    if (Enum.TryParse(args[++i], true, out BotDifficulty difficulty)) Difficulty = difficulty;
+                    break;
+                case "-ds-players" when hasValue:
+                    // -ds-players <1-5>: players per team (tests)
+                    TeamSize = Mathf.Clamp(int.Parse(args[++i], CultureInfo.InvariantCulture), 1, 5);
+                    break;
+                case "-ds-attack" when hasValue:
+                    // -ds-attack <a|b>: the Terrorist bots always go for that bombsite (tests)
+                    BotController.ForcedSiteA = args[++i].ToLowerInvariant() == "a";
+                    break;
+                case "-ds-background":
+                    keepRunning = true;
+                    break;
                 case "-ds-perf":
                     perfLog = true;
+                    break;
+                case "-ds-give" when hasValue:
+                    giveWeapon = WeaponData.Find(args[++i]);
+                    break;
+                case "-ds-fire-test":
+                    fireTest = true;
+                    break;
+                case "-ds-pose-gallery":
+                    poseGallery = true;
+                    break;
+                case "-ds-sell-test":
+                    sellTestStep = 0;
+                    break;
+                case "-ds-hide" when hasValue:
+                    hideParts = args[++i];
+                    break;
+                case "-ds-navmesh-obj" when hasValue:
+                    navMeshFile = args[++i];
+                    break;
+                case "-ds-radar-png" when hasValue:
+                    radarFile = args[++i];
+                    break;
+                case "-ds-view" when hasValue:
+                    views = new List<(Vector3, Vector3)>();
+                    foreach (string spot in args[++i].Split(';'))
+                    {
+                        var n = Array.ConvertAll(spot.Split(','), s => float.Parse(s, CultureInfo.InvariantCulture));
+                        if (n.Length == 6) views.Add((new Vector3(n[0], n[1], n[2]), new Vector3(n[3], n[4], n[5])));
+                    }
+                    break;
+                case "-ds-map" when hasValue:
+                    // -ds-map <dune|village|halloween|industrial>: plays that map this run (not saved)
+                    string mapId = args[++i];
+                    if (MapCatalog.Find(mapId) != null)
+                    {
+                        MapId = mapId;
+                        LoadMap(mapId);
+                    }
                     break;
                 case "-ds-profile" when hasValue:
                     profileFile = args[++i];
@@ -938,9 +1123,63 @@ public class GameManager : MonoBehaviour
         perfFrames = perfInView = perfDrawn = 0;
     }
 
+    /// <summary>A row of figures in the sky over the map, each in one pose, facing along +x so the camera (set as
+    /// the -ds-view spot) sees them from the side: checking the animations.</summary>
+    void ShowPoseGallery()
+    {
+        var poses = new (string Pose, float Time)[]
+        {
+            ("stand", 0f), ("walk", Mathf.PI / 2f), ("walk", Mathf.PI * 1.5f), ("crouch", 0f), ("crouch walk", Mathf.PI / 2f),
+            ("jump", 0f), ("dying", 0.18f), ("dying", 0.42f), ("dying", 0.55f), ("dead", 0f),
+        };
+        Vector3 start = new Vector3(-10f, 40f, 0f);
+        for (int i = 0; i < poses.Length; i++)
+        {
+            var go = new GameObject("Pose " + poses[i].Pose) { layer = Ballistics.CharacterLayer };
+            go.transform.SetPositionAndRotation(start + Vector3.right * (i * 2.5f), Quaternion.Euler(0f, 90f, 0f));
+            var figure = go.AddComponent<Combatant>();
+            figure.Team = i % 2 == 0 ? Team.Terrorists : Team.Swat;
+            figure.DisplayName = poses[i].Pose;
+            var body = go.AddComponent<CharacterBody>();
+            body.Setup();
+            figure.Money = 10000;
+            figure.TryBuy(figure.Team == Team.Terrorists ? WeaponData.Ak47 : WeaponData.M4a1);
+            body.ShowPose(poses[i].Pose, poses[i].Time);
+        }
+        Vector3 middle = start + Vector3.right * ((poses.Length - 1) * 2.5f / 2f) + Vector3.up * 0.9f;
+        views = new List<(Vector3, Vector3)> { (middle + new Vector3(0f, 0.6f, -15f), middle) };
+    }
+
+    /// <summary>-ds-sell-test (with -ds-money 5000): buy an AK-47 and sell it back (full price), then after buy time
+    /// sell the pistol and check that selling stops after <see cref="SellTime"/>. Goes through the shop's own calls, so
+    /// on a LAN client it asks the host; every step is logged, with screenshots of the shop.</summary>
+    void RunSellTest()
+    {
+        var me = Player.Self;
+        float t = Time.time - roundStartedAt;
+        string Gear() => $"${me.Money}, main {me.Primary?.Data.Name ?? "none"} (sells {me.Primary?.SellPrice}), pistol {me.Secondary?.Data.Name ?? "none"} (sells {me.Secondary?.SellPrice}), holding {me.Current?.Data.Name}";
+        void Step(float after, Action action)
+        {
+            if (t <= after) return;
+            action();
+            sellTestStep++;
+        }
+        switch (sellTestStep)
+        {
+            case 0: Step(1f, () => { Debug.Log($"[SellTest] {t:0.0}s start: {Gear()}"); BuyWeapon(WeaponData.Ak47); BuyMenuOpen = true; nextCaptureAt = Time.realtimeSinceStartup + 1f; }); break;
+            case 1: Step(2.5f, () => { Debug.Log($"[SellTest] {t:0.0}s bought: {Gear()}"); SellWeapon(WeaponSlot.Primary); SellWeapon(WeaponSlot.Knife); }); break;
+            case 2: Step(4f, () => Debug.Log($"[SellTest] {t:0.0}s sold main (and tried the knife): {Gear()}, knife {me.Knife != null}")); break;
+            case 3: Step(27f, () => { BuyMenuOpen = CanShop(me); Debug.Log($"[SellTest] {t:0.0}s can buy {CanBuy(me)}, can sell {CanSell(me)}, shop open {BuyMenuOpen}"); BuyWeapon(WeaponData.Mp5); nextCaptureAt = Time.realtimeSinceStartup + 0.3f; }); break;
+            case 4: Step(28.2f, () => { Debug.Log($"[SellTest] {t:0.0}s tried to buy an MP5 after buy time: {Gear()}"); SellWeapon(WeaponSlot.Secondary); }); break;
+            case 5: Step(29.5f, () => Debug.Log($"[SellTest] {t:0.0}s sold pistol: {Gear()}")); break;
+            case 6: Step(31f, () => { Debug.Log($"[SellTest] {t:0.0}s after sell time: can sell {CanSell(me)}, shop open {BuyMenuOpen}"); sellTestStep = -2; }); break;
+        }
+    }
+
     void RunAutomation()
     {
         float now = Time.realtimeSinceStartup;
+        if (keepRunning) Application.runInBackground = true;   // leaving a LAN game would switch it off again
         if (holdSlot.HasValue && Player != null && Player.Self.IsAlive && Player.Self.Current != null
             && Player.Self.Current.Data.Slot != holdSlot.Value)
             Player.Self.Equip(holdSlot.Value);
@@ -952,15 +1191,67 @@ public class GameManager : MonoBehaviour
             autoFind = false;
             Net.Join(Net.FoundHosts[0].Address);
         }
-        // Client test: shoot straight ahead now and then, to check that shots reach the host.
-        if (clientFireTest && IsClient && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTestShot)
+        if (poseGallery && Map != null)
         {
-            nextTestShot = now + 1f;
+            poseGallery = false;
+            ShowPoseGallery();
+        }
+        if (hideParts != null && Map?.Root != null)
+        {
+            int hidden = 0;
+            foreach (var part in Map.Root.GetComponentsInChildren<Renderer>())
+                if (part.name.Contains(hideParts))
+                {
+                    part.enabled = false;
+                    hidden++;
+                }
+            Debug.Log($"[DesertStrike] -ds-hide {hideParts}: {hidden} map parts hidden");
+            hideParts = null;
+        }
+        if (navMeshFile != null)
+        {
+            var mesh = UnityEngine.AI.NavMesh.CalculateTriangulation();
+            var obj = new System.Text.StringBuilder();
+            foreach (var v in mesh.vertices) obj.AppendLine(FormattableString.Invariant($"v {v.x:0.###} {v.y:0.###} {v.z:0.###}"));
+            for (int t = 0; t + 2 < mesh.indices.Length; t += 3)
+                obj.AppendLine($"f {mesh.indices[t] + 1} {mesh.indices[t + 1] + 1} {mesh.indices[t + 2] + 1}");
+            File.WriteAllText(navMeshFile, obj.ToString());
+            navMeshFile = null;
+        }
+        if (radarFile != null && Map.Radar != null)
+        {
+            File.WriteAllBytes(radarFile, Map.Radar.EncodeToPNG());
+            radarFile = null;
+        }
+        if (giveWeapon != null && Player != null && Player.Self.IsAlive && Player.Self.Get(giveWeapon.Slot)?.Data != giveWeapon)
+        {
+            Player.Self.Money += giveWeapon.Price;
+            Player.Self.TryBuy(giveWeapon);
+            Player.Self.Equip(giveWeapon.Slot, instant: true);
+        }
+        if (sellTestStep >= 0 && Player != null && Round == 1) RunSellTest();
+        // Client test: shoot straight ahead now and then, to check that shots reach the host.
+        bool firing = (clientFireTest && IsClient) || fireTest;
+        if (firing && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTestShot)
+        {
+            nextTestShot = now + (fireTest ? 3f : 1f);
             Player.Self.TryFire(Player.transform.forward, 0f);
+            if (fireTest && captureDirectory != null) nextCaptureAt = now + 0.1f;
+        }
+        if (views != null && captureDirectory != null)
+        {
+            // One screenshot per -ds-view spot, 1.5 s after the camera got there, instead of one every 8 s.
+            nextCaptureAt = float.MaxValue;
+            int shot = (int)((now - 4.5f) / 2f);
+            if (now >= 4.5f && shot > viewShot && shot < views.Count)
+            {
+                viewShot = shot;
+                ScreenCapture.CaptureScreenshot(Path.Combine(captureDirectory, $"view_{shot:00}.png"));
+            }
         }
         if (captureDirectory != null && now >= nextCaptureAt)
         {
-            nextCaptureAt = now + 8f;
+            nextCaptureAt = now + captureEvery;
             ScreenCapture.CaptureScreenshot(Path.Combine(captureDirectory, $"shot_{captureIndex++:00}.png"));
         }
         if (quitAt > 0f && now >= quitAt)

@@ -31,3 +31,6 @@
 *.VC.db
 sysinfo.txt
 crashlytics-build.properties
+
+# Python cache from the Blender tools
+__pycache__/

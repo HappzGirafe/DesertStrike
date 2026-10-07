@@ -1,0 +1,81 @@
+{
+  "parts": [
+    {
+      "name": "Main",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.1,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.15,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.001",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.15,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Grip",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.18,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.002",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.003",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Main.001",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.18,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    }
+  ]
+}

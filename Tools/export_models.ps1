@@ -6,19 +6,23 @@ $project = Split-Path $PSScriptRoot -Parent
 $blender = "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
 $models = @(
     # Default models of the weapons (Assets/Resources/Models/<weapon name>/model.fbx)
-    @("Glock18.blend", "Assets/Resources/Models/Glock-18/model.fbx"),
-    @("USP.blend", "Assets/Resources/Models/USP/model.fbx"),
+    @("Glock18.blend", "Assets/Resources/Models/Glock-18/model.fbx", "--roles", "Main=Cube.001,Cube.008;Grip=Cube.005", "--copy-textures"),
+    @("USP.blend", "Assets/Resources/Models/USP/model.fbx", "--roles", "Main=Cube.002,Cube.003;Grip=Cube.006", "--copy-textures"),
     @("Tec9.blend", "Assets/Resources/Models/TEC-DC9/model.fbx", "--roles", "Main=Cube.002;Grip=Cube", "--copy-textures"),
     @("m1911.blend", "Assets/Resources/Models/M1911/model.fbx", "--roles", "Main=Cube.002;Grip=Cube", "--copy-textures"),
     @("mp5.blend", "Assets/Resources/Models/MP5/model.fbx", "--roles", "Main=Cube.006,Cube.003,Cube.005;Grip=Cube.008,Cube.004", "--copy-textures"),
     @("M4A1.blend", "Assets/Resources/Models/M4A1/model.fbx", "--roles", "Main=Cube.002,Cube.001;Grip=Cube.006,Cube.008", "--copy-textures"),
-    @("ak 47.blend", "Assets/Resources/Models/AK-47/model.fbx", "--roles", "Main=Cube,Cylinder,Cylinder.001;Grip=Cube.002,Cube.001,Cube.007", "--copy-textures"),
+    @("ak47.blend", "Assets/Resources/Models/AK-47/model.fbx", "--roles", "Main=Cube.003,Cylinder.001;Grip=Cube.001,Cube.002,Cube.004", "--copy-textures"),
     @("AWP.blend", "Assets/Resources/Models/AWP/model.fbx", "--roles", "Main=Cube,Cube.001", "--copy-textures"),
-    @("digle_default.blend", "Assets/Resources/Models/Desert Eagle/model.fbx", "--roles", "Main=Cube.001;Grip=Cube", "--copy-textures"),
+    @("digle.blend", "Assets/Resources/Models/Desert Eagle/model.fbx", "--roles", "Main=Cube.007,Cube.001;Grip=Cube.003,Cube.004", "--copy-textures"),
+    @("pumpshotgun.blend", "Assets/Resources/Models/Pump Shotgun/model.fbx", "--roles", "Main=Cube.002,Cylinder,Cylinder.001;Grip=Cube.010,Cube.001,Cube.004", "--copy-textures"),
     # Skins that bring their own model (Assets/Resources/Skins/<weapon name>/<skin name>/model.fbx)
     @("nogektestskin.blend", "Assets/Resources/Skins/Knife/nogektestskin/model.fbx"),
     @("nogenkerambit.blend", "Assets/Resources/Skins/Knife/karambit/model.fbx", "--roles", "Blade=Cube.008;Grip=Cube.001"),
-    @("digle.blend", "Assets/Resources/Skins/Desert Eagle/digle/model.fbx")
+    @("digle.blend", "Assets/Resources/Skins/Desert Eagle/digle/model.fbx"),
+    # The RPG's Web skin and the net it fires (projectile.fbx: what the skin shoots instead of the rocket)
+    @("rpg_web_launcher.blend", "Assets/Resources/Skins/RPG/Web/model.fbx", "--roles", "Main=RPG_Web_tube,RPG_Web_black;Grip=RPG_Web_wood", "--copy-textures"),
+    @("rpg_web_net.blend", "Assets/Resources/Skins/RPG/Web/projectile.fbx", "--copy-textures")
 )
 foreach ($model in $models) {
     $blend = Join-Path $project "Art\Blender\$($model[0])"

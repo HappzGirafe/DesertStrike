@@ -2,7 +2,7 @@ using System.IO;
 using UnityEngine;
 
 /// <summary>Things a client asks the host to do for its player.</summary>
-public enum NetAction : byte { Reload = 1, Equip, AutoMode, BuyWeapon, BuyArmor, BuyDefuseKit, DropBomb }
+public enum NetAction : byte { Reload = 1, Equip, AutoMode, BuyWeapon, BuyArmor, BuyDefuseKit, DropBomb, SellWeapon }
 
 /// <summary>One combatant as the host describes it in a snapshot.</summary>
 public struct NetCombatantState
@@ -14,6 +14,7 @@ public struct NetCombatantState
     public Vector3 Position;
     public float Yaw, Height, Reload;
     public int Health, Armor, Money, Kills, Deaths, Mag, Reserve, SpawnCount, SkinSeed;
+    public int PrimarySell, SecondarySell;   // what selling each gun back would give
     public WeaponData Primary, Secondary;
     public WeaponSlot Slot;
     public string Skin;   // skin id of the weapon in hand ("" = none / bot)
@@ -28,6 +29,7 @@ public struct NetMatchState
     public string Banner, Message;
     public Team? LastWinner;
     public bool FriendlyFire;
+    public string MapId;
 }
 
 static class NetIO

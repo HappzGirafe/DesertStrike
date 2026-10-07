@@ -1,0 +1,103 @@
+{
+  "parts": [
+    {
+      "name": "Main",
+      "texture": "rpgweb_RPG_Black",
+      "color": "",
+      "metallic": 0.3,
+      "smoothness": 0.24,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail",
+      "texture": "rpgweb_RPG_Bone",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.18,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.001",
+      "texture": "rpgweb_RPG_Spider_Eyes",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.09,
+      "emission": "#FF5A41",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.002",
+      "texture": "rpgweb_RPG_Sight_Glow",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.09,
+      "emission": "#A8FF94",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.003",
+      "texture": "rpgweb_RPG_Web_Pod",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.03,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.004",
+      "texture": "rpgweb_RPG_Pumpkin_Collar",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.09,
+      "emission": "#FFFFFF",
+      "emissionTexture": "rpgweb_RPG_Pumpkin_Collar_glow",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.005",
+      "texture": "rpgweb_RPG_Web_Strand",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.03,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Main.001",
+      "texture": "rpgweb_RPG_Tube_WebPaint",
+      "color": "",
+      "metallic": 0.4,
+      "smoothness": 0.27,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Grip",
+      "texture": "rpgweb_RPG_Wood_Bats",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.09,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    }
+  ]
+}

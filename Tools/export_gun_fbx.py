@@ -13,8 +13,9 @@ handle) the grip colour, and "Detail" (barrel, magazine, sights...) the detail c
     "peredr" (in front of the handle) -> Guard     "ruchka" / "rychka" / "wood" -> Grip
     "nogen" (knife blade)             -> Blade     "skin" / "stvol" / "steel" / "ocnova" -> Slide (main)
     anything else                     -> Detail
---copy-textures makes the model's own look its default: each part's texture (or colour) from Blender is copied
-next to the .fbx and listed in parts.json, which the game reads. (FBX itself cannot carry Blender 5's material
+--copy-textures makes the model's own look its default: each part's texture (or colour, glow and transparency)
+from Blender is copied next to the .fbx and listed in parts.json (<name>_parts.json for other .fbx names), which
+the game reads. (FBX itself cannot carry Blender 5's material
 nodes, which is why the look travels separately.)
 Flat meshes (reference pictures on a plane) are left out.
 Texture paths are pointed at the copies in Art/Textures when they exist there, and the .blend is saved,
@@ -22,7 +23,6 @@ so the file does not depend on a Downloads folder.
 """
 import json
 import os
-import shutil
 import sys
 
 import bpy
@@ -111,38 +111,16 @@ bpy.ops.export_scene.fbx(
 print("Exported", out_path, "parts:", sorted(obj.name for obj in meshes))
 
 
-# 4. The model's own look, for the game's Default skin.
-def look_of(obj):
-    look = {"name": obj.name, "texture": "", "color": "", "metallic": 0.0, "smoothness": 0.2}
-    material = obj.material_slots[0].material if obj.material_slots else None
-    if not material or not material.node_tree:
-        return look
-    textured = any(node.type == "TEX_IMAGE" and node.image for node in material.node_tree.nodes)
-    for node in material.node_tree.nodes:
-        if node.type == "TEX_IMAGE" and node.image and not look["texture"]:
-            source = bpy.path.abspath(node.image.filepath)
-            if os.path.exists(source):
-                name = os.path.basename(source)
-                shutil.copyfile(source, os.path.join(os.path.dirname(out_path), name))
-                look["texture"] = os.path.splitext(name)[0]
-            else:
-                print("Missing texture (the part gets a plain colour in the game):", source)
-        if node.type in ("BSDF_PRINCIPLED", "BSDF_METALLIC"):
-            # With a texture the base colour is not what the part looks like, so it is only kept for untextured parts.
-            color = node.inputs["Base Color"].default_value
-            if not textured:
-                look["color"] = "#{:02X}{:02X}{:02X}".format(*(round(min(max(c, 0.0), 1.0) ** (1 / 2.2) * 255) for c in color[:3]))
-            roughness = node.inputs["Roughness"].default_value if "Roughness" in node.inputs else 0.5
-            look["smoothness"] = round(max(0.0, 1.0 - roughness) * 0.6, 2)
-            if node.type == "BSDF_METALLIC":
-                look["metallic"] = 0.5
-            elif "Metallic" in node.inputs:
-                look["metallic"] = round(node.inputs["Metallic"].default_value, 2)
-    return look
-
-
+# 4. The model's own look, for the game's Default skin (texture or colour, glow, transparency per part).
+# model.fbx gets parts.json; another model in the same folder (a skin's projectile.fbx) gets <name>_parts.json.
 if copy_textures:
-    looks = [look_of(obj) for obj in meshes]
-    with open(os.path.join(os.path.dirname(out_path), "parts.json"), "w") as file:
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from blender_looks import look_of
+
+    looks = [look_of(obj, os.path.dirname(out_path)) for obj in meshes]
+    base = os.path.splitext(os.path.basename(out_path))[0]
+    parts_file = "parts.json" if base == "model" else base + "_parts.json"
+    with open(os.path.join(os.path.dirname(out_path), parts_file), "w") as file:
         json.dump({"parts": looks}, file, indent=2)
-    print("Wrote parts.json:", ", ".join(f"{l['name']}={l['texture'] or l['color']}" for l in looks))
+    print(f"Wrote {parts_file}:", ", ".join(f"{l['name']}={l['texture'] or l['color']}" + (" glow" if l["emission"] else "")
+                                           + ("" if l["alpha"] == "OPAQUE" else " " + l["alpha"]) for l in looks))
