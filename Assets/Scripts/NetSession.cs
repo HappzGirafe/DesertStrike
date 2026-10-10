@@ -202,7 +202,7 @@ public class NetSession : MonoBehaviour
         return list;
     }
 
-    static List<(IPAddress address, IPAddress mask)> LocalIPv4()
+    internal static List<(IPAddress address, IPAddress mask)> LocalIPv4()
     {
         var result = new List<(IPAddress, IPAddress)>();
         try
@@ -226,7 +226,7 @@ public class NetSession : MonoBehaviour
         return result;
     }
 
-    static IPAddress BroadcastAddress(IPAddress address, IPAddress mask)
+    internal static IPAddress BroadcastAddress(IPAddress address, IPAddress mask)
     {
         byte[] ip = address.GetAddressBytes(), bits = mask.GetAddressBytes(), broadcast = new byte[4];
         for (int i = 0; i < 4; i++) broadcast[i] = (byte)(ip[i] | ~bits[i]);

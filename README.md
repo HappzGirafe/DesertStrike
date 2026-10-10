@@ -51,6 +51,21 @@ Accounts are saved on the computer in `accounts.json` in the game's data folder,
 The password itself is never saved, only a salted PBKDF2-SHA256 hash of it. Accounts are per computer: there is no
 server, so the same nickname can exist on another computer (in a LAN game the second one gets a number added).
 
+### Friends
+
+**FRIENDS** in the main menu (it needs an account): type a friend's nickname and click **SEND REQUEST**; on their
+side the request shows up with **ACCEPT** / **DECLINE**, and once accepted you are on each other's list. A friend
+shows as **Online** (green) while their game is open on the same WiFi or network as yours (like LAN games: there is
+no server), otherwise **Offline**. The menu button shows how many friends are online, or that a request is waiting.
+**REMOVE** (click twice) takes a friend off your list, and they stop seeing you online too.
+
+**Settings > Online status (friends): Hidden** - nobody sees when you are online, and while it is on you cannot
+see whether your friends are online either (they show as "Hidden"). The choice is saved with the account.
+
+The friends list is kept with the account in `accounts.json`; each account also gets a random id there, so two
+players with the same nickname on different computers are told apart. A request only reaches a friend whose game
+is open on the network at the time.
+
 ### Settings and performance (laptops, MacBook Air)
 
 **SETTINGS** (main menu, or Esc during a match) is saved between sessions:
@@ -101,7 +116,7 @@ The gun models and skins make no measurable difference: the models have 24 to 1,
 3. The host clicks **START MATCH**. Bots fill the empty places on both teams.
 
 The first time, Windows asks whether Low Strike may use the network: allow it (at least on private networks).
-The game uses UDP ports 27015 (game) and 27016 (finding games).
+The game uses UDP ports 27015 (game), 27016 (finding games) and 27017 (friends: who is online, friend requests).
 
 **Voice chat:** during a LAN match, hold **V** to talk; everyone in the game hears you, and the names of the
 people talking appear under the radar. Settings > *When the others hear you* > **Open mic** sends your voice
@@ -336,7 +351,8 @@ All in `Assets/Scripts`:
 | `WeaponSkins.cs`, `SkinPreview.cs` | Pistol skins, the equipped choice, and the inventory's 3D preview |
 | `Ballistics.cs`, `Effects.cs`, `SoundFX.cs`, `WeaponModels.cs` | Hitscan, visuals, generated sounds, gun models |
 | `GameSettings.cs` | Graphics quality, frame limit, FPS counter, sensitivity (saved) |
-| `Accounts.cs` | Accounts on this computer: sign up, log in (hashed passwords), each account's skins |
+| `Accounts.cs` | Accounts on this computer: sign up, log in (hashed passwords), each account's skins and friends |
+| `Friends.cs` | Friend requests and who is online on the network (its own thread, so it runs in the background too) |
 | `VisibilityCuller.cs` | Skips drawing players hidden behind walls, tested right before each frame |
 | `EffectPool.cs` | Reuses effect and sound objects instead of creating new ones per shot |
 | `RenderScaler.cs` | Draws the 3D view at the chosen 3D resolution and stretches it to the screen |
@@ -353,7 +369,9 @@ map and shows them from the side (with `-ds-capture`: a picture to check the ani
 (with `-ds-money 5000`, also on a LAN client) buys and sells in round 1 by itself and logs each step, and `-ds-give rpg -ds-equip rpg Web -ds-fire-test` gives the
 player a weapon and skin and fires every 3 s, with `-ds-capture <folder>` (a full path) taking a screenshot just after.
 Otherwise `-ds-capture <folder>` takes a screenshot every 8 s (`-ds-capture-every <seconds>` changes it).
-`-ds-hidefps` hides the FPS counter for one run (clean screenshots), and `-ds-background` keeps a test running
+`-ds-friends` opens the friends screen, `-ds-friend-request <nickname>` sends a request, `-ds-accept-friends`
+accepts every request and `-ds-hide-status on|off` sets the online status (two games on one PC with their own
+`-ds-accounts-file` can test friends), `-ds-hidefps` hides the FPS counter for one run (clean screenshots), and `-ds-background` keeps a test running
 when its window is not in front. Tests skip the log-in screen
 (`-ds-account-screen [signup]` shows it); `-ds-login <nickname> <password>` logs in (signing up when there is no such
 account), and `-ds-accounts-file <file>` keeps test accounts out of the real `accounts.json`.

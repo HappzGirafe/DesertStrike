@@ -61,6 +61,7 @@ public class GameManager : MonoBehaviour
     public MatchState State { get; private set; } = MatchState.Menu;
     public GameMap Map { get; private set; }
     public NetSession Net { get; private set; }
+    public Friends Friends { get; private set; }
     public BombManager Bomb { get; private set; }
     public Camera MainCamera { get; private set; }
     public PlayerController Player { get; private set; }
@@ -142,6 +143,7 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<RenderScaler>();
         gameObject.AddComponent<PerfStats>();
         Net = gameObject.AddComponent<NetSession>();
+        Friends = gameObject.AddComponent<Friends>();
         gameObject.AddComponent<VoiceChat>();
         Bomb = gameObject.AddComponent<BombManager>();
         if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();

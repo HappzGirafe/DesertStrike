@@ -8,8 +8,9 @@ using UnityEngine;
 /// <summary>
 /// Player accounts, kept on this computer in accounts.json in the game's data folder (which updates leave alone):
 /// each has a nickname no other account here has, a password (only a salted PBKDF2 hash of it is stored), and
-/// the skins equipped with it. Logged in, a player can choose the Halloween map, the RPG's Web skin and Extreme bots.
-/// The game asks to log in or sign up at every start; playing as a guest stays possible.
+/// the skins equipped with it, its friends (see <see cref="Friends"/>) and whether its online status is hidden. Logged
+/// in, a player can choose the Halloween map, the RPG's Web skin and Extreme bots. The game asks to log in or sign up
+/// at every start; playing as a guest stays possible.
 /// </summary>
 public static class Accounts
 {
@@ -21,14 +22,24 @@ public static class Accounts
     }
 
     [Serializable]
+    class Friend
+    {
+        public string id;
+        public string name;
+    }
+
+    [Serializable]
     class Account
     {
+        public string id;        // random, so friends on other computers can tell two players with one nickname apart
         public string name;
         public string salt;      // Base64, 16 random bytes
         public string hash;      // Base64 PBKDF2-SHA256 of the password, 32 bytes
         public int iterations;
         public string created;   // ISO date
         public List<SkinChoice> skins = new List<SkinChoice>();
+        public List<Friend> friends = new List<Friend>();
+        public bool hideStatus;  // nobody sees this player online, and it sees nobody
     }
 
     [Serializable]
@@ -41,10 +52,12 @@ public static class Accounts
 
     const int Iterations = 20000;
     public const int MinPasswordLength = 4;
+    public const int MaxFriends = 50;
     static readonly Regex NamePattern = new Regex("^[A-Za-z0-9_-]{3,16}$");
 
     /// <summary>The logged-in account's nickname, or null for a guest.</summary>
     public static string Current => current?.name;
+    public static string CurrentId => current?.id;
     public static bool LoggedIn => current != null;
 
     /// <summary>The nickname that logged in last on this computer (filled in on the log-in screen).</summary>
@@ -91,7 +104,28 @@ public static class Accounts
             Debug.LogWarning("[Accounts] Could not read " + FilePath + ": " + e.Message);
         }
         if (data.accounts == null) data.accounts = new List<Account>();
+        // Accounts from before friends get their id now.
+        bool added = false;
+        foreach (var account in data.accounts)
+        {
+            if (account.friends == null) account.friends = new List<Friend>();
+            if (string.IsNullOrEmpty(account.id))
+            {
+                account.id = NewId();
+                added = true;
+            }
+        }
+        if (added) Save();
     }
+
+    static string NewId()
+    {
+        var bytes = new byte[6];
+        using (var random = RandomNumberGenerator.Create()) random.GetBytes(bytes);
+        return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+    }
+
+    public static bool ValidName(string name) => NamePattern.IsMatch(name ?? "");
 
     static bool Save()
     {
@@ -139,6 +173,7 @@ public static class Accounts
         using (var random = RandomNumberGenerator.Create()) random.GetBytes(salt);
         var account = new Account
         {
+            id = NewId(),
             name = name,
             salt = Convert.ToBase64String(salt),
             hash = Convert.ToBase64String(Hash(password, salt, Iterations)),
@@ -220,6 +255,48 @@ public static class Accounts
         var choice = current.skins.Find(s => s.weapon == weaponId);
         if (choice == null) current.skins.Add(new SkinChoice { weapon = weaponId, skin = skinId });
         else choice.skin = skinId;
+        Save();
+    }
+
+    // ----------------------------------------------------------------- the account's friends
+
+    /// <summary>The logged-in account's friends (id, nickname); empty for a guest.</summary>
+    public static List<(string Id, string Name)> FriendList() =>
+        current == null ? new List<(string, string)>() : current.friends.ConvertAll(f => (f.id, f.name));
+
+    public static bool IsFriend(string id) => current != null && current.friends.Exists(f => f.id == id);
+
+    public static string FriendIdNamed(string name) =>
+        current?.friends.Find(f => string.Equals(f.name, name?.Trim(), StringComparison.OrdinalIgnoreCase))?.id;
+
+    /// <summary>Adds a friend (or renames one already there); false when the list is full.</summary>
+    public static bool AddFriend(string id, string name)
+    {
+        if (current == null || string.IsNullOrEmpty(id) || id == current.id) return false;
+        var friend = current.friends.Find(f => f.id == id);
+        if (friend == null)
+        {
+            if (current.friends.Count >= MaxFriends) return false;
+            current.friends.Add(new Friend { id = id, name = name });
+        }
+        else friend.name = name;
+        Save();
+        return true;
+    }
+
+    public static void RemoveFriend(string id)
+    {
+        if (current == null || current.friends.RemoveAll(f => f.id == id) == 0) return;
+        Save();
+    }
+
+    /// <summary>Hidden: friends do not see this player online, and the player does not see them.</summary>
+    public static bool HideStatus => current != null && current.hideStatus;
+
+    public static void SetHideStatus(bool hide)
+    {
+        if (current == null || current.hideStatus == hide) return;
+        current.hideStatus = hide;
         Save();
     }
 }

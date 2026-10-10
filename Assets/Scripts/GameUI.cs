@@ -40,6 +40,14 @@ public class GameUI : MonoBehaviour
     // Settings screen
     bool settingsOpen;
 
+    // Friends screen
+    bool friendsOpen;
+    string friendName = "";
+    string friendMessage;
+    bool friendMessageBad;
+    string removeConfirm;        // the friend whose REMOVE was clicked once (a second click removes)
+    Vector2 friendsScroll;
+
     // Log-in / sign-up screen: asked at every start (tests skip it unless -ds-account-screen), and opened by
     // clicking something that needs an account.
     bool askAccount;
@@ -68,6 +76,12 @@ public class GameUI : MonoBehaviour
         accountSignUp = accountArg >= 0 && accountArg + 1 < commandLine.Length && commandLine[accountArg + 1] == "signup";
         lanOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-find") >= 0;   // smoke test: search the network
         settingsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-settings") >= 0;   // smoke-test screenshots
+        friendsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-friends") >= 0;
+        gm.Friends.Noticed += text =>
+        {
+            friendMessage = text;
+            friendMessageBad = false;
+        };
         if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-showfps") >= 0) GameSettings.ShowFpsThisRun();
         if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-hidefps") >= 0) GameSettings.HideFpsThisRun();   // clean screenshots
 
@@ -113,6 +127,7 @@ public class GameUI : MonoBehaviour
             else if (gm.Net.IsHost) DrawHostLobby();
             else if (gm.Net.IsClient) DrawClientLobby();
             else if (lanOpen) DrawLanMenu();
+            else if (friendsOpen) DrawFriends();
             else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
             DrawFps(20f, 20f);
@@ -153,11 +168,14 @@ public class GameUI : MonoBehaviour
         rightEnd = FriendlyFireRow(right, rightEnd, column);
         y = Mathf.Max(leftEnd, rightEnd) + 6f;
 
-        float buttons = 320f + 3f * 200f + 3f * 14f, bx = x + (w - buttons) / 2f;
+        float buttons = 320f + 4f * 200f + 4f * 14f, bx = x + (w - buttons) / 2f;
         if (Button(new Rect(bx, y, 320f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
         if (Button(new Rect(bx + 334f, y, 200f, 66f), "LAN GAME", false, true, 22)) OpenLan();
-        if (Button(new Rect(bx + 548f, y, 200f, 66f), "INVENTORY", false, true, 22)) inventoryOpen = true;
-        if (Button(new Rect(bx + 762f, y, 200f, 66f), "SETTINGS", false, true, 22)) settingsOpen = true;
+        int requests = gm.Friends.Incoming.Count, online = Accounts.LoggedIn ? gm.Friends.OnlineCount : 0;
+        string friends = requests > 0 ? $"FRIENDS\n{requests} request{(requests == 1 ? "" : "s")}" : online > 0 ? $"FRIENDS\n{online} online" : "FRIENDS";
+        if (Button(new Rect(bx + 548f, y, 200f, 66f), friends, requests > 0, true, friends.Contains("\n") ? 19 : 22)) friendsOpen = true;
+        if (Button(new Rect(bx + 762f, y, 200f, 66f), "INVENTORY", false, true, 22)) inventoryOpen = true;
+        if (Button(new Rect(bx + 976f, y, 200f, 66f), "SETTINGS", false, true, 22)) settingsOpen = true;
         y += 82f;
         if (!string.IsNullOrEmpty(gm.MenuNotice))
         {
@@ -215,6 +233,142 @@ public class GameUI : MonoBehaviour
         gm.MenuNotice = null;
         if (gm.Side == PlayerSide.Spectate) gm.Side = PlayerSide.Terrorists;
         gm.Net.PreferredTeam = gm.Side == PlayerSide.Swat ? Team.Swat : Team.Terrorists;
+    }
+
+    // ----------------------------------------------------------------- friends
+
+    /// <summary>
+    /// Friends (they need an account): add one by nickname, answer requests, and see who is online, which means
+    /// the friend has the game open on the same WiFi or network. With the online status hidden (Settings) nobody
+    /// sees you, and you see nobody's status either.
+    /// </summary>
+    void DrawFriends()
+    {
+        var friends = gm.Friends;
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+        {
+            friendsOpen = false;
+            return;
+        }
+        bool submit = Event.current.type == EventType.KeyDown && GUI.GetNameOfFocusedControl() == "friend-name" &&
+                      (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
+        if (submit) Event.current.Use();
+
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
+        const float top = 70f, h = 940f;
+        float w = 820f, x = (width - w) / 2f, y = top;
+        Fill(new Rect(x, y, w, h), PanelColor);
+        Label(new Rect(x, y + 20f, w, 60f), "FRIENDS", 50, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 78f, w, 28f), "Friends who play on the same WiFi or network show as online", 20, Dim, TextAnchor.MiddleCenter);
+        y += 130f;
+        float bx = x + 40f, bw = w - 80f;
+
+        if (!Accounts.LoggedIn)
+        {
+            WrapLabel(new Rect(bx, y, bw, 60f), "Friends need an account. Log in or sign up, then add your friends by their nickname.", 21, Color.white);
+            y += 80f;
+            if (Button(new Rect(bx, y, bw, 60f), "LOG IN / SIGN UP", true, true, 24)) OpenAccount("Log in or sign up to have friends");
+        }
+        else
+        {
+            bool hidden = Accounts.HideStatus;
+            Label(new Rect(bx, y, bw, 30f), $"You: {Accounts.Current}", 22, Gold);
+            Label(new Rect(bx, y, bw, 30f), hidden ? "Your online status: hidden" : "Your online status: visible to friends", 18,
+                  hidden ? Dim : MoneyGreen, TextAnchor.MiddleRight);
+            y += 48f;
+
+            Label(new Rect(bx, y, bw, 30f), "Add a friend by nickname", 20, Color.white);
+            y += 34f;
+            GUI.SetNextControlName("friend-name");
+            friendName = GUI.TextField(new Rect(bx, y, bw - 250f, 44f), friendName ?? "", 16, InputStyle());
+            if (Button(new Rect(bx + bw - 236f, y, 236f, 44f), "SEND REQUEST", false, !string.IsNullOrWhiteSpace(friendName), 20) ||
+                (submit && !string.IsNullOrWhiteSpace(friendName)))
+            {
+                string name = friendName.Trim();
+                string problem = friends.SendRequest(name);
+                friendMessageBad = problem != null;
+                friendMessage = problem ?? (Accounts.IsFriend(Accounts.FriendIdNamed(name))
+                    ? $"{name} is now your friend"
+                    : $"Friend request sent to {name}. They get it while their game is open on this network.");
+                if (problem == null) friendName = "";
+            }
+            y += 52f;
+            if (!string.IsNullOrEmpty(friendMessage))
+                WrapLabel(new Rect(bx, y, bw, 44f), friendMessage, 17, friendMessageBad ? Danger : Gold);
+            y += 46f;
+
+            var requests = friends.Incoming;
+            if (requests.Count > 0)
+            {
+                Label(new Rect(bx, y, bw, 30f), $"Friend requests ({requests.Count})", 20, Gold);
+                y += 36f;
+                foreach (var request in requests.ToArray())   // answering changes the list
+                {
+                    Fill(new Rect(bx, y, bw, 50f), new Color(1f, 1f, 1f, 0.06f));
+                    Label(new Rect(bx + 15f, y, bw - 330f, 50f), $"{request.Name} wants to be your friend", 20, Color.white);
+                    if (Button(new Rect(bx + bw - 310f, y + 6f, 150f, 38f), "ACCEPT", true, true, 18)) friends.Accept(request);
+                    if (Button(new Rect(bx + bw - 150f, y + 6f, 140f, 38f), "DECLINE", false, true, 18)) friends.Decline(request);
+                    y += 58f;
+                }
+                y += 8f;
+            }
+
+            var list = Accounts.FriendList();
+            var online = new HashSet<string>();
+            if (!hidden)
+                foreach (var (id, _) in list)
+                    if (friends.IsOnline(id)) online.Add(id);
+            // Online friends first, then by name.
+            list.Sort((a, b) => online.Contains(a.Id) != online.Contains(b.Id)
+                ? (online.Contains(a.Id) ? -1 : 1)
+                : string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+            Label(new Rect(bx, y, bw, 30f), $"Your friends ({list.Count})", 20, Color.white);
+            if (!hidden && list.Count > 0) Label(new Rect(bx, y, bw, 30f), $"{online.Count} online", 18, MoneyGreen, TextAnchor.MiddleRight);
+            y += 38f;
+
+            float listBottom = top + h - 160f;
+            if (list.Count == 0)
+                Label(new Rect(bx, y, bw, 30f), "No friends yet: send a request above.", 18, Dim);
+            else
+            {
+                const float row = 54f;
+                var view = new Rect(bx, y, bw, Mathf.Max(row, listBottom - y));
+                var content = new Rect(0f, 0f, list.Count * row > view.height ? bw - 20f : bw, list.Count * row);
+                friendsScroll = GUI.BeginScrollView(view, friendsScroll, content, false, false);
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var (id, name) = list[i];
+                    float ry = i * row;
+                    bool isOnline = online.Contains(id);
+                    Fill(new Rect(0f, ry, content.width, row - 6f), new Color(1f, 1f, 1f, isOnline ? 0.1f : 0.05f));
+                    Color dot = hidden ? new Color(1f, 1f, 1f, 0.2f) : isOnline ? MoneyGreen : new Color(0.5f, 0.5f, 0.5f);
+                    Fill(new Rect(16f, ry + 17f, 14f, 14f), dot);
+                    Label(new Rect(44f, ry, 320f, row - 6f), name, 21, isOnline || hidden ? Color.white : new Color(1f, 1f, 1f, 0.75f));
+                    Label(new Rect(content.width - 350f, ry, 170f, row - 6f), hidden ? "Hidden" : isOnline ? "Online" : "Offline", 19,
+                          isOnline ? MoneyGreen : Dim, TextAnchor.MiddleRight);
+                    bool confirm = removeConfirm == id;
+                    if (Button(new Rect(content.width - 160f, ry + 7f, 150f, 34f), confirm ? "REALLY?" : "REMOVE", confirm, true, 16))
+                    {
+                        if (confirm)
+                        {
+                            friends.Remove(id);
+                            removeConfirm = null;
+                        }
+                        else removeConfirm = id;
+                    }
+                }
+                GUI.EndScrollView();
+            }
+            WrapLabel(new Rect(bx, listBottom + 10f, bw, 50f), hidden
+                ? "Your online status is hidden (Settings): nobody sees when you are online, and you can't see when your friends are."
+                : "Your friends see you online while the game is open on the same network. To hide it: Settings > Online status.", 16, Dim);
+        }
+
+        if (Button(new Rect(x + w / 2f - 150f, top + h - 80f, 300f, 56f), "BACK"))
+        {
+            friendsOpen = false;
+            removeConfirm = null;
+        }
     }
 
     // ----------------------------------------------------------------- LAN game screens
@@ -652,7 +806,13 @@ public class GameUI : MonoBehaviour
         WrapLabel(new Rect(right + 40f, y - 14f, column, 26f), VoiceModeHelp[(int)GameSettings.Voice], 16, Dim);
         y += 24f;
         y = MicrophoneTest(right, y, column);
-        SensitivitySlider(right + 40f, y, column);
+        y = SensitivitySlider(right + 40f, y, column);
+        y = OptionRow(right, y, "Online status (friends)", new[] { "Visible", "Hidden" }, Accounts.HideStatus ? 1 : 0,
+                      i => Accounts.SetHideStatus(i == 1), column, i => !Accounts.LoggedIn);
+        WrapLabel(new Rect(right + 40f, y - 14f, column, 44f),
+                  !Accounts.LoggedIn ? "Friends need an account: log in to choose."
+                  : Accounts.HideStatus ? "Hidden: nobody sees when you are online, and you can't see when your friends are online either."
+                  : "Visible: your friends see when you are online.", 16, Dim);
 
         if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) settingsOpen = false;
     }
