@@ -287,6 +287,18 @@ public static class WeaponModels
                 p.Box(Grip, new Vector3(0f, 0f, -0.16f), new Vector3(0.04f, 0.06f, 0.14f), DarkMetal);
                 return 0.41f;
 
+            case "uzi":
+                // Boxy receiver, the magazine inside the pistol grip (sticking out below), a short barrel, a folded stock.
+                p.Box(Main, new Vector3(0f, 0.01f, 0.06f), new Vector3(0.055f, 0.085f, 0.28f), Metal);
+                p.Box(Detail, new Vector3(0f, 0.012f, 0.225f), new Vector3(0.026f, 0.026f, 0.06f), DarkMetal);
+                p.Box(Detail, new Vector3(0f, 0.06f, 0.1f), new Vector3(0.016f, 0.02f, 0.035f), DarkMetal);
+                p.Box(Grip, new Vector3(0f, -0.08f, 0.04f), new Vector3(0.042f, 0.12f, 0.055f), DarkMetal, new Vector3(4f, 0f, 0f));
+                p.Box(Detail, new Vector3(0f, -0.18f, 0.045f), new Vector3(0.034f, 0.09f, 0.04f), DarkMetal);
+                p.Box(Grip, new Vector3(0f, -0.035f, 0.16f), new Vector3(0.05f, 0.03f, 0.08f), DarkMetal);
+                p.Box(Detail, new Vector3(0f, 0.035f, -0.13f), new Vector3(0.05f, 0.018f, 0.12f), DarkMetal);
+                p.Box(Detail, new Vector3(0f, -0.005f, -0.1f), new Vector3(0.05f, 0.06f, 0.05f), Metal);
+                return 0.255f;
+
             case "shotgun":
                 p.Box(Detail, new Vector3(0f, 0.02f, 0.28f), new Vector3(0.045f, 0.045f, 0.7f), DarkMetal);
                 p.Box(Grip, new Vector3(0f, -0.03f, 0.3f), new Vector3(0.06f, 0.05f, 0.2f), Wood);

@@ -262,6 +262,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
     {
         var data = weapon.Data;
         if (data.IsMelee) return 0f;
+        if (weapon.FirstShotReady) return 0f;   // not fired for 3 s: dead on (the crosshair closes up to show it)
         float speed = new Vector2(velocity.x, velocity.z).magnitude;
         float spread = weapon.Spread + data.MoveSpread * Mathf.InverseLerp(1.8f, 5.5f, speed) + sprayHeat;
         if (!controller.isGrounded) spread += 6f;

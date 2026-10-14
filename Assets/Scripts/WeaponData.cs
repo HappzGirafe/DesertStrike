@@ -89,6 +89,15 @@ public class WeaponData
         MoveSpread = 4f, Recoil = 3f, ArmorPenetration = 0.93f, MoveSpeed = 5.9f, ShotPitch = 0.9f,
     };
 
+    // Very fast and cheap, but it sprays: a big spread even standing still.
+    public static readonly WeaponData Uzi = new WeaponData
+    {
+        Id = "uzi", Name = "Uzi", RoundAmmoBonus = 48, Slot = WeaponSlot.Primary, Price = 1200, Damage = 22,
+        FireInterval = 0.05f, MagSize = 24, ReserveAmmo = 96, ReloadTime = 2.2f, Spread = 3.2f,
+        MoveSpread = 2.5f, Recoil = 0.5f, Automatic = true, ArmorPenetration = 0.5f, MoveSpeed = 6.1f,
+        ShotPitch = 1.35f,
+    };
+
     public static readonly WeaponData Mp5 = new WeaponData
     {
         Id = "mp5", Name = "MP5", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 1500, Damage = 26,
@@ -145,7 +154,7 @@ public class WeaponData
     };
 
     // Declared after the weapons above so they are already initialized.
-    public static readonly WeaponData[] All = { Knife, Glock, Usp, TecDc9, M1911, Deagle, Mp5, Shotgun, Ak47, M4a1, Awp, Rpg };
+    public static readonly WeaponData[] All = { Knife, Glock, Usp, TecDc9, M1911, Deagle, Uzi, Mp5, Shotgun, Ak47, M4a1, Awp, Rpg };
 
     /// <summary>Position in <see cref="All"/> (used to send weapons over the network); 255 for none.</summary>
     public static int IndexOf(WeaponData weapon) => weapon == null ? 255 : System.Array.IndexOf(All, weapon);

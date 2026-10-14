@@ -1666,6 +1666,132 @@
                 "projectileRotation": [],
                 "locked": false
             }
+        },
+        {
+            "weapon": "uzi",
+            "id": "Default",
+            "folder": "Skins/Uzi/Default",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Default",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "uzi",
+            "id": "Arctic",
+            "folder": "Skins/Uzi/Arctic",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Arctic",
+                "main": "#DDE3E8",
+                "grip": "#59616B",
+                "detail": "#9AA3AD",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "uzi",
+            "id": "Desert Camo",
+            "folder": "Skins/Uzi/Desert Camo",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Desert Camo",
+                "main": "",
+                "grip": "#4A3B28",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "uzi",
+            "id": "Gold",
+            "folder": "Skins/Uzi/Gold",
+            "hasModel": false,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Gold",
+                "main": "#D4AF37",
+                "grip": "#141414",
+                "detail": "#8A6E22",
+                "smoothness": 0.75,
+                "metallic": 0.8999999761581421,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "uzi",
+            "id": "Jungle",
+            "folder": "Skins/Uzi/Jungle",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Jungle",
+                "main": "",
+                "grip": "#2E3524",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "uzi",
+            "id": "Urban Digital",
+            "folder": "Skins/Uzi/Urban Digital",
+            "hasModel": false,
+            "hasMain": true,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Urban Digital",
+                "main": "",
+                "grip": "#1E1E22",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
         }
     ],
     "models": [

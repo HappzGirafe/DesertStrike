@@ -913,7 +913,7 @@ public class GameUI : MonoBehaviour
         WeaponData[][] columns =
         {
             new[] { WeaponData.Glock, WeaponData.Usp, WeaponData.TecDc9, WeaponData.M1911, WeaponData.Deagle },
-            new[] { WeaponData.Mp5, WeaponData.Shotgun },
+            new[] { WeaponData.Uzi, WeaponData.Mp5, WeaponData.Shotgun },
             new[] { WeaponData.Ak47, WeaponData.M4a1, WeaponData.Awp, WeaponData.Rpg },
         };
         float columnWidth = (w - 60f - 3 * 20f) / 4f;

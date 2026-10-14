@@ -163,6 +163,7 @@ While in a LAN game the game keeps running when its window is not in front, so t
 | TEC-DC9 | T | $500 | 12/24 | Right click: semi-auto or full-auto |
 | M1911 | SWAT | $500 | 10/30 | Right click: semi-auto or full-auto |
 | Desert Eagle | Both | $700 | 7/35 | |
+| Uzi | Both | $1200 | 24/96 | Very fast fire, but a big spread |
 | MP5 / Pump Shotgun | Both | $1500 / $1700 | 30/120, 8/32 | |
 | AK-47 / M4A1 | T / SWAT | $2500 / $3100 | 30/90 | |
 | AWP | Both | $4750 | 10/30 | Scope with right click; no-scope shots work too |
@@ -322,10 +323,15 @@ a line in `MapCatalog` (`GameMap.cs`) with its name, description and lighting (H
 - Money: start $800, win $3250, loss $1400 (+$500 per loss in a row), kill $300 (AWP $100, knife $1500),
   planting or defusing $300, and +$800 for Terrorists who planted but lost the round.
 - Survivors keep their weapons and armor for the next round.
+- **First shot:** a gun that has not fired for 3 seconds fires its next shot exactly where it is aimed, with no
+  spread at all (the crosshair closes up to show it); not the pump shotgun's pellets. Bots get it too, but their
+  own aim is still not perfect.
+- Each round every Terrorist bot goes for site A or B, each with a 50% chance; the bomb goes where its carrier
+  went.
 - Everyone moves like a person: legs walk and run in step with their speed, bend into a squat when crouching
   (a smaller target, head included), tuck up in a jump, and on death the knees give way and the body falls away
   from whoever shot it, arms and gun over its head. Bots sometimes crouch while holding an angle.
-- Free ammo at the start of every round (from round 2): pistols +20, MP5 / AK-47 / M4A1 +40, pump shotgun +8,
+- Free ammo at the start of every round (from round 2): pistols +20, Uzi +48, MP5 / AK-47 / M4A1 +40, pump shotgun +8,
   AWP and RPG +5 reserve ammo (set per weapon by `RoundAmmoBonus` in `WeaponData.cs`).
 
 ## Code

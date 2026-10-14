@@ -143,7 +143,12 @@ public class BotController : MonoBehaviour, ICombatantController
             if (me.Money >= WeaponData.Rpg.Price + WeaponData.KevlarHelmetPrice && Random.value < 0.15f) me.TryBuy(WeaponData.Rpg);
             else if (me.Money >= WeaponData.Awp.Price + WeaponData.KevlarHelmetPrice && Random.value < 0.2f) me.TryBuy(WeaponData.Awp);
             else if (me.Money >= rifle.Price + WeaponData.KevlarPrice) me.TryBuy(rifle);
-            else if (me.Money >= WeaponData.Mp5.Price + WeaponData.KevlarPrice) me.TryBuy(Random.value < 0.3f ? WeaponData.Shotgun : WeaponData.Mp5);
+            else if (me.Money >= WeaponData.Mp5.Price + WeaponData.KevlarPrice)
+            {
+                float pick = Random.value;
+                me.TryBuy(pick < 0.25f ? WeaponData.Shotgun : pick < 0.55f ? WeaponData.Uzi : WeaponData.Mp5);
+            }
+            else if (me.Money >= WeaponData.Uzi.Price + WeaponData.KevlarPrice && Random.value < 0.5f) me.TryBuy(WeaponData.Uzi);
         }
         bool starterPistol = me.Secondary.Data == WeaponData.Glock || me.Secondary.Data == WeaponData.Usp;
         if (me.Primary == null && starterPistol)
@@ -159,21 +164,27 @@ public class BotController : MonoBehaviour, ICombatantController
         me.Equip(me.BestSlot(), instant: true);
     }
 
-    /// <summary>Terrorists all go for one site by two routes; SWAT spread over the defensive posts (the map knows where).</summary>
-    /// <summary>-ds-attack a|b: the Terrorists always go for that site (tests); null = a random one each round.</summary>
+    /// <summary>-ds-attack a|b: the Terrorists always go for that site (tests); null = each bot picks one every round.</summary>
     public static bool? ForcedSiteA;
 
+    /// <summary>Every Terrorist bot goes for site A or B, each with a 50% chance (by one of the map's routes there;
+    /// the bomb goes with its carrier); SWAT spread over the defensive posts (the map knows where).</summary>
     public static void PlanRound(List<BotController> terrorists, List<BotController> swat, GameMap map, float startTime)
     {
-        bool attackA = ForcedSiteA ?? Random.value < 0.5f;
-        Debug.Log($"[Bots] The Terrorists go for site {(attackA ? "A" : "B")}");
-        var routes = map.TerroristRoutes(attackA);
-        Vector3 watch = map.TerroristWatch(attackA);
+        var routesA = map.TerroristRoutes(true);
+        var routesB = map.TerroristRoutes(false);
+        int countA = 0, countB = 0;
+        var picks = new List<string>();
         for (int i = 0; i < terrorists.Count; i++)
         {
-            terrorists[i].Plan(routes[i % routes.Count], watch, Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
+            bool attackA = ForcedSiteA ?? Random.value < 0.5f;
+            var routes = attackA ? routesA : routesB;
+            int index = attackA ? countA++ : countB++;
+            terrorists[i].Plan(routes[index % routes.Count], map.TerroristWatch(attackA), Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
             terrorists[i].goingFor = attackA ? "A" : "B";
+            picks.Add($"{terrorists[i].Self.DisplayName} {terrorists[i].goingFor}");
         }
+        if (picks.Count > 0) Debug.Log($"[Bots] Terrorists go for: {string.Join(", ", picks)}");
 
         var posts = map.SwatPosts();
         for (int i = 0; i < swat.Count; i++)
@@ -389,7 +400,9 @@ public class BotController : MonoBehaviour, ICombatantController
         float settle = Mathf.Clamp01((Time.time - sightingStarted - reaction) / 1.5f);
         float error = skill.AimError * Mathf.Lerp(1.5f, 0.6f, settle);
         Vector3 direction = (aimPoint - Self.EyePosition).normalized;
-        if (!Self.TryFire(direction, current.Spread + error)) return;
+        // A rested gun's first shot has no spread; the bot's own aim error stays.
+        float spread = current.FirstShotReady ? 0f : current.Spread;
+        if (!Self.TryFire(direction, spread + error)) return;
 
         if (current.IsAutomatic)
         {

@@ -9,6 +9,13 @@ public class WeaponInstance
     public int Reserve;
     public bool AutoMode;   // only used by select-fire weapons
     public int SellPrice;   // what selling it back gives: the full price in the round it was bought, half after that
+    public float LastShotAt = -100f;
+
+    /// <summary>A gun that has not fired for this many seconds fires its next shot exactly where it is aimed.</summary>
+    public const float FirstShotRest = 3f;
+
+    /// <summary>The next shot has no spread (rested <see cref="FirstShotRest"/> s; not the knife or a shotgun's pellets).</summary>
+    public bool FirstShotReady => Data.Pellets == 1 && !Data.IsMelee && Time.time - LastShotAt >= FirstShotRest;
 
     public bool IsAutomatic => Data.Automatic || (Data.SelectFire && AutoMode);
     public float Spread => Data.Spread + (Data.SelectFire && AutoMode ? Data.AutoSpread : 0f);
@@ -221,6 +228,7 @@ public class Combatant : MonoBehaviour
 
         var weapon = Current.Data;
         nextFireTime = Time.time + weapon.FireInterval;
+        Current.LastShotAt = Time.time;
         if (!weapon.IsMelee) Current.Mag--;
 
         Vector3 origin = EyePosition;
