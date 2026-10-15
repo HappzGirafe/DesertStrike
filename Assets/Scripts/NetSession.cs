@@ -20,7 +20,7 @@ public class NetSession : MonoBehaviour
 {
     public const int GamePort = 27015;
     public const int DiscoveryPort = 27016;
-    const int ProtocolVersion = 3;   // 2: the map is part of the lobby and of every snapshot; 3: selling guns
+    const int ProtocolVersion = 4;   // 2: the map is part of the lobby and of every snapshot; 3: selling guns; 4: the Uzi
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
     const float InputInterval = 1f / 60f;

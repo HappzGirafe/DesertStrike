@@ -93,8 +93,8 @@ public class VoiceChat : MonoBehaviour
         bool inMatch = gm.State != MatchState.Menu && !gm.IsPaused;
         InMatch = InSession && inMatch;
         bool openMic = GameSettings.VoiceChat && GameSettings.Voice == VoiceMode.OpenMic && InMatch;
-        Holding = GameSettings.VoiceChat && inMatch && Input.GetKey(TalkKey);
-        bool pressed = GameSettings.VoiceChat && inMatch && Input.GetKeyDown(TalkKey);
+        Holding = GameSettings.VoiceChat && inMatch && GameInput.TalkHeld;
+        bool pressed = GameSettings.VoiceChat && inMatch && GameInput.TalkDown;
         if (micCheck && !micCheckDone) Testing = true;
         bool testStarted = Testing && !wasTesting;
         wasTesting = Testing;
@@ -162,9 +162,22 @@ public class VoiceChat : MonoBehaviour
     {
         State = MicState.Starting;
         Problem = null;
+#if UNITY_ANDROID && !UNITY_EDITOR
+        // Android asks the player the first time (and again until they allow it or say "don't ask again").
+        var permission = UnityEngine.Android.Permission.Microphone;
+        if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission))
+        {
+            UnityEngine.Android.Permission.RequestUserPermission(permission);
+            float askedUntil = Time.unscaledTime + 30f;
+            while (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission) && Time.unscaledTime < askedUntil)
+                yield return null;
+        }
+        bool allowed = UnityEngine.Android.Permission.HasUserAuthorizedPermission(permission);
+#else
         if (!Application.HasUserAuthorization(UserAuthorization.Microphone))
             yield return Application.RequestUserAuthorization(UserAuthorization.Microphone);
         bool allowed = Application.HasUserAuthorization(UserAuthorization.Microphone);
+#endif
         string[] devices = Microphone.devices;
         Debug.Log($"[Voice] Microphone allowed: {allowed}; microphones: {devices.Length}" +
                   (devices.Length > 0 ? " (" + string.Join(", ", devices) + ")" : ""));
@@ -235,6 +248,10 @@ public class VoiceChat : MonoBehaviour
             case RuntimePlatform.WindowsPlayer:
             case RuntimePlatform.WindowsEditor:
                 return " On Windows: Settings > Privacy & security > Microphone > let desktop apps use the microphone.";
+            case RuntimePlatform.Android:
+                return " On Android: Settings > Apps > Low Strike > Permissions > Microphone > Allow.";
+            case RuntimePlatform.IPhonePlayer:
+                return " On iPhone or iPad: Settings > Low Strike > Microphone.";
             default:
                 return "";
         }

@@ -144,6 +144,7 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<PerfStats>();
         Net = gameObject.AddComponent<NetSession>();
         Friends = gameObject.AddComponent<Friends>();
+        gameObject.AddComponent<TouchControls>();
         gameObject.AddComponent<VoiceChat>();
         Bomb = gameObject.AddComponent<BombManager>();
         if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();
@@ -442,21 +443,21 @@ public class GameManager : MonoBehaviour
     void HandleInput()
     {
         if (State == MatchState.Menu || State == MatchState.MatchOver) return;
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (GameInput.PauseDown)
         {
             if (BuyMenuOpen) BuyMenuOpen = false;
             else SetPaused(!IsPaused);
         }
         if (IsPaused) return;
 
-        if (Player != null && Input.GetKeyDown(KeyCode.B))
+        if (Player != null && GameInput.BuyDown)
             BuyMenuOpen = !BuyMenuOpen && CanShop(Player.Self);
         if (BuyMenuOpen && !CanShop(Player.Self)) BuyMenuOpen = false;
 
         if (SpectatingNow)
         {
-            if (Input.GetMouseButtonDown(0)) Spectated = NextSpectateTarget(Spectated, 1);
-            if (Input.GetMouseButtonDown(1)) Spectated = NextSpectateTarget(Spectated, -1);
+            if (GameInput.SpectateNextDown) Spectated = NextSpectateTarget(Spectated, 1);
+            if (GameInput.SpectatePreviousDown) Spectated = NextSpectateTarget(Spectated, -1);
         }
     }
 
@@ -907,7 +908,7 @@ public class GameManager : MonoBehaviour
 
     void UpdateCursor()
     {
-        bool free = State == MatchState.Menu || State == MatchState.MatchOver || IsPaused || BuyMenuOpen;
+        bool free = State == MatchState.Menu || State == MatchState.MatchOver || IsPaused || BuyMenuOpen || TouchControls.Active;
         Cursor.lockState = free ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = free;
     }

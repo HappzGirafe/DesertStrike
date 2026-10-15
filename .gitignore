@@ -34,3 +34,6 @@ crashlytics-build.properties
 
 # Python cache from the Blender tools
 __pycache__/
+
+# Temporary files of the Android native build (CMake / NDK)
+/.utmp/
