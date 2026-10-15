@@ -6,7 +6,7 @@ public enum GraphicsQuality { Low, Medium, High }
 public enum VoiceMode { HoldV, OpenMic }
 
 /// <summary>
-/// Display, graphics quality, frame limit, FPS counter, voice chat and mouse sensitivity, saved between sessions.
+/// Display, graphics quality, frame limit, FPS counter, voice chat, mouse sensitivity and the crosshair, saved between sessions.
 /// The frame limit matters most for laptops: without it the game draws as many frames as the
 /// hardware can, which keeps a passively cooled MacBook Air at full load.
 /// </summary>
@@ -22,6 +22,36 @@ public static class GameSettings
     const string RenderScaleKey = "DesertStrike.renderScale";
     const string VoiceKey = "DesertStrike.voice";
     const string VoiceModeKey = "DesertStrike.voiceMode";
+    const string CrosshairKey = "DesertStrike.crosshair.";
+
+    // The crosshair, like Counter-Strike 2's: a colour (or your own), line length, thickness, gap, opacity, an
+    // outline, a centre dot, a T shape, and whether it opens up with the spread (dynamic) or stays put (static).
+    public static readonly string[] CrosshairColorNames = { "Green", "Yellow", "Red", "Blue", "Cyan", "White", "Custom" };
+    static readonly Color[] CrosshairPresets =
+    {
+        new Color(0.35f, 1f, 0.35f), new Color(1f, 0.92f, 0.2f), new Color(1f, 0.27f, 0.27f),
+        new Color(0.32f, 0.56f, 1f), new Color(0.3f, 1f, 1f), Color.white,
+    };
+    public static int CrosshairColorIndex { get; private set; }
+    public static Color CrosshairCustom { get; private set; } = new Color(1f, 0.4f, 0.85f);
+    public static float CrosshairLength { get; private set; } = 10f;
+    public static float CrosshairThickness { get; private set; } = 2f;
+    public static float CrosshairGap { get; private set; } = 3f;
+    public static float CrosshairAlpha { get; private set; } = 0.9f;
+    public static bool CrosshairOutline { get; private set; }
+    public static bool CrosshairDot { get; private set; }
+    public static bool CrosshairT { get; private set; }
+    public static bool CrosshairDynamic { get; private set; } = true;
+
+    public static Color CrosshairColor
+    {
+        get
+        {
+            var color = CrosshairColorIndex < CrosshairPresets.Length ? CrosshairPresets[CrosshairColorIndex] : CrosshairCustom;
+            color.a = CrosshairAlpha;
+            return color;
+        }
+    }
 
     public static GraphicsQuality Quality { get; private set; } = GraphicsQuality.High;
     /// <summary>Most frames per second, or 0 for no limit.</summary>
@@ -44,18 +74,89 @@ public static class GameSettings
 
     public static void Load()
     {
-        // Macs (often fanless laptops) start on Medium; everything else on High.
-        var fallback = Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor
+        // Phones and tablets start on Low, Macs (often fanless laptops) on Medium, everything else on High.
+        var fallback = Application.isMobilePlatform ? GraphicsQuality.Low
+            : Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor
             ? GraphicsQuality.Medium
             : GraphicsQuality.High;
         Quality = (GraphicsQuality)Mathf.Clamp(PlayerPrefs.GetInt(QualityKey, (int)fallback), 0, 2);
         FrameLimit = PlayerPrefs.GetInt(FrameLimitKey, 60);
         ShowFps = PlayerPrefs.GetInt(ShowFpsKey, 0) == 1;
-        RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(RenderScaleKey, 1f), 0.5f, 1f);
+        // A phone's screen has many pixels for its small graphics chip: 3D at 75% to start with.
+        RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(RenderScaleKey, Application.isMobilePlatform ? 0.75f : 1f), 0.5f, 1f);
         VoiceChat = PlayerPrefs.GetInt(VoiceKey, 1) == 1;
         Voice = (VoiceMode)Mathf.Clamp(PlayerPrefs.GetInt(VoiceModeKey, 0), 0, 1);
         PlayerController.MouseSensitivity = PlayerPrefs.GetFloat(SensitivityKey, 2f);
+        LoadCrosshair();
         Apply();
+    }
+
+    static void LoadCrosshair()
+    {
+        CrosshairColorIndex = Mathf.Clamp(PlayerPrefs.GetInt(CrosshairKey + "color", 0), 0, CrosshairColorNames.Length - 1);
+        CrosshairCustom = new Color(PlayerPrefs.GetFloat(CrosshairKey + "r", 1f), PlayerPrefs.GetFloat(CrosshairKey + "g", 0.4f),
+                                    PlayerPrefs.GetFloat(CrosshairKey + "b", 0.85f));
+        CrosshairLength = PlayerPrefs.GetFloat(CrosshairKey + "length", 10f);
+        CrosshairThickness = PlayerPrefs.GetFloat(CrosshairKey + "thickness", 2f);
+        CrosshairGap = PlayerPrefs.GetFloat(CrosshairKey + "gap", 3f);
+        CrosshairAlpha = PlayerPrefs.GetFloat(CrosshairKey + "alpha", 0.9f);
+        CrosshairOutline = PlayerPrefs.GetInt(CrosshairKey + "outline", 0) == 1;
+        CrosshairDot = PlayerPrefs.GetInt(CrosshairKey + "dot", 0) == 1;
+        CrosshairT = PlayerPrefs.GetInt(CrosshairKey + "t", 0) == 1;
+        CrosshairDynamic = PlayerPrefs.GetInt(CrosshairKey + "dynamic", 1) == 1;
+    }
+
+    static void SaveCrosshair()
+    {
+        PlayerPrefs.SetInt(CrosshairKey + "color", CrosshairColorIndex);
+        PlayerPrefs.SetFloat(CrosshairKey + "r", CrosshairCustom.r);
+        PlayerPrefs.SetFloat(CrosshairKey + "g", CrosshairCustom.g);
+        PlayerPrefs.SetFloat(CrosshairKey + "b", CrosshairCustom.b);
+        PlayerPrefs.SetFloat(CrosshairKey + "length", CrosshairLength);
+        PlayerPrefs.SetFloat(CrosshairKey + "thickness", CrosshairThickness);
+        PlayerPrefs.SetFloat(CrosshairKey + "gap", CrosshairGap);
+        PlayerPrefs.SetFloat(CrosshairKey + "alpha", CrosshairAlpha);
+        PlayerPrefs.SetInt(CrosshairKey + "outline", CrosshairOutline ? 1 : 0);
+        PlayerPrefs.SetInt(CrosshairKey + "dot", CrosshairDot ? 1 : 0);
+        PlayerPrefs.SetInt(CrosshairKey + "t", CrosshairT ? 1 : 0);
+        PlayerPrefs.SetInt(CrosshairKey + "dynamic", CrosshairDynamic ? 1 : 0);
+    }
+
+    /// <summary>Changes the crosshair (any value left null stays as it is) and saves it.</summary>
+    public static void SetCrosshair(int? color = null, Color? custom = null, float? length = null, float? thickness = null,
+                                    float? gap = null, float? alpha = null, bool? outline = null, bool? dot = null,
+                                    bool? tShape = null, bool? dynamic = null)
+    {
+        if (color.HasValue) CrosshairColorIndex = Mathf.Clamp(color.Value, 0, CrosshairColorNames.Length - 1);
+        if (custom.HasValue) CrosshairCustom = custom.Value;
+        if (length.HasValue) CrosshairLength = Mathf.Clamp(length.Value, 0f, 30f);
+        if (thickness.HasValue) CrosshairThickness = Mathf.Clamp(thickness.Value, 1f, 8f);
+        if (gap.HasValue) CrosshairGap = Mathf.Clamp(gap.Value, -5f, 20f);
+        if (alpha.HasValue) CrosshairAlpha = Mathf.Clamp(alpha.Value, 0.2f, 1f);
+        if (outline.HasValue) CrosshairOutline = outline.Value;
+        if (dot.HasValue) CrosshairDot = dot.Value;
+        if (tShape.HasValue) CrosshairT = tShape.Value;
+        if (dynamic.HasValue) CrosshairDynamic = dynamic.Value;
+        SaveCrosshair();
+    }
+
+    /// <summary>-ds-crosshair-demo: a cyan T with a dot and an outline, static, for this run only (screenshots).</summary>
+    public static void CrosshairDemoThisRun()
+    {
+        CrosshairColorIndex = 4;
+        CrosshairLength = 7f;
+        CrosshairThickness = 2f;
+        CrosshairGap = 2f;
+        CrosshairAlpha = 1f;
+        CrosshairOutline = CrosshairDot = CrosshairT = true;
+        CrosshairDynamic = false;
+    }
+
+    public static void ResetCrosshair()
+    {
+        foreach (string key in new[] { "color", "r", "g", "b", "length", "thickness", "gap", "alpha", "outline", "dot", "t", "dynamic" })
+            PlayerPrefs.DeleteKey(CrosshairKey + key);
+        LoadCrosshair();
     }
 
     public static void SetQuality(GraphicsQuality quality)

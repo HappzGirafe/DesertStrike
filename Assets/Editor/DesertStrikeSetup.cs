@@ -1,12 +1,13 @@
 using System.IO;
 using System.Reflection;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>Editor helpers: creates the game scene and builds the Windows and macOS versions of the game.</summary>
+/// <summary>Editor helpers: creates the game scene and builds the Windows, macOS, Android and iOS versions of the game.</summary>
 [InitializeOnLoad]
 public static class DesertStrikeSetup
 {
@@ -72,6 +73,53 @@ public static class DesertStrikeSetup
         // (Unity keeps one setting for this on Apple platforms; it becomes NSMicrophoneUsageDescription.)
         PlayerSettings.iOS.microphoneUsageDescription = "Low Strike uses the microphone for voice chat in LAN games while you hold V.";
         Build(BuildTarget.StandaloneOSX, "Builds/macOS/Low Strike.app");
+    }
+
+    /// <summary>
+    /// Android phones and tablets: an .apk to copy to the phone and install (needs Unity's "Android Build Support"
+    /// module). 64-bit and 32-bit ARM; signed with Unity's debug key, which is fine for installing it yourself.
+    /// </summary>
+    [MenuItem("Low Strike/Build Android Game")]
+    public static void BuildAndroid()
+    {
+        SetMobileSettings();
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, BundleId);
+        PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
+        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.ARMv7;
+        PlayerSettings.Android.bundleVersionCode = MobileVersionCode;
+        PlayerSettings.Android.forceInternetPermission = true;   // LAN games and friends
+        EditorUserBuildSettings.buildAppBundle = false;           // an .apk, not a Play Store bundle
+        Build(BuildTarget.Android, "Builds/Android/LowStrike.apk");
+    }
+
+    /// <summary>
+    /// iPhone and iPad: an Xcode project (needs Unity's "iOS Build Support" module). Apple only lets Xcode on a Mac
+    /// build, sign and install the app itself (see README).
+    /// </summary>
+    [MenuItem("Low Strike/Build iOS Xcode Project")]
+    public static void BuildIOS()
+    {
+        SetMobileSettings();
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, BundleId);
+        PlayerSettings.iOS.buildNumber = MobileVersionCode.ToString();
+        PlayerSettings.iOS.targetOSVersionString = "15.0";
+        PlayerSettings.iOS.microphoneUsageDescription = "Low Strike uses the microphone for voice chat in LAN games while you hold MIC.";
+        Build(BuildTarget.iOS, "Builds/iOS");
+    }
+
+    const string BundleId = "com.happzgirafe.lowstrike";
+    const string MobileVersion = "1.17";
+    const int MobileVersionCode = 117;
+
+    // Phones: always landscape (either way round), the version shown in the system's app info.
+    static void SetMobileSettings()
+    {
+        PlayerSettings.bundleVersion = MobileVersion;
+        PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+        PlayerSettings.allowedAutorotateToPortrait = false;
+        PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
+        PlayerSettings.allowedAutorotateToLandscapeLeft = true;
+        PlayerSettings.allowedAutorotateToLandscapeRight = true;
     }
 
     static void Build(BuildTarget target, string path, BuildOptions options = BuildOptions.None)

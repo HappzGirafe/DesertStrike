@@ -3,7 +3,8 @@ using UnityEngine.AI;
 
 /// <summary>
 /// First-person controls: movement, mouse look, shooting, recoil, scope, the view model, and the bomb
-/// (E to plant or defuse, G to drop it). In a LAN game as a client the shots and actions go to the host.
+/// (E to plant or defuse, G to drop it). Input comes from <see cref="GameInput"/> (keyboard and mouse, or the
+/// touch controls on a phone). In a LAN game as a client the shots and actions go to the host.
 /// </summary>
 [RequireComponent(typeof(CharacterController), typeof(Combatant))]
 public class PlayerController : MonoBehaviour, ICombatantController
@@ -70,6 +71,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
         IsScoped = false;
         rescopeAt = -1f;
         crouching = false;
+        TouchControls.StandUp();
         SetHeight(StandHeight);
         AttachCamera();
     }
@@ -119,9 +121,9 @@ public class PlayerController : MonoBehaviour, ICombatantController
 
     void HandleBomb(GameManager gm)
     {
-        UseHeld = Input.GetKey(KeyCode.E);
+        UseHeld = GameInput.UseHeld;
         if (UseHeld && !Self.IsMirror) gm.Bomb.HoldUse(Self);
-        if (Input.GetKeyDown(KeyCode.G))
+        if (GameInput.DropBombDown)
         {
             if (Self.IsMirror) gm.Net.SendAction(NetAction.DropBomb, 0);
             else gm.Bomb.Drop(Self);
@@ -131,8 +133,9 @@ public class PlayerController : MonoBehaviour, ICombatantController
     void Look()
     {
         float sensitivity = MouseSensitivity * (IsScoped ? 0.35f : 1f);
-        yaw += Input.GetAxisRaw("Mouse X") * sensitivity;
-        pitch = Mathf.Clamp(pitch - Input.GetAxisRaw("Mouse Y") * sensitivity, -85f, 85f);
+        Vector2 look = GameInput.Look(sensitivity);
+        yaw += look.x;
+        pitch = Mathf.Clamp(pitch - look.y, -85f, 85f);
     }
 
     void ApplyView()
@@ -146,10 +149,11 @@ public class PlayerController : MonoBehaviour, ICombatantController
     void Move(bool canMove)
     {
         float dt = Time.deltaTime;
-        Vector3 input = canMove ? new Vector3(Input.GetAxisRaw("Horizontal"), 0f, Input.GetAxisRaw("Vertical")) : Vector3.zero;
+        Vector2 stick = GameInput.Move;
+        Vector3 input = canMove ? new Vector3(stick.x, 0f, stick.y) : Vector3.zero;
         input = Vector3.ClampMagnitude(input, 1f);
-        crouching = canMove && Input.GetKey(KeyCode.LeftControl);
-        bool walking = canMove && Input.GetKey(KeyCode.LeftShift);
+        crouching = canMove && GameInput.CrouchHeld;
+        bool walking = canMove && GameInput.WalkHeld;
 
         float speed = Self.Current.Data.MoveSpeed * (crouching ? 0.42f : walking ? 0.52f : 1f) * (IsScoped ? 0.55f : 1f);
         Vector3 wish = transform.rotation * input * speed;
@@ -160,7 +164,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
         if (grounded)
         {
             if (velocity.y < 0f) velocity.y = -2f;
-            if (canMove && Input.GetKeyDown(KeyCode.Space)) velocity.y = JumpSpeed;
+            if (canMove && GameInput.JumpDown) velocity.y = JumpSpeed;
         }
         velocity.y += Gravity * dt;
         velocity = new Vector3(horizontal.x, velocity.y, horizontal.z);
@@ -192,18 +196,15 @@ public class PlayerController : MonoBehaviour, ICombatantController
 
     void HandleWeapons()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1)) SwitchTo(WeaponSlot.Primary);
-        if (Input.GetKeyDown(KeyCode.Alpha2)) SwitchTo(WeaponSlot.Secondary);
-        if (Input.GetKeyDown(KeyCode.Alpha3)) SwitchTo(WeaponSlot.Knife);
-        if (Input.GetKeyDown(KeyCode.Q) && Self.EquipPrevious()) IsScoped = false;
-        float wheel = Input.GetAxis("Mouse ScrollWheel");
-        if (wheel > 0f) CycleWeapon(-1);
-        else if (wheel < 0f) CycleWeapon(1);
-        if (Input.GetKeyDown(KeyCode.R) && Self.StartReload()) IsScoped = false;
+        if (GameInput.SlotDown is WeaponSlot slot) SwitchTo(slot);
+        if (GameInput.LastWeaponDown && Self.EquipPrevious()) IsScoped = false;
+        int cycle = GameInput.WeaponCycle;
+        if (cycle != 0) CycleWeapon(cycle);
+        if (GameInput.ReloadDown && Self.StartReload()) IsScoped = false;
 
         var weapon = Self.Current;
         var data = weapon.Data;
-        if (Input.GetMouseButtonDown(1))
+        if (GameInput.AltFireDown)
         {
             if (data.ZoomFov > 0f && !Self.IsReloading)
             {
@@ -228,12 +229,12 @@ public class PlayerController : MonoBehaviour, ICombatantController
             IsScoped = data.ZoomFov > 0f && !Self.IsReloading;
         }
 
-        bool trigger = weapon.IsAutomatic ? Input.GetMouseButton(0) : Input.GetMouseButtonDown(0);
+        bool trigger = weapon.IsAutomatic ? GameInput.FireHeld : GameInput.FireDown;
         if (trigger)
         {
             if (!data.IsMelee && weapon.Mag == 0)
             {
-                if (Input.GetMouseButtonDown(0))
+                if (GameInput.FireDown)
                 {
                     SoundFX.Play(SoundFX.DryFire, transform.position, 0.5f, 1f, false);
                     Self.StartReload();
@@ -254,7 +255,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
             }
         }
 
-        if (!data.IsMelee && weapon.Mag == 0 && weapon.Reserve > 0 && !Self.IsReloading && !Input.GetMouseButton(0))
+        if (!data.IsMelee && weapon.Mag == 0 && weapon.Reserve > 0 && !Self.IsReloading && !GameInput.FireHeld)
             Self.StartReload();
     }
 

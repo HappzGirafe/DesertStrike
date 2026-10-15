@@ -21,6 +21,11 @@ public class GameUI : MonoBehaviour
         "1 / 2 / 3 weapons  ·  Q last weapon  ·  Ctrl crouch  ·  Shift walk (silent)  ·  V talk (LAN)\n" +
         "E plant / defuse the bomb  ·  G drop the bomb  ·  B buy (in your spawn)  ·  Tab scores  ·  Esc pause";
 
+    const string TouchHelp =
+        "Left thumb: move (a small push walks quietly)  ·  Right side: drag to look around\n" +
+        "FIRE (drag it to aim while shooting)  ·  JUMP  ·  CROUCH on / off  ·  R reload  ·  GUN next weapon\n" +
+        "SCOPE (AWP) or AUTO (TEC-DC9, M1911)  ·  PLANT / DEFUSE (hold)  ·  BUY in your spawn  ·  TAB scores  ·  II pause";
+
     GameManager gm;
     Texture2D scopeMask;
     readonly Dictionary<int, GUIStyle> styles = new Dictionary<int, GUIStyle>();
@@ -37,8 +42,10 @@ public class GameUI : MonoBehaviour
     bool lanOpen;
     string joinAddress = "";
 
-    // Settings screen
+    // Settings screen, and its crosshair page
     bool settingsOpen;
+    bool crosshairOpen;
+    TouchControls touch;
 
     // Friends screen
     bool friendsOpen;
@@ -77,6 +84,10 @@ public class GameUI : MonoBehaviour
         lanOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-find") >= 0;   // smoke test: search the network
         settingsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-settings") >= 0;   // smoke-test screenshots
         friendsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-friends") >= 0;
+        crosshairOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-crosshair") >= 0;   // screenshots
+        if (crosshairOpen) settingsOpen = true;
+        if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-crosshair-demo") >= 0) GameSettings.CrosshairDemoThisRun();
+        touch = GetComponent<TouchControls>();
         gm.Friends.Noticed += text =>
         {
             friendMessage = text;
@@ -128,6 +139,7 @@ public class GameUI : MonoBehaviour
             else if (gm.Net.IsClient) DrawClientLobby();
             else if (lanOpen) DrawLanMenu();
             else if (friendsOpen) DrawFriends();
+            else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
             else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
             DrawFps(20f, 20f);
@@ -139,8 +151,10 @@ public class GameUI : MonoBehaviour
         DrawFps(20f, 268f);
         if (gm.BuyMenuOpen) DrawBuyMenu();
         if (gm.State == MatchState.MatchOver) DrawMatchOver();
-        else if (Input.GetKey(KeyCode.Tab)) DrawScoreboard(170f);
-        if (!gm.IsPaused) settingsOpen = false;
+        else if (GameInput.ScoresHeld) DrawScoreboard(170f);
+        if (!gm.IsPaused && gm.State != MatchState.MatchOver && touch != null) touch.Draw();
+        if (!gm.IsPaused) settingsOpen = crosshairOpen = false;
+        else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
         else if (settingsOpen) DrawSettings();
         else DrawPauseMenu();
     }
@@ -182,7 +196,7 @@ public class GameUI : MonoBehaviour
             Label(new Rect(x, y - 6f, w, 26f), gm.MenuNotice, 18, Danger, TextAnchor.MiddleCenter);
             y += 22f;
         }
-        Label(new Rect(x + 20f, y, w - 40f, 100f), ControlsHelp, 16, Dim, TextAnchor.UpperCenter);
+        Label(new Rect(x + 20f, y, w - 40f, 100f), GameInput.Touch ? TouchHelp : ControlsHelp, 16, Dim, TextAnchor.UpperCenter);
     }
 
     float TeamRow(float x, float y, bool allowSpectate, float rowWidth = 700f)
@@ -752,7 +766,7 @@ public class GameUI : MonoBehaviour
 
     float SensitivitySlider(float x, float y, float w)
     {
-        Label(new Rect(x, y, w, 34f), $"Mouse sensitivity   {PlayerController.MouseSensitivity:0.0}", 22, Color.white);
+        Label(new Rect(x, y, w, 34f), $"{(GameInput.Touch ? "Touch" : "Mouse")} sensitivity   {PlayerController.MouseSensitivity:0.0}", 22, Color.white);
         float sensitivity = GUI.HorizontalSlider(new Rect(x, y + 42f, w, 24f), PlayerController.MouseSensitivity, 0.3f, 8f);
         if (!Mathf.Approximately(sensitivity, PlayerController.MouseSensitivity)) GameSettings.SetSensitivity(sensitivity);
         return y + 85f;
@@ -786,8 +800,9 @@ public class GameUI : MonoBehaviour
         Label(new Rect(right + 40f, top + 105f, column, 30f), "VOICE & CONTROLS", 18, Gold);
 
         float y = top + 145f;
-        y = OptionRow(x, y, "Display", new[] { "Fullscreen", "Window" }, GameSettings.Fullscreen ? 0 : 1,
-                      i => GameSettings.SetFullscreen(i == 0), column);
+        if (!Application.isMobilePlatform)   // a phone is always full screen
+            y = OptionRow(x, y, "Display", new[] { "Fullscreen", "Window" }, GameSettings.Fullscreen ? 0 : 1,
+                          i => GameSettings.SetFullscreen(i == 0), column);
         y = OptionRow(x, y, "Graphics", new[] { "Low", "Medium", "High" }, (int)GameSettings.Quality,
                       i => GameSettings.SetQuality((GraphicsQuality)i), column);
         WrapLabel(new Rect(x + 40f, y - 14f, column, 26f), QualityHelp[(int)GameSettings.Quality], 16, Dim);
@@ -814,7 +829,81 @@ public class GameUI : MonoBehaviour
                   : Accounts.HideStatus ? "Hidden: nobody sees when you are online, and you can't see when your friends are online either."
                   : "Visible: your friends see when you are online.", 16, Dim);
 
+        if (Button(new Rect(x + w / 2f - 470f, top + height - 80f, 300f, 56f), "CROSSHAIR")) crosshairOpen = true;
         if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) settingsOpen = false;
+    }
+
+    // ----------------------------------------------------------------- crosshair page (Settings > CROSSHAIR)
+
+    /// <summary>The crosshair like Counter-Strike 2's: colour (or your own with R, G, B), length, thickness, gap,
+    /// opacity, outline, centre dot, T shape, dynamic or static; with a live preview.</summary>
+    void DrawCrosshairSettings()
+    {
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+        {
+            crosshairOpen = false;
+            Event.current.Use();
+            return;
+        }
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
+        const float top = 90f, height = 860f;
+        float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
+        float column = (w - 120f) / 2f, right = x + column + 40f;
+        Fill(new Rect(x, top, w, height), PanelColor);
+        Label(new Rect(x, top + 20f, w, 60f), "CROSSHAIR", 50, Gold, TextAnchor.MiddleCenter);
+
+        float y = top + 110f;
+        y = OptionRow(x, y, "Color", GameSettings.CrosshairColorNames, GameSettings.CrosshairColorIndex,
+                      i => GameSettings.SetCrosshair(color: i), column);
+        if (GameSettings.CrosshairColorIndex == GameSettings.CrosshairColorNames.Length - 1)
+        {
+            var c = GameSettings.CrosshairCustom;
+            float r = SettingSlider(x + 40f, y - 10f, column, "Red", c.r * 255f, 0f, 255f, "0");
+            float g = SettingSlider(x + 40f, y + 40f, column, "Green", c.g * 255f, 0f, 255f, "0");
+            float b = SettingSlider(x + 40f, y + 90f, column, "Blue", c.b * 255f, 0f, 255f, "0");
+            var color = new Color(Mathf.Round(r) / 255f, Mathf.Round(g) / 255f, Mathf.Round(b) / 255f);
+            if (color != c) GameSettings.SetCrosshair(custom: color);
+            y += 150f;
+        }
+        y += 10f;
+        float length = SettingSlider(x + 40f, y, column, "Length", GameSettings.CrosshairLength, 0f, 30f, "0");
+        float thickness = SettingSlider(x + 40f, y + 70f, column, "Thickness", GameSettings.CrosshairThickness, 1f, 8f, "0");
+        float gap = SettingSlider(x + 40f, y + 140f, column, "Gap", GameSettings.CrosshairGap, -5f, 20f, "0");
+        float alpha = SettingSlider(x + 40f, y + 210f, column, "Opacity", GameSettings.CrosshairAlpha * 100f, 20f, 100f, "0") / 100f;
+        if (!Mathf.Approximately(Mathf.Round(length), GameSettings.CrosshairLength)) GameSettings.SetCrosshair(length: Mathf.Round(length));
+        if (!Mathf.Approximately(Mathf.Round(thickness), GameSettings.CrosshairThickness)) GameSettings.SetCrosshair(thickness: Mathf.Round(thickness));
+        if (!Mathf.Approximately(Mathf.Round(gap), GameSettings.CrosshairGap)) GameSettings.SetCrosshair(gap: Mathf.Round(gap));
+        if (Mathf.Abs(alpha - GameSettings.CrosshairAlpha) > 0.004f) GameSettings.SetCrosshair(alpha: Mathf.Round(alpha * 100f) / 100f);
+
+        // Preview on a desert-coloured patch; a dynamic crosshair breathes as if shooting.
+        var preview = new Rect(right + 40f, top + 110f, column, 230f);
+        Fill(preview, new Color(0.72f, 0.62f, 0.45f));
+        Fill(new Rect(preview.x, preview.y, preview.width, preview.height * 0.45f), new Color(0.45f, 0.6f, 0.8f));
+        float breathing = GameSettings.CrosshairDynamic ? (Mathf.Sin(Time.unscaledTime * 2.5f) * 0.5f + 0.5f) * 14f : 0f;
+        // Twice the size it has in the game, so the details show.
+        var saved = GUI.matrix;
+        GUI.matrix = saved * Matrix4x4.TRS(preview.center, Quaternion.identity, Vector3.one)
+                           * Matrix4x4.Scale(new Vector3(2f, 2f, 1f)) * Matrix4x4.TRS(-preview.center, Quaternion.identity, Vector3.one);
+        DrawCrosshairShape(preview.center, GameSettings.CrosshairGap + breathing, false);
+        GUI.matrix = saved;
+        Label(new Rect(preview.x + 10f, preview.yMax - 30f, preview.width - 20f, 26f),
+              GameSettings.CrosshairDynamic ? "Preview, 2x (opens up as if you were shooting)" : "Preview, 2x", 15, new Color(0f, 0f, 0f, 0.6f));
+
+        y = preview.yMax + 20f;
+        y = OptionRow(right, y, "Outline", new[] { "Off", "On" }, GameSettings.CrosshairOutline ? 1 : 0, i => GameSettings.SetCrosshair(outline: i == 1), column);
+        y = OptionRow(right, y, "Center dot", new[] { "Off", "On" }, GameSettings.CrosshairDot ? 1 : 0, i => GameSettings.SetCrosshair(dot: i == 1), column);
+        y = OptionRow(right, y, "Shape", new[] { "Cross", "T" }, GameSettings.CrosshairT ? 1 : 0, i => GameSettings.SetCrosshair(tShape: i == 1), column);
+        OptionRow(right, y, "Style (dynamic opens up with the spread)", new[] { "Static", "Dynamic" }, GameSettings.CrosshairDynamic ? 1 : 0,
+                  i => GameSettings.SetCrosshair(dynamic: i == 1), column);
+
+        if (Button(new Rect(x + w / 2f - 470f, top + height - 80f, 300f, 56f), "RESET")) GameSettings.ResetCrosshair();
+        if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) crosshairOpen = false;
+    }
+
+    float SettingSlider(float x, float y, float w, string label, float value, float min, float max, string format)
+    {
+        Label(new Rect(x, y, w, 30f), $"{label}   {value.ToString(format)}", 20, Color.white);
+        return GUI.HorizontalSlider(new Rect(x, y + 34f, w, 24f), value, min, max);
     }
 
     // Shows whether the game hears the microphone, without a second computer: a level bar that moves when you
@@ -876,7 +965,8 @@ public class GameUI : MonoBehaviour
         y += 70f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SETTINGS")) settingsOpen = true;
         y += 70f;
-        if (Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
+        // iPhones and iPads close apps from the app switcher, not from inside the app.
+        if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
     }
 
     void DrawMatchOver()
@@ -907,7 +997,7 @@ public class GameUI : MonoBehaviour
         Label(new Rect(x + 30f, y + 15f, 400f, 50f), "BUY MENU", 36, Gold);
         Label(new Rect(x + w - 330f, y + 15f, 300f, 50f), $"$ {me.Money}", 36, MoneyGreen, TextAnchor.MiddleRight);
         string buyTime = canBuy ? $"{Mathf.Max(0f, gm.BuyTimeLeft):0}s of buy time left" : "Buy time is over";
-        Label(new Rect(x + 30f, y + 62f, w - 60f, 28f), $"{buyTime}  ·  {Mathf.Max(0f, gm.SellTimeLeft):0}s to sell  ·  B / Esc to close  ·  weapons carry over if you survive", 18, Dim);
+        Label(new Rect(x + 30f, y + 62f, w - 60f, 28f), $"{buyTime}  ·  {Mathf.Max(0f, gm.SellTimeLeft):0}s to sell  ·  {(GameInput.Touch ? "CLOSE" : "B / Esc")} to close  ·  weapons carry over if you survive", 18, Dim);
 
         string[] titles = { "PISTOLS", "SMG / SHOTGUN", "RIFLES & HEAVY", "EQUIPMENT" };
         WeaponData[][] columns =
@@ -1029,7 +1119,7 @@ public class GameUI : MonoBehaviour
             var s = gm.Spectated;
             string weapon = s.Current != null ? s.Current.Data.Name : "";
             Label(new Rect(0f, RefHeight - 120f, width, 40f), $"Spectating {s.DisplayName}   ({s.Health} HP, {weapon})", 26, TeamColor(s.Team), TextAnchor.MiddleCenter);
-            Label(new Rect(0f, RefHeight - 82f, width, 30f), "Left / right click to switch player", 18, Dim, TextAnchor.MiddleCenter);
+            Label(new Rect(0f, RefHeight - 82f, width, 30f), GameInput.Touch ? "Tap < or > to switch player" : "Left / right click to switch player", 18, Dim, TextAnchor.MiddleCenter);
         }
 
         if (gm.State == MatchState.Freeze)
@@ -1078,7 +1168,7 @@ public class GameUI : MonoBehaviour
         }
         else
         {
-            VoiceRow(y, "Hold V to talk", Dim);
+            VoiceRow(y, $"Hold {GameInput.TalkName} to talk", Dim);
             y += 34f;
         }
         foreach (string name in voice.Speaking())
@@ -1129,13 +1219,13 @@ public class GameUI : MonoBehaviour
         if (bomb.State == BombState.Carried && bomb.Carrier == me)
         {
             string site = gm.Map.SiteAt(me.transform.position);
-            hint = site != null ? $"Hold E to plant the bomb on {site}" : "You have the bomb: plant it on site A or B   (G to drop it)";
+            hint = site != null ? $"Hold {GameInput.UseName} to plant the bomb on {site}" : $"You have the bomb: plant it on site A or B   ({GameInput.DropName} to drop it)";
             color = TerroristColor;
         }
         else if (bomb.State == BombState.Planted && me.Team == Team.Swat
                  && Vector3.Distance(me.transform.position, bomb.Position) < BombManager.DefuseRadius)
         {
-            hint = me.HasDefuseKit ? "Hold E to defuse (5 s with your kit)" : "Hold E to defuse (10 s; a defuse kit makes it 5 s)";
+            hint = me.HasDefuseKit ? $"Hold {GameInput.UseName} to defuse (5 s with your kit)" : $"Hold {GameInput.UseName} to defuse (10 s; a defuse kit makes it 5 s)";
             color = SwatColor;
         }
         if (hint != null) Label(new Rect(0f, RefHeight - 180f, width, 30f), hint, 20, color, TextAnchor.MiddleCenter);
@@ -1238,19 +1328,42 @@ public class GameUI : MonoBehaviour
     void DrawCrosshair(PlayerController player)
     {
         var center = new Vector2(width / 2f, RefHeight / 2f);
-        var color = new Color(0.35f, 1f, 0.35f, 0.9f);
         if (player.Self.Current.Data.IsMelee)
         {
-            Fill(new Rect(center.x - 2f, center.y - 2f, 4f, 4f), color);
+            DrawCrosshairShape(center, 0f, true);
             return;
         }
-        // Gap matches the real spread cone at a 75 degree field of view.
-        float gap = 3f + Mathf.Tan(player.CurrentSpread * Mathf.Deg2Rad) * RefHeight / (2f * Mathf.Tan(37.5f * Mathf.Deg2Rad));
-        const float length = 10f, thickness = 2f;
-        Fill(new Rect(center.x - gap - length, center.y - thickness / 2f, length, thickness), color);
-        Fill(new Rect(center.x + gap, center.y - thickness / 2f, length, thickness), color);
-        Fill(new Rect(center.x - thickness / 2f, center.y - gap - length, thickness, length), color);
-        Fill(new Rect(center.x - thickness / 2f, center.y + gap, thickness, length), color);
+        // Dynamic: the gap matches the real spread cone at a 75 degree field of view (it closes up when the
+        // first shot is dead on). Static: always the set gap.
+        float spread = GameSettings.CrosshairDynamic
+            ? Mathf.Tan(player.CurrentSpread * Mathf.Deg2Rad) * RefHeight / (2f * Mathf.Tan(37.5f * Mathf.Deg2Rad))
+            : 0f;
+        DrawCrosshairShape(center, GameSettings.CrosshairGap + spread, false);
+    }
+
+    /// <summary>The crosshair from the settings: four lines (three for the T shape) <paramref name="gap"/> away
+    /// from the centre, an optional dot and a one-pixel black outline; just the dot for the knife.</summary>
+    static void DrawCrosshairShape(Vector2 center, float gap, bool dotOnly)
+    {
+        var color = GameSettings.CrosshairColor;
+        float length = GameSettings.CrosshairLength, thick = GameSettings.CrosshairThickness;
+        var rects = new List<Rect>();
+        if (!dotOnly && length > 0f)
+        {
+            rects.Add(new Rect(center.x - gap - length, center.y - thick / 2f, length, thick));
+            rects.Add(new Rect(center.x + gap, center.y - thick / 2f, length, thick));
+            if (!GameSettings.CrosshairT) rects.Add(new Rect(center.x - thick / 2f, center.y - gap - length, thick, length));
+            rects.Add(new Rect(center.x - thick / 2f, center.y + gap, thick, length));
+        }
+        if (dotOnly || GameSettings.CrosshairDot)
+        {
+            float dot = Mathf.Max(thick, dotOnly ? 4f : 2f);
+            rects.Add(new Rect(center.x - dot / 2f, center.y - dot / 2f, dot, dot));
+        }
+        if (GameSettings.CrosshairOutline)
+            foreach (var r in rects)
+                Fill(new Rect(r.x - 1f, r.y - 1f, r.width + 2f, r.height + 2f), new Color(0f, 0f, 0f, color.a));
+        foreach (var r in rects) Fill(r, color);
     }
 
     void DrawScope()
@@ -1325,9 +1438,9 @@ public class GameUI : MonoBehaviour
     {
         Label(new Rect(20f, RefHeight - 140f, 300f, 44f), $"$ {me.Money}", 34, MoneyGreen);
         if (gm.CanBuy(me) && !gm.BuyMenuOpen)
-            Label(new Rect(0f, RefHeight - 60f, width, 30f), $"Press B to buy  ({gm.BuyTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
+            Label(new Rect(0f, RefHeight - 60f, width, 30f), $"{(GameInput.Touch ? "Tap" : "Press")} {GameInput.BuyName} to buy  ({gm.BuyTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
         else if (gm.CanSell(me) && !gm.BuyMenuOpen && (me.Primary != null || me.Secondary != null))
-            Label(new Rect(0f, RefHeight - 60f, width, 30f), $"Press B to sell  ({gm.SellTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
+            Label(new Rect(0f, RefHeight - 60f, width, 30f), $"{(GameInput.Touch ? "Tap" : "Press")} {GameInput.BuyName} to sell  ({gm.SellTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
     }
 
     // ----------------------------------------------------------------- drawing helpers

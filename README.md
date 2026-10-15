@@ -32,7 +32,23 @@ Both files are in the [`Builds`](Builds) folder of this repository, and every ve
   2. Open **System Settings > Privacy & Security**, scroll down, click **Open Anyway** next to
      *"Low Strike" was blocked*, and enter your Mac password.
   3. Click **Open**. From then on it opens normally. (The zip also contains these steps as a text file.)
+- **Android** phones and tablets: copy `LowStrike.apk` to the phone and open it. Android asks to allow installing
+  apps from that source (the file manager or browser): allow it, then **Install**. If Play Protect warns about an
+  unknown app, choose to install anyway.
+- **iPhone / iPad:** Apple only lets apps onto an iPhone through Xcode on a Mac or the App Store. On a Mac with
+  Xcode: open `Builds/iOS/Unity-iPhone.xcodeproj`, under **Signing & Capabilities** tick *Automatically manage
+  signing* and pick your Apple ID as the team, plug in the iPhone (Developer Mode on: Settings > Privacy & Security),
+  choose it at the top and press **Run**. With a free Apple ID the app works for 7 days, then press Run again; the App
+  Store needs the Apple Developer Program ($99/year).
 - **In Unity:** open this folder in Unity Hub, open `Assets/Scenes/DesertStrike.unity` (it opens automatically), press Play.
+
+**On a phone** the game is played with on-screen controls: the left thumb moves (a stick appears where you touch;
+pushing it a little walks quietly), dragging on the right looks around, and the buttons are **FIRE** (drag it to
+aim while shooting), **JUMP**, **CROUCH** (on/off), **R** reload, **GUN** next weapon, **SCOPE** / **AUTO** when the
+weapon has it, **PLANT** / **DEFUSE** (hold) and **DROP** when the bomb matters, **BUY** in your spawn, **MIC** to talk
+in LAN games, **TAB** scores and **II** pause; **<** and **>** switch players while spectating. Phones start on Low
+graphics with the 3D at 75%; LAN games work over WiFi. On iPhone, finding LAN games and friends by themselves needs
+an extra permission from Apple (the multicast networking entitlement), so there you join a LAN game by its IP address.
 
 The main menu lets you pick your team (Terrorists, SWAT, or watch the bots), team size (1v1 to 5v5),
 bot difficulty, the map, the number of rounds to win and friendly fire.
@@ -138,6 +154,10 @@ While in a LAN game the game keeps running when its window is not in front, so t
 - Mac zip that keeps the app runnable, with the opening steps:
   `python Tools/zip_mac_app.py "Builds/macOS/Low Strike.app" Builds/LowStrike-macOS.zip "Tools/How to open on Mac.txt"`
 - Removing the "unidentified developer" warning completely needs an Apple Developer ID ($99/year) and notarization.
+- Unity menu **Low Strike > Build Android Game** (needs Unity's Android Build Support module with SDK, NDK and
+  OpenJDK) → `Builds/Android/LowStrike.apk`
+- Unity menu **Low Strike > Build iOS Xcode Project** (needs Unity's iOS Build Support module) → `Builds/iOS/`,
+  which Xcode on a Mac builds and installs (see Play above)
 
 ## Controls
 
@@ -154,6 +174,11 @@ While in a LAN game the game keeps running when its window is not in front, so t
 | Tab | Scoreboard |
 | V | Voice chat: hold to talk (LAN games) |
 | Esc | Pause (menu only, in a LAN game) and settings |
+
+**Crosshair** (Settings > **CROSSHAIR**), like Counter-Strike 2: color (Green, Yellow, Red, Blue, Cyan, White, or
+Custom with red / green / blue sliders), length, thickness, gap, opacity, outline, center dot, cross or T shape,
+and **Static** or **Dynamic** (opens up with the spread, and closes when the first shot is dead on). The preview
+shows it twice the size; **RESET** goes back to the default. Saved on the computer (or phone).
 
 ## Shop
 
@@ -359,6 +384,7 @@ All in `Assets/Scripts`:
 | `GameSettings.cs` | Graphics quality, frame limit, FPS counter, sensitivity (saved) |
 | `Accounts.cs` | Accounts on this computer: sign up, log in (hashed passwords), each account's skins and friends |
 | `Friends.cs` | Friend requests and who is online on the network (its own thread, so it runs in the background too) |
+| `GameInput.cs`, `TouchControls.cs` | All player input in one place: keyboard and mouse, or the on-screen controls on a phone |
 | `VisibilityCuller.cs` | Skips drawing players hidden behind walls, tested right before each frame |
 | `EffectPool.cs` | Reuses effect and sound objects instead of creating new ones per shot |
 | `RenderScaler.cs` | Draws the 3D view at the chosen 3D resolution and stretches it to the screen |
@@ -375,7 +401,8 @@ map and shows them from the side (with `-ds-capture`: a picture to check the ani
 (with `-ds-money 5000`, also on a LAN client) buys and sells in round 1 by itself and logs each step, and `-ds-give rpg -ds-equip rpg Web -ds-fire-test` gives the
 player a weapon and skin and fires every 3 s, with `-ds-capture <folder>` (a full path) taking a screenshot just after.
 Otherwise `-ds-capture <folder>` takes a screenshot every 8 s (`-ds-capture-every <seconds>` changes it).
-`-ds-friends` opens the friends screen, `-ds-friend-request <nickname>` sends a request, `-ds-accept-friends`
+`-ds-touch` shows the phone controls on a PC (the mouse is one finger), `-ds-crosshair` opens the crosshair page and
+`-ds-crosshair-demo` shows a different crosshair for one run without saving it, `-ds-friends` opens the friends screen, `-ds-friend-request <nickname>` sends a request, `-ds-accept-friends`
 accepts every request and `-ds-hide-status on|off` sets the online status (two games on one PC with their own
 `-ds-accounts-file` can test friends), `-ds-hidefps` hides the FPS counter for one run (clean screenshots), and `-ds-background` keeps a test running
 when its window is not in front. Tests skip the log-in screen
