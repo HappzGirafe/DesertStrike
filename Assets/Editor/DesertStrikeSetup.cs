@@ -89,7 +89,7 @@ public static class DesertStrikeSetup
         PlayerSettings.Android.bundleVersionCode = MobileVersionCode;
         PlayerSettings.Android.forceInternetPermission = true;   // LAN games and friends
         EditorUserBuildSettings.buildAppBundle = false;           // an .apk, not a Play Store bundle
-        Build(BuildTarget.Android, "Builds/Android/LowStrike.apk");
+        Build(BuildTarget.Android, "Builds/Android/LowStrike-Android.apk");
     }
 
     /// <summary>

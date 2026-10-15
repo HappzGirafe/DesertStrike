@@ -32,7 +32,7 @@ Both files are in the [`Builds`](Builds) folder of this repository, and every ve
   2. Open **System Settings > Privacy & Security**, scroll down, click **Open Anyway** next to
      *"Low Strike" was blocked*, and enter your Mac password.
   3. Click **Open**. From then on it opens normally. (The zip also contains these steps as a text file.)
-- **Android** phones and tablets: copy `LowStrike.apk` to the phone and open it. Android asks to allow installing
+- **Android** phones and tablets: copy `LowStrike-Android.apk` to the phone and open it. Android asks to allow installing
   apps from that source (the file manager or browser): allow it, then **Install**. If Play Protect warns about an
   unknown app, choose to install anyway.
 - **iPhone / iPad:** Apple only lets apps onto an iPhone through Xcode on a Mac or the App Store. On a Mac with
@@ -155,7 +155,7 @@ While in a LAN game the game keeps running when its window is not in front, so t
   `python Tools/zip_mac_app.py "Builds/macOS/Low Strike.app" Builds/LowStrike-macOS.zip "Tools/How to open on Mac.txt"`
 - Removing the "unidentified developer" warning completely needs an Apple Developer ID ($99/year) and notarization.
 - Unity menu **Low Strike > Build Android Game** (needs Unity's Android Build Support module with SDK, NDK and
-  OpenJDK) → `Builds/Android/LowStrike.apk`
+  OpenJDK) → `Builds/Android/LowStrike-Android.apk`
 - Unity menu **Low Strike > Build iOS Xcode Project** (needs Unity's iOS Build Support module) → `Builds/iOS/`,
   which Xcode on a Mac builds and installs (see Play above)
 

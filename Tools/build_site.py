@@ -39,12 +39,12 @@ LANGUAGES = [
 SWITCHER_ORDER = ["ua", "en", "de", "fr", "it", "es"]   # as on the page: UA, UK, DEU, FR, IT, ES
 
 TITLES = {
-    "en": "Low Strike: free shooter with bots and LAN for Windows and macOS",
-    "ua": "Low Strike: безкоштовний шутер з ботами та LAN для Windows і macOS",
-    "de": "Low Strike: kostenloser Shooter mit Bots und LAN für Windows und macOS",
-    "fr": "Low Strike : jeu de tir gratuit avec bots et LAN pour Windows et macOS",
-    "it": "Low Strike: sparatutto gratuito con bot e LAN per Windows e macOS",
-    "es": "Low Strike: shooter gratis con bots y LAN para Windows y macOS",
+    "en": "Low Strike: free shooter with bots and LAN for Windows, macOS and Android",
+    "ua": "Low Strike: безкоштовний шутер з ботами та LAN для Windows, macOS і Android",
+    "de": "Low Strike: kostenloser Shooter mit Bots und LAN für Windows, macOS und Android",
+    "fr": "Low Strike : jeu de tir gratuit avec bots et LAN pour Windows, macOS et Android",
+    "it": "Low Strike: sparatutto gratuito con bot e LAN per Windows, macOS e Android",
+    "es": "Low Strike: shooter gratis con bots y LAN para Windows, macOS y Android",
 }
 
 # Extra styles for the static pages: the language switcher is made of links there.
@@ -217,8 +217,8 @@ def head(code, t, verification):
         "inLanguage": lang,
         "image": SITE + "media/poster.jpg",
         "genre": ["Shooter", "Tactical shooter"],
-        "gamePlatform": ["Windows", "macOS"],
-        "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer",
+        "gamePlatform": ["Windows", "macOS", "Android"],
+        "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer, Android",
         "applicationCategory": "GameApplication",
         "playMode": ["SinglePlayer", "MultiPlayer"],
         "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10},
