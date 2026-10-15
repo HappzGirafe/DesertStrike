@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Low Strike: kostenloser Shooter mit Bots und LAN für Windows und macOS</title>
+<title>Low Strike: kostenloser Shooter mit Bots und LAN für Windows, macOS und Android</title>
 <meta name="description" content="Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.">
 <link rel="canonical" href="https://happzgirafe.github.io/DesertStrike/de/">
 <link rel="alternate" hreflang="en-GB" href="https://happzgirafe.github.io/DesertStrike/">
@@ -15,7 +15,7 @@
 <link rel="alternate" hreflang="x-default" href="https://happzgirafe.github.io/DesertStrike/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Low Strike">
-<meta property="og:title" content="Low Strike: kostenloser Shooter mit Bots und LAN für Windows und macOS">
+<meta property="og:title" content="Low Strike: kostenloser Shooter mit Bots und LAN für Windows, macOS und Android">
 <meta property="og:description" content="Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.">
 <meta property="og:url" content="https://happzgirafe.github.io/DesertStrike/de/">
 <meta property="og:locale" content="de_DE">
@@ -27,7 +27,7 @@
 <meta name="theme-color" content="#15110d">
 <link rel="icon" type="image/png" sizes="192x192" href="https://happzgirafe.github.io/DesertStrike/favicon.png">
 <link rel="apple-touch-icon" href="https://happzgirafe.github.io/DesertStrike/favicon.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Low Strike", "url": "https://happzgirafe.github.io/DesertStrike/de/", "description": "Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.", "inLanguage": "de", "image": "https://happzgirafe.github.io/DesertStrike/media/poster.jpg", "genre": ["Shooter", "Tactical shooter"], "gamePlatform": ["Windows", "macOS"], "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer", "applicationCategory": "GameApplication", "playMode": ["SinglePlayer", "MultiPlayer"], "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10}, "author": {"@type": "Person", "name": "HappzGirafe", "url": "https://github.com/HappzGirafe"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "trailer": {"@type": "VideoObject", "name": "Low Strike gameplay", "description": "Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.", "thumbnailUrl": "https://happzgirafe.github.io/DesertStrike/media/video-poster.jpg", "contentUrl": "https://happzgirafe.github.io/DesertStrike/media/gameplay.mp4", "uploadDate": "2026-10-07", "duration": "PT1M42S"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Low Strike", "url": "https://happzgirafe.github.io/DesertStrike/de/", "description": "Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.", "inLanguage": "de", "image": "https://happzgirafe.github.io/DesertStrike/media/poster.jpg", "genre": ["Shooter", "Tactical shooter"], "gamePlatform": ["Windows", "macOS", "Android"], "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer, Android", "applicationCategory": "GameApplication", "playMode": ["SinglePlayer", "MultiPlayer"], "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10}, "author": {"@type": "Person", "name": "HappzGirafe", "url": "https://github.com/HappzGirafe"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "trailer": {"@type": "VideoObject", "name": "Low Strike gameplay", "description": "Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.", "thumbnailUrl": "https://happzgirafe.github.io/DesertStrike/media/video-poster.jpg", "contentUrl": "https://happzgirafe.github.io/DesertStrike/media/gameplay.mp4", "uploadDate": "2026-10-07", "duration": "PT1M42S"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Tektur:wdth,wght@75..100,500..900&display=swap">
@@ -232,8 +232,10 @@
   .keys span { font-size: 15px; color: var(--text); min-width: 0; }
 
   /* downloads */
-  .downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .downloads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 1060px) { .downloads { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 760px) { .downloads { grid-template-columns: minmax(0, 1fr); } }
+  .ios-note { margin: 14px 0 0; color: var(--muted); font-size: 15px; }
   .os { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .os h3 { margin: 0; font: 800 30px/1 var(--font-display); font-stretch: 80%; color: var(--gold); }
   .os .file { margin: 0; font: 500 13px/1.5 var(--font-mono); color: var(--sand); overflow-wrap: anywhere; }
@@ -306,14 +308,15 @@
   <div class="hero">
     <div class="wrap">
       <div>
-        <p class="eyebrow">Kostenlos · Windows und macOS · Bots und LAN</p>
+        <p class="eyebrow">Kostenlos · Windows, macOS und Android · Bots und LAN</p>
         <h1>LOW STRIKE</h1>
         <p class="lead">Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.</p>
         <div class="buy-row">
           <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Windows.exe" target="_blank" rel="noopener"><span>Für Windows herunterladen</span><span class="price">$0</span></a>
           <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-macOS.zip" target="_blank" rel="noopener"><span>Für macOS herunterladen</span><span class="price">$0</span></a>
+          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Android.apk" target="_blank" rel="noopener"><span>Für Android herunterladen</span><span class="price">$0</span></a>
         </div>
-        <p class="note">Version 1.16 · Windows 37 MB · macOS 45 MB, Intel und Apple Silicon</p>
+        <p class="note">Version 1.17 · Windows 37 MB · macOS 45 MB · Android 32 MB</p>
       </div>
       <figure class="screen">
         <img src="../media/poster.jpg" alt="Eine Runde auf der Karte Village: Häuser, ein Zaun und eine MP5" width="1280" height="720">
@@ -356,7 +359,7 @@
         </article>
         <article class="feature">
           <header><h3>Shop</h3><span class="tag">$200 – $10000</span></header>
-          <p>13 Waffen, von der Glock-18 bis zum RPG. Gekauft wird im eigenen Spawn in den ersten 25 Sekunden einer Runde, eigene Waffen verkaufen geht in den ersten 30.</p>
+          <p>14 Waffen, von der Glock-18 bis zum RPG. Gekauft wird im eigenen Spawn in den ersten 25 Sekunden einer Runde, eigene Waffen verkaufen geht in den ersten 30.</p>
         </article>
         <article class="feature">
           <header><h3>LAN-Spiele</h3><span class="tag">Wi‑Fi · V</span></header>
@@ -367,8 +370,8 @@
           <p>Ein Inventar mit Skins für jede Waffe: Gold, Arctic, Desert Camo, Urban Digital und das Karambit-Messer.</p>
         </article>
         <article class="feature">
-          <header><h3>Läuft auf Laptops</h3><span class="tag">30 / 60 / 120 FPS</span></header>
-          <p>Grafik Low, Medium oder High, Bildratenlimit und 3D-Auflösung. Läuft auf Macs mit Intel und Apple Silicon.</p>
+          <header><h3>Laptops und Handys</h3><span class="tag">30 / 60 / 120 FPS</span></header>
+          <p>Grafik Low, Medium oder High, Bildratenlimit und 3D-Auflösung. Läuft auf Macs mit Intel und Apple Silicon und auf Android-Handys mit Touch-Steuerung.</p>
         </article>
         <article class="feature">
           <header><h3>Vier Karten</h3><span class="tag">de_dune + 3</span></header>
@@ -379,8 +382,8 @@
           <p>Erstelle ein Konto mit Nickname und Passwort. Füge Freunde hinzu und sieh, wer in deinem Netzwerk online ist, behalte deine Skins und schalte Halloween, den RPG-Skin Web und Extrem-Bots frei.</p>
         </article>
         <article class="feature">
-          <header><h3>Animierte Spieler</h3><span class="tag">1.15</span></header>
-          <p>Spieler und Bots gehen, rennen, ducken sich, springen und fallen um, wenn sie sterben. Neue Modelle für Glock-18, USP, AK-47, Desert Eagle und Pump-Shotgun.</p>
+          <header><h3>Dein Fadenkreuz</h3><span class="tag">1.17</span></header>
+          <p>Stell das Fadenkreuz ein wie in CS2: Farbe, Länge, Dicke, Abstand, Punkt, Umriss, T-Form. Eine Waffe, die 3 Sekunden nicht geschossen hat, trifft mit dem nächsten Schuss genau.</p>
         </article>
       </div>
     </div>
@@ -404,6 +407,7 @@
         <div>
           <h3>MPs &amp; Schrotflinte</h3>
           <ul>
+            <li><span class="name">Uzi</span><span class="cost">$1200</span></li>
             <li><span class="name">MP5</span><span class="cost">$1500</span></li>
             <li><span class="name">Pump Shotgun</span><span class="cost">$1700</span></li>
           </ul>
@@ -472,7 +476,7 @@
   <section id="download">
     <div class="wrap">
       <h2>Download</h2>
-      <p class="intro">Kostenlos herunterladen. Wähle deinen Computer.</p>
+      <p class="intro">Kostenlos herunterladen. Wähle deinen Computer oder dein Handy.</p>
       <div class="downloads">
         <article class="os">
           <h3>Windows</h3>
@@ -494,11 +498,22 @@
           </ol>
           <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-macOS.zip" target="_blank" rel="noopener"><span>Für macOS herunterladen</span><span class="price">$0</span></a>
         </article>
+        <article class="os">
+          <h3>Android</h3>
+          <p class="file">LowStrike-Android.apk · <span>Handys und Tablets</span> · 32 MB</p>
+          <ol>
+            <li>Lade die Datei auf dem Handy herunter und öffne sie.</li>
+            <li>Wenn Android fragt, erlaube das Installieren von Apps aus deinem Browser oder Dateimanager.</li>
+            <li>Tippe auf Installieren. Warnt Play Protect vor einer unbekannten App, wähle Trotzdem installieren.</li>
+          </ol>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Android.apk" target="_blank" rel="noopener"><span>Für Android herunterladen</span><span class="price">$0</span></a>
+        </article>
       </div>
+      <p class="ios-note">iPhone und iPad: noch nicht. Apple lässt Spiele nur über den App Store zu.</p>
       <div class="dl-counter" id="dl-counter" hidden>
         <span class="label">Downloads bisher</span>
         <span class="number" id="dl-total">0</span>
-        <span class="split" id="dl-split">Windows 0 · macOS 0</span>
+        <span class="split" id="dl-split">Windows 0 · macOS 0 · Android 0</span>
         <span class="source">Alle Versionen, gezählt von GitHub.</span>
       </div>
       <p class="all"><a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener">Alle Versionen auf GitHub</a></p>
