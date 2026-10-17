@@ -223,6 +223,17 @@
   .dl-counter .number { font: 700 clamp(34px, 5vw, 46px)/1 var(--font-mono); color: var(--money); font-variant-numeric: tabular-nums; }
   .dl-counter .split { font: 500 14px/1.4 var(--font-mono); color: var(--sand); font-variant-numeric: tabular-nums; }
   .dl-counter .source { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+  /* Play Online: a panel like the download cards, with the server's state as a small light */
+  .online { margin-top: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; display: grid; gap: 10px; }
+  .online-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+  .online h3 { margin: 0; font: 800 30px/1 var(--font-display); font-stretch: 80%; color: var(--gold); }
+  .online p { margin: 0; }
+  .online .online-note { color: var(--muted); font-size: 14px; }
+  .online-status { display: inline-flex; align-items: center; gap: 8px; font: 700 12.5px/1.3 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .online-status .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }
+  .online-status[data-state="online"] { color: var(--money); }
+  .online-status[data-state="offline"] { color: #ff7a6b; }
+  .online-status[data-state="soon"] { color: var(--sand); }
 
   footer { border-top: 1px solid var(--line); padding-block: 28px 36px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
@@ -269,7 +280,7 @@
   <div class="hero">
     <div class="wrap">
       <div>
-        <p class="eyebrow" data-i18n="hero_eyebrow">Free · Windows, macOS and Android · bots and LAN</p>
+        <p class="eyebrow" data-i18n="hero_eyebrow">Free · Windows, macOS and Android · bots, LAN and online</p>
         <h1>LOW STRIKE</h1>
         <p class="lead" data-i18n="hero_lead">Terrorists against SWAT on four maps. Plant the bomb, defuse it or take out the other team, against bots or with friends on the same WiFi.</p>
         <div class="buy-row">
@@ -277,7 +288,7 @@
           <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-macOS.zip" target="_blank" rel="noopener"><span data-i18n="hero_mac">Download for macOS</span><span class="price">$0</span></a>
           <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Android.apk" target="_blank" rel="noopener"><span data-i18n="hero_android">Download for Android</span><span class="price">$0</span></a>
         </div>
-        <p class="note" data-i18n="hero_note">Version 1.18 · Windows 37 MB · macOS 45 MB · Android 32 MB</p>
+        <p class="note" data-i18n="hero_note">Version 1.19 · Windows 37 MB · macOS 45 MB · Android 33 MB</p>
       </div>
       <figure class="screen">
         <img src="media/poster.jpg" alt="A round on the Village map: houses, a fence and an MP5" data-i18n-alt="cap_hero" width="1280" height="720">
@@ -323,8 +334,8 @@
           <p data-i18n="f_shop_d">14 weapons, from the Glock-18 to the RPG. Buy in your own spawn during the first 25 seconds of a round, and sell your guns back in the first 30.</p>
         </article>
         <article class="feature">
-          <header><h3 data-i18n="f_lan_t">LAN games</h3><span class="tag">Wi‑Fi · V</span></header>
-          <p data-i18n="f_lan_d">Host a game on one computer and join from another on the same WiFi. Bots take the free places. Hold V to talk.</p>
+          <header><h3 data-i18n="f_lan_t">Online and LAN</h3><span class="tag">Wi‑Fi · V</span></header>
+          <p data-i18n="f_lan_d">Play online with anyone: create a room or join one, up to 5v5, with no IP addresses or router settings. Or host a game on your WiFi. Bots take the free places. Hold V to talk.</p>
         </article>
         <article class="feature">
           <header><h3 data-i18n="f_skins_t">Skins</h3><span class="tag">Karambit</span></header>
@@ -340,7 +351,7 @@
         </article>
         <article class="feature">
           <header><h3 data-i18n="f_acc_t">Accounts &amp; friends</h3><span class="tag">Friends · Halloween</span></header>
-          <p data-i18n="f_acc_d">Make an account with a nickname and a password. Add friends and see who is online on your network, keep your skins, and unlock Halloween, the RPG Web skin and Extreme bots.</p>
+          <p data-i18n="f_acc_d">Make an online account with a nickname and a password: it works on every computer and phone, keeps your skins and settings, and brings friends over the internet, who see when you are online and invite you to their rooms. Plus Halloween, the RPG Web skin and Extreme bots.</p>
         </article>
         <article class="feature">
           <header><h3 data-i18n="f_anim_t">Your crosshair</h3><span class="tag">1.17</span></header>
@@ -461,7 +472,7 @@
         </article>
         <article class="os">
           <h3>Android</h3>
-          <p class="file">LowStrike-Android.apk · <span data-i18n="dl_and_meta">phones and tablets</span> · 32 MB</p>
+          <p class="file">LowStrike-Android.apk · <span data-i18n="dl_and_meta">phones and tablets</span> · 33 MB</p>
           <ol>
             <li data-i18n="dl_and_1">Download the file on the phone and open it.</li>
             <li data-i18n="dl_and_2">When Android asks, allow installing apps from your browser or file manager.</li>
@@ -471,6 +482,18 @@
         </article>
       </div>
       <p class="ios-note" data-i18n="dl_ios">iPhone and iPad: not yet. Apple only lets games in through the App Store.</p>
+      <div class="online" id="online">
+        <div class="online-head">
+          <h3 data-i18n="on_title">Play Online</h3>
+          <span class="online-status" id="online-status" data-state="checking"><span class="dot"></span><span id="online-status-text" data-i18n="on_checking">Checking the server…</span></span>
+        </div>
+        <p data-i18n="on_text">Play with friends anywhere: in the game click PLAY ONLINE and sign up with a nickname and a password (at least 8 characters). Then create a room or join one. No IP addresses, VPN or router settings needed.</p>
+        <p class="online-note" data-i18n="on_note">Online rooms run on a small home server and may be offline at times. Single player and LAN games always work.</p>
+        <span hidden id="on-s-online" data-i18n="on_online">Server online</span>
+        <span hidden id="on-s-offline" data-i18n="on_offline">Server offline right now</span>
+        <span hidden id="on-s-soon" data-i18n="on_soon">Opening soon</span>
+        <span hidden id="on-s-players" data-i18n="on_players">players online</span>
+      </div>
       <div class="dl-counter" id="dl-counter" hidden>
         <span class="label" data-i18n="dl_count_label">Downloads so far</span>
         <span class="number" id="dl-total">0</span>
@@ -506,10 +529,10 @@
     en: {
       nav_gameplay: "Gameplay", nav_features: "Features", nav_shop: "Price list", nav_screens: "Screenshots", nav_download: "Download",
       lang_label: "Language",
-      hero_eyebrow: "Free · Windows, macOS and Android · bots and LAN",
+      hero_eyebrow: "Free · Windows, macOS and Android · bots, LAN and online",
       hero_lead: "Terrorists against SWAT on four maps. Plant the bomb, defuse it or take out the other team, against bots or with friends on the same WiFi.",
       hero_win: "Download for Windows", hero_mac: "Download for macOS",
-      hero_note: "Version 1.18 · Windows 37 MB · macOS 45 MB · Android 32 MB",
+      hero_note: "Version 1.19 · Windows 37 MB · macOS 45 MB · Android 33 MB",
       hud_round: "Round 1 · first to 8", hud_alive: "5 alive", hud_buy: "Press B to buy",
       cap_hero: "A round on the Village map: houses, a fence and an MP5",
       video_title: "Gameplay", video_text: "Almost two minutes from a real match on the Village map, recorded in the game.", video_caption: "Video without sound.",
@@ -517,10 +540,10 @@
       f_bots_t: "Bots", f_bots_d: "From 1v1 up to 5v5 against bots on Easy, Normal, Hard or Extreme. They buy weapons, plant the bomb and defuse it.",
       f_bomb_t: "The bomb", f_bomb_d: "Plant the C4 on site A or B in 3 seconds. It explodes after 40 seconds. SWAT defuse it in 10 seconds, or 5 with a kit.", tag_bomb: "40 s",
       f_shop_t: "Shop", f_shop_d: "14 weapons, from the Glock-18 to the RPG. Buy in your own spawn during the first 25 seconds of a round, and sell your guns back in the first 30.",
-      f_lan_t: "LAN games", f_lan_d: "Host a game on one computer and join from another on the same WiFi. Bots take the free places. Hold V to talk.",
+      f_lan_t: "Online and LAN", f_lan_d: "Play online with anyone: create a room or join one, up to 5v5, with no IP addresses or router settings. Or host a game on your WiFi. Bots take the free places. Hold V to talk.",
       f_skins_t: "Skins", f_skins_d: "An inventory with skins for every weapon: Gold, Arctic, Desert Camo, Urban Digital and the karambit knife.",
       f_perf_t: "Laptops and phones", f_perf_d: "Graphics Low, Medium or High, a frame limit and 3D resolution. Works on Intel and Apple Silicon Macs, and on Android phones with touch controls you can move.",
-      f_maps_t: "Four maps", f_maps_d: "de_dune in the desert, Village, Halloween (a haunted village at night) and Industrial with a warehouse, containers and a three-room B site.", f_acc_t: "Accounts & friends", f_acc_d: "Make an account with a nickname and a password. Add friends and see who is online on your network, keep your skins, and unlock Halloween, the RPG Web skin and Extreme bots.", f_anim_t: "Your crosshair", f_anim_d: "Set the crosshair like in CS2: color, length, thickness, gap, dot, outline, T shape. A gun that rests for 3 seconds fires its next shot dead on.",
+      f_maps_t: "Four maps", f_maps_d: "de_dune in the desert, Village, Halloween (a haunted village at night) and Industrial with a warehouse, containers and a three-room B site.", f_acc_t: "Accounts & friends", f_acc_d: "Make an online account with a nickname and a password: it works on every computer and phone, keeps your skins and settings, and brings friends over the internet, who see when you are online and invite you to their rooms. Plus Halloween, the RPG Web skin and Extreme bots.", f_anim_t: "Your crosshair", f_anim_d: "Set the crosshair like in CS2: color, length, thickness, gap, dot, outline, T shape. A gun that rests for 3 seconds fires its next shot dead on.",
       shop_title: "Price list", shop_intro: "The buy menu, as it looks in the game. T = Terrorists only, SWAT = SWAT only.",
       shop_text: "Money: $800 at the start, $3250 for a win, $300 per kill, $1500 for a knife kill.",
       cat_pistols: "Pistols", cat_smg: "SMG & shotgun", cat_rifles: "Rifles & heavy", cat_equipment: "Equipment",
@@ -539,15 +562,15 @@
       dl_mac_1: "Download the zip, unzip it and double-click Low Strike.", dl_mac_2: "The first time, macOS blocks it. Close the message.",
       dl_mac_3: "Open System Settings > Privacy & Security, click Open Anyway, then Open.",
       hero_android: "Download for Android", dl_and_meta: "phones and tablets", dl_and_1: "Download the file on the phone and open it.", dl_and_2: "When Android asks, allow installing apps from your browser or file manager.", dl_and_3: "Tap Install. If Play Protect warns about an unknown app, choose Install anyway.", dl_ios: "iPhone and iPad: not yet. Apple only lets games in through the App Store.",
-      dl_all: "All versions on GitHub", dl_count_label: "Downloads so far", dl_count_note: "All versions, counted by GitHub.", footer_made: "Made with Unity and Blender.", footer_code: "Source code on GitHub"
+      dl_all: "All versions on GitHub", dl_count_label: "Downloads so far", dl_count_note: "All versions, counted by GitHub.", footer_made: "Made with Unity and Blender.", footer_code: "Source code on GitHub", on_title: "Play Online", on_checking: "Checking the server…", on_online: "Server online", on_offline: "Server offline right now", on_soon: "Opening soon", on_players: "players online", on_text: "Play with friends anywhere: in the game click PLAY ONLINE and sign up with a nickname and a password (at least 8 characters). Then create a room or join one. No IP addresses, VPN or router settings needed.", on_note: "Online rooms run on a small home server and may be offline at times. Single player and LAN games always work."
     },
     ua: {
       nav_gameplay: "Геймплей", nav_features: "Можливості", nav_shop: "Ціни", nav_screens: "Скриншоти", nav_download: "Завантажити",
       lang_label: "Мова",
-      hero_eyebrow: "Безкоштовно · Windows, macOS і Android · боти та LAN",
+      hero_eyebrow: "Безкоштовно · Windows, macOS і Android · боти, LAN та онлайн",
       hero_lead: "Терористи проти SWAT на чотирьох картах. Заклади бомбу, знешкодь її або переможи іншу команду: проти ботів або з друзями в одній мережі Wi‑Fi.",
       hero_win: "Завантажити для Windows", hero_mac: "Завантажити для macOS",
-      hero_note: "Версія 1.18 · Windows 37 МБ · macOS 45 МБ · Android 32 МБ",
+      hero_note: "Версія 1.19 · Windows 37 МБ · macOS 45 МБ · Android 33 МБ",
       hud_round: "Раунд 1 · до 8 перемог", hud_alive: "5 живих", hud_buy: "Натисни B, щоб купити",
       cap_hero: "Раунд на карті Village: будинки, паркан і MP5",
       video_title: "Геймплей", video_text: "Майже дві хвилини справжнього матчу на карті Village, записані в грі.", video_caption: "Відео без звуку.",
@@ -555,10 +578,10 @@
       f_bots_t: "Боти", f_bots_d: "Від 1 на 1 до 5 на 5 проти ботів: легкі, звичайні, складні або екстремальні. Вони купують зброю, закладають і знешкоджують бомбу.",
       f_bomb_t: "Бомба", f_bomb_d: "Заклади C4 на точці A або B за 3 секунди. Вона вибухає через 40 секунд. SWAT знешкоджує її за 10 секунд, а з набором сапера за 5.", tag_bomb: "40 с",
       f_shop_t: "Магазин", f_shop_d: "14 видів зброї, від Glock-18 до RPG. Купувати можна на своїй базі протягом перших 25 секунд раунду, а продати свою зброю — протягом перших 30.",
-      f_lan_t: "Гра по мережі", f_lan_d: "Створи гру на одному комп’ютері й приєднайся з іншого в тій самій мережі Wi‑Fi. Вільні місця займають боти. Утримуй V, щоб говорити.",
+      f_lan_t: "Онлайн і LAN", f_lan_d: "Грай онлайн з будь-ким: створи кімнату або зайди в наявну, до 5 на 5, без IP-адрес і налаштувань роутера. Або створи гру у своїй мережі Wi‑Fi. Вільні місця займають боти. Утримуй V, щоб говорити.",
       f_skins_t: "Скіни", f_skins_d: "Інвентар зі скінами для кожної зброї: Gold, Arctic, Desert Camo, Urban Digital і ніж-карамбіт.",
       f_perf_t: "Ноутбуки й телефони", f_perf_d: "Графіка Low, Medium або High, обмеження кадрів і 3D-роздільність. Працює на Mac з Intel і Apple Silicon та на Android-телефонах із сенсорними кнопками, які можна переставляти.",
-      f_maps_t: "Чотири карти", f_maps_d: "de_dune у пустелі, Village, Halloween (село з привидами вночі) та Industrial зі складом, контейнерами й точкою B із трьох кімнат.", f_acc_t: "Акаунти й друзі", f_acc_d: "Створи акаунт з ніком і паролем. Додавай друзів і дивись, хто онлайн у твоїй мережі, зберігай скіни й відкрий Halloween, скін RPG Web і екстремальних ботів.", f_anim_t: "Твій приціл", f_anim_d: "Налаштуй приціл як у CS2: колір, довжина, товщина, проміжок, точка, обведення, форма T. Зброя, з якої не стріляли 3 секунди, першим пострілом б’є точно в ціль.",
+      f_maps_t: "Чотири карти", f_maps_d: "de_dune у пустелі, Village, Halloween (село з привидами вночі) та Industrial зі складом, контейнерами й точкою B із трьох кімнат.", f_acc_t: "Акаунти й друзі", f_acc_d: "Створи онлайн-акаунт з ніком і паролем: він працює на кожному комп’ютері й телефоні, зберігає скіни й налаштування, а друзі через інтернет бачать, коли ти онлайн, і запрошують у свої кімнати. А ще Halloween, скін RPG Web і екстремальні боти.", f_anim_t: "Твій приціл", f_anim_d: "Налаштуй приціл як у CS2: колір, довжина, товщина, проміжок, точка, обведення, форма T. Зброя, з якої не стріляли 3 секунди, першим пострілом б’є точно в ціль.",
       shop_title: "Ціни", shop_intro: "Меню покупок, як у грі. T = лише терористи, SWAT = лише SWAT.",
       shop_text: "Гроші: $800 на старті, $3250 за перемогу, $300 за вбивство, $1500 за вбивство ножем.",
       cat_pistols: "Пістолети", cat_smg: "ПП і дробовик", cat_rifles: "Гвинтівки й важка зброя", cat_equipment: "Спорядження",
@@ -577,15 +600,15 @@
       dl_mac_1: "Завантаж архів, розпакуй його й двічі клацни Low Strike.", dl_mac_2: "Першого разу macOS блокує гру. Закрий повідомлення.",
       dl_mac_3: "Відкрий Системні параметри > Приватність і безпека, натисни «Однаково відкрити», потім «Відкрити».",
       hero_android: "Завантажити для Android", dl_and_meta: "телефони й планшети", dl_and_1: "Завантаж файл на телефон і відкрий його.", dl_and_2: "Коли Android запитає, дозволь установлювати програми з браузера чи файлового менеджера.", dl_and_3: "Натисни «Установити». Якщо Play Protect попереджає про невідому програму, обери «Усе одно встановити».", dl_ios: "iPhone та iPad: поки ні. Apple пускає ігри лише через App Store.",
-      dl_all: "Усі версії на GitHub", dl_count_label: "Усього завантажень", dl_count_note: "Усі версії, рахує GitHub.", footer_made: "Створено в Unity та Blender.", footer_code: "Код на GitHub"
+      dl_all: "Усі версії на GitHub", dl_count_label: "Усього завантажень", dl_count_note: "Усі версії, рахує GitHub.", footer_made: "Створено в Unity та Blender.", footer_code: "Код на GitHub", on_title: "Грати онлайн", on_checking: "Перевіряємо сервер…", on_online: "Сервер онлайн", on_offline: "Сервер зараз офлайн", on_soon: "Скоро відкриємо", on_players: "гравців онлайн", on_text: "Грайте з друзями будь-де: у грі натисніть PLAY ONLINE і зареєструйтеся з ніком і паролем (щонайменше 8 символів). Потім створіть кімнату або увійдіть у наявну. Не потрібні IP-адреси, VPN чи налаштування роутера.", on_note: "Онлайн-кімнати працюють на невеликому домашньому сервері й часом можуть бути недоступні. Одиночна гра та LAN працюють завжди."
     },
     de: {
       nav_gameplay: "Gameplay", nav_features: "Funktionen", nav_shop: "Preise", nav_screens: "Screenshots", nav_download: "Download",
       lang_label: "Sprache",
-      hero_eyebrow: "Kostenlos · Windows, macOS und Android · Bots und LAN",
+      hero_eyebrow: "Kostenlos · Windows, macOS und Android · Bots, LAN und online",
       hero_lead: "Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.",
       hero_win: "Für Windows herunterladen", hero_mac: "Für macOS herunterladen",
-      hero_note: "Version 1.18 · Windows 37 MB · macOS 45 MB · Android 32 MB",
+      hero_note: "Version 1.19 · Windows 37 MB · macOS 45 MB · Android 33 MB",
       hud_round: "Runde 1 · bis 8 Siege", hud_alive: "5 am Leben", hud_buy: "B zum Kaufen",
       cap_hero: "Eine Runde auf der Karte Village: Häuser, ein Zaun und eine MP5",
       video_title: "Gameplay", video_text: "Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.", video_caption: "Video ohne Ton.",
@@ -593,10 +616,10 @@
       f_bots_t: "Bots", f_bots_d: "Von 1 gegen 1 bis 5 gegen 5 gegen Bots auf Leicht, Normal, Schwer oder Extrem. Sie kaufen Waffen, legen die Bombe und entschärfen sie.",
       f_bomb_t: "Die Bombe", f_bomb_d: "Leg die C4 in 3 Sekunden auf Bombenplatz A oder B. Sie explodiert nach 40 Sekunden. SWAT entschärft sie in 10 Sekunden, mit Entschärfungsset in 5.", tag_bomb: "40 s",
       f_shop_t: "Shop", f_shop_d: "14 Waffen, von der Glock-18 bis zum RPG. Gekauft wird im eigenen Spawn in den ersten 25 Sekunden einer Runde, eigene Waffen verkaufen geht in den ersten 30.",
-      f_lan_t: "LAN-Spiele", f_lan_d: "Starte ein Spiel auf einem Computer und tritt von einem anderen im selben WLAN bei. Freie Plätze übernehmen Bots. Halte V gedrückt, um zu sprechen.",
+      f_lan_t: "Online und LAN", f_lan_d: "Spiel online mit allen: Erstelle einen Raum oder tritt einem bei, bis 5 gegen 5, ohne IP-Adressen oder Router-Einstellungen. Oder starte ein Spiel in deinem WLAN. Freie Plätze übernehmen Bots. Halte V gedrückt, um zu sprechen.",
       f_skins_t: "Skins", f_skins_d: "Ein Inventar mit Skins für jede Waffe: Gold, Arctic, Desert Camo, Urban Digital und das Karambit-Messer.",
       f_perf_t: "Laptops und Handys", f_perf_d: "Grafik Low, Medium oder High, Bildratenlimit und 3D-Auflösung. Läuft auf Macs mit Intel und Apple Silicon und auf Android-Handys mit Touch-Tasten, die du verschieben kannst.",
-      f_maps_t: "Vier Karten", f_maps_d: "de_dune in der Wüste, Village, Halloween (ein Spukdorf bei Nacht) und Industrial mit Lagerhalle, Containern und einem Bombenplatz B aus drei Räumen.", f_acc_t: "Konten & Freunde", f_acc_d: "Erstelle ein Konto mit Nickname und Passwort. Füge Freunde hinzu und sieh, wer in deinem Netzwerk online ist, behalte deine Skins und schalte Halloween, den RPG-Skin Web und Extrem-Bots frei.", f_anim_t: "Dein Fadenkreuz", f_anim_d: "Stell das Fadenkreuz ein wie in CS2: Farbe, Länge, Dicke, Abstand, Punkt, Umriss, T-Form. Eine Waffe, die 3 Sekunden nicht geschossen hat, trifft mit dem nächsten Schuss genau.",
+      f_maps_t: "Vier Karten", f_maps_d: "de_dune in der Wüste, Village, Halloween (ein Spukdorf bei Nacht) und Industrial mit Lagerhalle, Containern und einem Bombenplatz B aus drei Räumen.", f_acc_t: "Konten & Freunde", f_acc_d: "Erstelle ein Online-Konto mit Nickname und Passwort: Es gilt auf jedem Computer und Handy, behält deine Skins und Einstellungen, und Freunde übers Internet sehen, wann du online bist, und laden dich in ihre Räume ein. Dazu Halloween, der RPG-Skin Web und Extrem-Bots.", f_anim_t: "Dein Fadenkreuz", f_anim_d: "Stell das Fadenkreuz ein wie in CS2: Farbe, Länge, Dicke, Abstand, Punkt, Umriss, T-Form. Eine Waffe, die 3 Sekunden nicht geschossen hat, trifft mit dem nächsten Schuss genau.",
       shop_title: "Preisliste", shop_intro: "Das Kaufmenü, wie es im Spiel aussieht. T = nur Terroristen, SWAT = nur SWAT.",
       shop_text: "Geld: $800 zum Start, $3250 für einen Sieg, $300 pro Kill, $1500 für einen Messer-Kill.",
       cat_pistols: "Pistolen", cat_smg: "MPs & Schrotflinte", cat_rifles: "Gewehre & Schweres", cat_equipment: "Ausrüstung",
@@ -615,15 +638,15 @@
       dl_mac_1: "ZIP herunterladen, entpacken und Low Strike doppelklicken.", dl_mac_2: "Beim ersten Mal blockiert macOS das Spiel. Meldung schließen.",
       dl_mac_3: "Systemeinstellungen > Datenschutz & Sicherheit öffnen, auf „Dennoch öffnen“ und dann „Öffnen“ klicken.",
       hero_android: "Für Android herunterladen", dl_and_meta: "Handys und Tablets", dl_and_1: "Lade die Datei auf dem Handy herunter und öffne sie.", dl_and_2: "Wenn Android fragt, erlaube das Installieren von Apps aus deinem Browser oder Dateimanager.", dl_and_3: "Tippe auf Installieren. Warnt Play Protect vor einer unbekannten App, wähle Trotzdem installieren.", dl_ios: "iPhone und iPad: noch nicht. Apple lässt Spiele nur über den App Store zu.",
-      dl_all: "Alle Versionen auf GitHub", dl_count_label: "Downloads bisher", dl_count_note: "Alle Versionen, gezählt von GitHub.", footer_made: "Gemacht mit Unity und Blender.", footer_code: "Quellcode auf GitHub"
+      dl_all: "Alle Versionen auf GitHub", dl_count_label: "Downloads bisher", dl_count_note: "Alle Versionen, gezählt von GitHub.", footer_made: "Gemacht mit Unity und Blender.", footer_code: "Quellcode auf GitHub", on_title: "Online spielen", on_checking: "Server wird geprüft…", on_online: "Server online", on_offline: "Server gerade offline", on_soon: "Bald verfügbar", on_players: "Spieler online", on_text: "Spiel mit Freunden überall: Klick im Spiel auf PLAY ONLINE und registriere dich mit Nickname und Passwort (mindestens 8 Zeichen). Dann erstell einen Raum oder tritt einem bei. Keine IP-Adressen, kein VPN, keine Router-Einstellungen.", on_note: "Online-Räume laufen auf einem kleinen Heimserver und können manchmal offline sein. Einzelspieler und LAN funktionieren immer."
     },
     fr: {
       nav_gameplay: "Gameplay", nav_features: "Contenu", nav_shop: "Prix", nav_screens: "Captures", nav_download: "Télécharger",
       lang_label: "Langue",
-      hero_eyebrow: "Gratuit · Windows, macOS et Android · bots et LAN",
+      hero_eyebrow: "Gratuit · Windows, macOS et Android · bots, LAN et en ligne",
       hero_lead: "Terroristes contre SWAT sur quatre cartes. Pose la bombe, désamorce-la ou élimine l’autre équipe, contre des bots ou entre amis sur le même Wi‑Fi.",
       hero_win: "Télécharger pour Windows", hero_mac: "Télécharger pour macOS",
-      hero_note: "Version 1.18 · Windows 37 Mo · macOS 45 Mo · Android 32 Mo",
+      hero_note: "Version 1.19 · Windows 37 Mo · macOS 45 Mo · Android 33 Mo",
       hud_round: "Manche 1 · en 8 victoires", hud_alive: "5 en vie", hud_buy: "B pour acheter",
       cap_hero: "Une manche sur la carte Village : des maisons, une clôture et un MP5",
       video_title: "Gameplay", video_text: "Près de deux minutes d’un vrai match sur la carte Village, enregistrées dans le jeu.", video_caption: "Vidéo sans son.",
@@ -631,10 +654,10 @@
       f_bots_t: "Bots", f_bots_d: "Du 1 contre 1 au 5 contre 5 face à des bots en Facile, Normal, Difficile ou Extrême. Ils achètent des armes, posent la bombe et la désamorcent.",
       f_bomb_t: "La bombe", f_bomb_d: "Pose le C4 sur le site A ou B en 3 secondes. Il explose au bout de 40 secondes. Le SWAT le désamorce en 10 secondes, ou en 5 avec un kit.", tag_bomb: "40 s",
       f_shop_t: "Boutique", f_shop_d: "14 armes, du Glock-18 au RPG. On achète dans son propre spawn pendant les 25 premières secondes de la manche, et on revend ses armes pendant les 30 premières.",
-      f_lan_t: "Parties LAN", f_lan_d: "Crée une partie sur un ordinateur et rejoins-la depuis un autre sur le même Wi‑Fi. Des bots prennent les places libres. Maintiens V pour parler.",
+      f_lan_t: "En ligne et LAN", f_lan_d: "Joue en ligne avec n’importe qui : crée une salle ou rejoins-en une, jusqu’à 5 contre 5, sans adresse IP ni réglages du routeur. Ou crée une partie sur ton Wi‑Fi. Des bots prennent les places libres. Maintiens V pour parler.",
       f_skins_t: "Skins", f_skins_d: "Un inventaire avec des skins pour chaque arme : Gold, Arctic, Desert Camo, Urban Digital et le couteau karambit.",
       f_perf_t: "Portables et téléphones", f_perf_d: "Graphismes Low, Medium ou High, limite d’images et résolution 3D. Fonctionne sur les Mac Intel et Apple Silicon, et sur les téléphones Android avec des boutons tactiles que tu peux déplacer.",
-      f_maps_t: "Quatre cartes", f_maps_d: "de_dune dans le désert, Village, Halloween (un village hanté la nuit) et Industrial avec un entrepôt, des conteneurs et un site B de trois pièces.", f_acc_t: "Comptes et amis", f_acc_d: "Crée un compte avec un pseudo et un mot de passe. Ajoute des amis et vois qui est en ligne sur ton réseau, garde tes skins et débloque Halloween, le skin RPG Web et les bots Extrême.", f_anim_t: "Ton viseur", f_anim_d: "Règle le viseur comme dans CS2 : couleur, longueur, épaisseur, écart, point, contour, forme en T. Une arme au repos depuis 3 secondes tire son coup suivant en plein dans le mille.",
+      f_maps_t: "Quatre cartes", f_maps_d: "de_dune dans le désert, Village, Halloween (un village hanté la nuit) et Industrial avec un entrepôt, des conteneurs et un site B de trois pièces.", f_acc_t: "Comptes et amis", f_acc_d: "Crée un compte en ligne avec un pseudo et un mot de passe : il marche sur chaque ordinateur et téléphone, garde tes skins et tes réglages, et tes amis sur Internet voient quand tu es en ligne et t’invitent dans leurs salles. En plus : Halloween, le skin RPG Web et les bots Extrême.", f_anim_t: "Ton viseur", f_anim_d: "Règle le viseur comme dans CS2 : couleur, longueur, épaisseur, écart, point, contour, forme en T. Une arme au repos depuis 3 secondes tire son coup suivant en plein dans le mille.",
       shop_title: "Liste des prix", shop_intro: "Le menu d’achat, comme dans le jeu. T = terroristes seulement, SWAT = SWAT seulement.",
       shop_text: "Argent : $800 au départ, $3250 par victoire, $300 par élimination, $1500 au couteau.",
       cat_pistols: "Pistolets", cat_smg: "PM et fusil à pompe", cat_rifles: "Fusils et armes lourdes", cat_equipment: "Équipement",
@@ -653,15 +676,15 @@
       dl_mac_1: "Télécharge le zip, décompresse-le et double-clique sur Low Strike.", dl_mac_2: "La première fois, macOS le bloque. Ferme le message.",
       dl_mac_3: "Ouvre Réglages Système > Confidentialité et sécurité, clique sur « Ouvrir quand même », puis « Ouvrir ».",
       hero_android: "Télécharger pour Android", dl_and_meta: "téléphones et tablettes", dl_and_1: "Télécharge le fichier sur le téléphone et ouvre-le.", dl_and_2: "Quand Android le demande, autorise l’installation d’applis depuis ton navigateur ou ton gestionnaire de fichiers.", dl_and_3: "Appuie sur Installer. Si Play Protect avertit d’une appli inconnue, choisis Installer quand même.", dl_ios: "iPhone et iPad : pas encore. Apple n’accepte les jeux que via l’App Store.",
-      dl_all: "Toutes les versions sur GitHub", dl_count_label: "Téléchargements à ce jour", dl_count_note: "Toutes les versions, comptées par GitHub.", footer_made: "Fait avec Unity et Blender.", footer_code: "Code source sur GitHub"
+      dl_all: "Toutes les versions sur GitHub", dl_count_label: "Téléchargements à ce jour", dl_count_note: "Toutes les versions, comptées par GitHub.", footer_made: "Fait avec Unity et Blender.", footer_code: "Code source sur GitHub", on_title: "Jouer en ligne", on_checking: "Vérification du serveur…", on_online: "Serveur en ligne", on_offline: "Serveur hors ligne pour le moment", on_soon: "Bientôt disponible", on_players: "joueurs en ligne", on_text: "Joue avec tes amis où qu’ils soient : dans le jeu, clique sur PLAY ONLINE et inscris-toi avec un pseudo et un mot de passe (8 caractères minimum). Crée ensuite une salle ou rejoins-en une. Pas besoin d’adresse IP, de VPN ni de réglages du routeur.", on_note: "Les salles en ligne tournent sur un petit serveur à la maison et peuvent parfois être hors ligne. Le solo et le LAN marchent toujours."
     },
     it: {
       nav_gameplay: "Gameplay", nav_features: "Caratteristiche", nav_shop: "Prezzi", nav_screens: "Screenshot", nav_download: "Download",
       lang_label: "Lingua",
-      hero_eyebrow: "Gratis · Windows, macOS e Android · bot e LAN",
+      hero_eyebrow: "Gratis · Windows, macOS e Android · bot, LAN e online",
       hero_lead: "Terroristi contro SWAT su quattro mappe. Pianta la bomba, disinnescala o elimina l’altra squadra, contro i bot o con gli amici sulla stessa Wi‑Fi.",
       hero_win: "Scarica per Windows", hero_mac: "Scarica per macOS",
-      hero_note: "Versione 1.18 · Windows 37 MB · macOS 45 MB · Android 32 MB",
+      hero_note: "Versione 1.19 · Windows 37 MB · macOS 45 MB · Android 33 MB",
       hud_round: "Round 1 · si vince a 8", hud_alive: "5 vivi", hud_buy: "Premi B per comprare",
       cap_hero: "Un round sulla mappa Village: case, una staccionata e un MP5",
       video_title: "Gameplay", video_text: "Quasi due minuti di una vera partita sulla mappa Village, registrati nel gioco.", video_caption: "Video senza audio.",
@@ -669,10 +692,10 @@
       f_bots_t: "Bot", f_bots_d: "Da 1 contro 1 fino a 5 contro 5 contro bot in Facile, Normale, Difficile o Estremo. Comprano armi, piantano la bomba e la disinnescano.",
       f_bomb_t: "La bomba", f_bomb_d: "Pianta la C4 sul sito A o B in 3 secondi. Esplode dopo 40 secondi. Lo SWAT la disinnesca in 10 secondi, o in 5 con il kit.", tag_bomb: "40 s",
       f_shop_t: "Negozio", f_shop_d: "14 armi, dalla Glock-18 all’RPG. Si compra nel proprio spawn nei primi 25 secondi del round e si rivendono le proprie armi nei primi 30.",
-      f_lan_t: "Partite LAN", f_lan_d: "Crea una partita su un computer e unisciti da un altro sulla stessa Wi‑Fi. I posti liberi vanno ai bot. Tieni premuto V per parlare.",
+      f_lan_t: "Online e LAN", f_lan_d: "Gioca online con chiunque: crea una stanza o entra in una, fino a 5 contro 5, senza indirizzi IP né impostazioni del router. Oppure crea una partita sulla tua Wi‑Fi. I posti liberi vanno ai bot. Tieni premuto V per parlare.",
       f_skins_t: "Skin", f_skins_d: "Un inventario con skin per ogni arma: Gold, Arctic, Desert Camo, Urban Digital e il coltello karambit.",
       f_perf_t: "Portatili e telefoni", f_perf_d: "Grafica Low, Medium o High, limite di fotogrammi e risoluzione 3D. Funziona sui Mac Intel e Apple Silicon e sui telefoni Android con pulsanti touch che puoi spostare.",
-      f_maps_t: "Quattro mappe", f_maps_d: "de_dune nel deserto, Village, Halloween (un villaggio infestato di notte) e Industrial con un magazzino, container e un sito B di tre stanze.", f_acc_t: "Account e amici", f_acc_d: "Crea un account con nickname e password. Aggiungi amici e vedi chi è online nella tua rete, conserva le tue skin e sblocca Halloween, la skin RPG Web e i bot Estremo.", f_anim_t: "Il tuo mirino", f_anim_d: "Imposta il mirino come in CS2: colore, lunghezza, spessore, distanza, punto, contorno, forma a T. Un’arma ferma da 3 secondi spara il colpo successivo dritto nel segno.",
+      f_maps_t: "Quattro mappe", f_maps_d: "de_dune nel deserto, Village, Halloween (un villaggio infestato di notte) e Industrial con un magazzino, container e un sito B di tre stanze.", f_acc_t: "Account e amici", f_acc_d: "Crea un account online con nickname e password: funziona su ogni computer e telefono, conserva skin e impostazioni, e gli amici via Internet vedono quando sei online e ti invitano nelle loro stanze. In più Halloween, la skin RPG Web e i bot Estremo.", f_anim_t: "Il tuo mirino", f_anim_d: "Imposta il mirino come in CS2: colore, lunghezza, spessore, distanza, punto, contorno, forma a T. Un’arma ferma da 3 secondi spara il colpo successivo dritto nel segno.",
       shop_title: "Listino prezzi", shop_intro: "Il menu acquisti, come nel gioco. T = solo terroristi, SWAT = solo SWAT.",
       shop_text: "Soldi: $800 all’inizio, $3250 per una vittoria, $300 per uccisione, $1500 per un’uccisione col coltello.",
       cat_pistols: "Pistole", cat_smg: "Mitragliette e fucile a pompa", cat_rifles: "Fucili e armi pesanti", cat_equipment: "Equipaggiamento",
@@ -691,15 +714,15 @@
       dl_mac_1: "Scarica lo zip, estrailo e fai doppio clic su Low Strike.", dl_mac_2: "La prima volta macOS lo blocca. Chiudi il messaggio.",
       dl_mac_3: "Apri Impostazioni di Sistema > Privacy e sicurezza, fai clic su «Apri comunque» e poi su «Apri».",
       hero_android: "Scarica per Android", dl_and_meta: "telefoni e tablet", dl_and_1: "Scarica il file sul telefono e aprilo.", dl_and_2: "Quando Android lo chiede, consenti l’installazione di app dal browser o dal gestore file.", dl_and_3: "Tocca Installa. Se Play Protect avvisa di un’app sconosciuta, scegli Installa comunque.", dl_ios: "iPhone e iPad: non ancora. Apple fa entrare i giochi solo dall’App Store.",
-      dl_all: "Tutte le versioni su GitHub", dl_count_label: "Download finora", dl_count_note: "Tutte le versioni, contate da GitHub.", footer_made: "Fatto con Unity e Blender.", footer_code: "Codice sorgente su GitHub"
+      dl_all: "Tutte le versioni su GitHub", dl_count_label: "Download finora", dl_count_note: "Tutte le versioni, contate da GitHub.", footer_made: "Fatto con Unity e Blender.", footer_code: "Codice sorgente su GitHub", on_title: "Gioca online", on_checking: "Controllo del server…", on_online: "Server online", on_offline: "Server offline al momento", on_soon: "Presto disponibile", on_players: "giocatori online", on_text: "Gioca con gli amici ovunque: nel gioco clicca PLAY ONLINE e registrati con un nickname e una password (almeno 8 caratteri). Poi crea una stanza o entra in una. Niente indirizzi IP, VPN o impostazioni del router.", on_note: "Le stanze online girano su un piccolo server di casa e a volte possono essere offline. Giocatore singolo e LAN funzionano sempre."
     },
     es: {
       nav_gameplay: "Jugabilidad", nav_features: "Características", nav_shop: "Precios", nav_screens: "Capturas", nav_download: "Descargar",
       lang_label: "Idioma",
-      hero_eyebrow: "Gratis · Windows, macOS y Android · bots y LAN",
+      hero_eyebrow: "Gratis · Windows, macOS y Android · bots, LAN y online",
       hero_lead: "Terroristas contra SWAT en cuatro mapas. Planta la bomba, desactívala o elimina al otro equipo, contra bots o con amigos en la misma Wi‑Fi.",
       hero_win: "Descargar para Windows", hero_mac: "Descargar para macOS",
-      hero_note: "Versión 1.18 · Windows 37 MB · macOS 45 MB · Android 32 MB",
+      hero_note: "Versión 1.19 · Windows 37 MB · macOS 45 MB · Android 33 MB",
       hud_round: "Ronda 1 · a 8 victorias", hud_alive: "5 vivos", hud_buy: "Pulsa B para comprar",
       cap_hero: "Una ronda en el mapa Village: casas, una valla y un MP5",
       video_title: "Jugabilidad", video_text: "Casi dos minutos de una partida real en el mapa Village, grabados en el juego.", video_caption: "Vídeo sin sonido.",
@@ -707,10 +730,10 @@
       f_bots_t: "Bots", f_bots_d: "Del 1 contra 1 al 5 contra 5 contra bots en Fácil, Normal, Difícil o Extremo. Compran armas, plantan la bomba y la desactivan.",
       f_bomb_t: "La bomba", f_bomb_d: "Planta la C4 en el punto A o B en 3 segundos. Explota a los 40 segundos. Los SWAT la desactivan en 10 segundos, o en 5 con el kit.", tag_bomb: "40 s",
       f_shop_t: "Tienda", f_shop_d: "14 armas, de la Glock-18 al RPG. Se compra en tu propia base durante los primeros 25 segundos de la ronda, y puedes vender tus armas durante los primeros 30.",
-      f_lan_t: "Partidas LAN", f_lan_d: "Crea una partida en un ordenador y únete desde otro en la misma Wi‑Fi. Los bots ocupan los huecos libres. Mantén V para hablar.",
+      f_lan_t: "Online y LAN", f_lan_d: "Juega online con cualquiera: crea una sala o únete a una, hasta 5 contra 5, sin direcciones IP ni ajustes del router. O crea una partida en tu Wi‑Fi. Los bots ocupan los huecos libres. Mantén V para hablar.",
       f_skins_t: "Skins", f_skins_d: "Un inventario con skins para cada arma: Gold, Arctic, Desert Camo, Urban Digital y el cuchillo karambit.",
       f_perf_t: "Portátiles y móviles", f_perf_d: "Gráficos Low, Medium o High, límite de fotogramas y resolución 3D. Funciona en Mac con Intel y Apple Silicon, y en móviles Android con botones táctiles que puedes mover.",
-      f_maps_t: "Cuatro mapas", f_maps_d: "de_dune en el desierto, Village, Halloween (un pueblo embrujado de noche) e Industrial con un almacén, contenedores y un sitio B de tres salas.", f_acc_t: "Cuentas y amigos", f_acc_d: "Crea una cuenta con un apodo y una contraseña. Añade amigos y mira quién está en línea en tu red, guarda tus skins y desbloquea Halloween, el skin RPG Web y los bots Extremo.", f_anim_t: "Tu mira", f_anim_d: "Ajusta la mira como en CS2: color, longitud, grosor, separación, punto, contorno, forma de T. Un arma que lleva 3 segundos sin disparar acierta de lleno con el siguiente tiro.",
+      f_maps_t: "Cuatro mapas", f_maps_d: "de_dune en el desierto, Village, Halloween (un pueblo embrujado de noche) e Industrial con un almacén, contenedores y un sitio B de tres salas.", f_acc_t: "Cuentas y amigos", f_acc_d: "Crea una cuenta online con un apodo y una contraseña: sirve en cualquier ordenador y móvil, guarda tus skins y ajustes, y tus amigos por internet ven cuándo estás en línea y te invitan a sus salas. Además, Halloween, el skin RPG Web y los bots Extremo.", f_anim_t: "Tu mira", f_anim_d: "Ajusta la mira como en CS2: color, longitud, grosor, separación, punto, contorno, forma de T. Un arma que lleva 3 segundos sin disparar acierta de lleno con el siguiente tiro.",
       shop_title: "Lista de precios", shop_intro: "El menú de compra, tal como se ve en el juego. T = solo terroristas, SWAT = solo SWAT.",
       shop_text: "Dinero: $800 al empezar, $3250 por victoria, $300 por baja, $1500 por una baja con cuchillo.",
       cat_pistols: "Pistolas", cat_smg: "Subfusiles y escopeta", cat_rifles: "Fusiles y armas pesadas", cat_equipment: "Equipo",
@@ -729,7 +752,7 @@
       dl_mac_1: "Descarga el zip, descomprímelo y haz doble clic en Low Strike.", dl_mac_2: "La primera vez, macOS lo bloquea. Cierra el mensaje.",
       dl_mac_3: "Abre Ajustes del Sistema > Privacidad y seguridad, haz clic en «Abrir igualmente» y luego en «Abrir».",
       hero_android: "Descargar para Android", dl_and_meta: "móviles y tablets", dl_and_1: "Descarga el archivo en el móvil y ábrelo.", dl_and_2: "Cuando Android lo pida, permite instalar apps desde tu navegador o gestor de archivos.", dl_and_3: "Toca Instalar. Si Play Protect avisa de una app desconocida, elige Instalar de todos modos.", dl_ios: "iPhone y iPad: todavía no. Apple solo deja entrar juegos por la App Store.",
-      dl_all: "Todas las versiones en GitHub", dl_count_label: "Descargas hasta ahora", dl_count_note: "Todas las versiones, contadas por GitHub.", footer_made: "Hecho con Unity y Blender.", footer_code: "Código fuente en GitHub"
+      dl_all: "Todas las versiones en GitHub", dl_count_label: "Descargas hasta ahora", dl_count_note: "Todas las versiones, contadas por GitHub.", footer_made: "Hecho con Unity y Blender.", footer_code: "Código fuente en GitHub", on_title: "Jugar online", on_checking: "Comprobando el servidor…", on_online: "Servidor online", on_offline: "Servidor fuera de línea ahora", on_soon: "Muy pronto", on_players: "jugadores online", on_text: "Juega con amigos estén donde estén: en el juego pulsa PLAY ONLINE y regístrate con un apodo y una contraseña (8 caracteres como mínimo). Luego crea una sala o únete a una. Sin direcciones IP, VPN ni ajustes del router.", on_note: "Las salas online funcionan en un pequeño servidor casero y a veces pueden estar fuera de línea. El modo un jugador y el LAN funcionan siempre."
     }
   };
   const HTML_LANG = { en: "en-GB", ua: "uk", de: "de", fr: "fr", it: "it", es: "es" };
@@ -820,6 +843,29 @@
   }
 
   // The round clock in the hero counts down like the game's (1:55 to 0:00, then a new round).
+  // Play Online: whether the online server is up. Its address is in online.json (the server's owner fills it in);
+  // /health says only whether it runs and how many play. The texts come from hidden elements, so they are translated.
+  (function loadOnlineStatus() {
+    const box = document.getElementById("online-status");
+    if (!box) return;
+    const say = (state, key, players) => {
+      const label = document.getElementById("on-s-" + key).textContent;
+      box.dataset.state = state;
+      document.getElementById("online-status-text").textContent =
+        players > 0 ? label + " · " + players + " " + document.getElementById("on-s-players").textContent : label;
+    };
+    fetch("https://happzgirafe.github.io/DesertStrike/online.json", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(config => {
+        if (!config.api || !config.api.startsWith("https://")) { say("soon", "soon", 0); return; }
+        let api = config.api;
+        while (api.endsWith("/")) api = api.slice(0, -1);
+        return fetch(api + "/health", { cache: "no-store" })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(health => say(health.servers > 0 ? "online" : "offline", health.servers > 0 ? "online" : "offline", health.servers > 0 ? health.players_online : 0));
+      })
+      .catch(() => say("offline", "offline", 0));
+  })();
   const clock = document.getElementById("clock");
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!still) {
