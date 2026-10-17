@@ -85,7 +85,9 @@ public static class DesertStrikeSetup
         SetMobileSettings();
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, BundleId);
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
-        PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.ARMv7;
+        // -ds-arm64-only: a smaller test build for 64-bit phones (nearly all of them); releases carry both.
+        bool arm64Only = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-ds-arm64-only") >= 0;
+        PlayerSettings.Android.targetArchitectures = arm64Only ? AndroidArchitecture.ARM64 : AndroidArchitecture.ARM64 | AndroidArchitecture.ARMv7;
         PlayerSettings.Android.bundleVersionCode = MobileVersionCode;
         PlayerSettings.Android.forceInternetPermission = true;   // LAN games and friends
         EditorUserBuildSettings.buildAppBundle = false;           // an .apk, not a Play Store bundle

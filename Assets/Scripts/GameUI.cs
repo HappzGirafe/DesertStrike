@@ -264,9 +264,10 @@ public class GameUI : MonoBehaviour
             friendsOpen = false;
             return;
         }
-        bool submit = Event.current.type == EventType.KeyDown && GUI.GetNameOfFocusedControl() == "friend-name" &&
-                      (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
-        if (submit) Event.current.Use();
+        bool enter = Event.current.type == EventType.KeyDown && GUI.GetNameOfFocusedControl() == "friend-name" &&
+                     (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
+        if (enter) Event.current.Use();
+        bool submit = enter || KeyboardDone("friend-name");
 
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
         const float top = 70f, h = 940f;
@@ -293,8 +294,7 @@ public class GameUI : MonoBehaviour
 
             Label(new Rect(bx, y, bw, 30f), "Add a friend by nickname", 20, Color.white);
             y += 34f;
-            GUI.SetNextControlName("friend-name");
-            friendName = GUI.TextField(new Rect(bx, y, bw - 250f, 44f), friendName ?? "", 16, InputStyle());
+            friendName = TextInput(new Rect(bx, y, bw - 250f, 44f), "friend-name", friendName, 16);
             if (Button(new Rect(bx + bw - 236f, y, 236f, 44f), "SEND REQUEST", false, !string.IsNullOrWhiteSpace(friendName), 20) ||
                 (submit && !string.IsNullOrWhiteSpace(friendName)))
             {
@@ -401,7 +401,7 @@ public class GameUI : MonoBehaviour
             Label(new Rect(x + 220f, y + 2f, w - 260f, 36f), $"{Accounts.Current}   (your account)", 22, Gold);
         else
         {
-            string name = GUI.TextField(new Rect(x + 220f, y + 2f, w - 260f, 36f), gm.Net.PlayerName ?? "", 16, InputStyle());
+            string name = TextInput(new Rect(x + 220f, y + 2f, w - 260f, 36f), "lan-name", gm.Net.PlayerName, 16);
             if (name != gm.Net.PlayerName)
             {
                 gm.Net.PlayerName = name;
@@ -437,7 +437,8 @@ public class GameUI : MonoBehaviour
 
         y += 10f;
         Label(new Rect(x + 40f, y, 220f, 40f), "Or join by IP", 22, Color.white);
-        joinAddress = GUI.TextField(new Rect(x + 220f, y + 2f, w - 430f, 36f), joinAddress, 40, InputStyle());
+        joinAddress = TextInput(new Rect(x + 220f, y + 2f, w - 430f, 36f), "join-address", joinAddress, 40, false,
+                                TouchScreenKeyboardType.NumbersAndPunctuation);
         if (Button(new Rect(x + w - 200f, y, 160f, 40f), "JOIN", false, !string.IsNullOrWhiteSpace(joinAddress), 20)) gm.Net.Join(joinAddress);
         y += 56f;
 
@@ -529,6 +530,56 @@ public class GameUI : MonoBehaviour
         var style = new GUIStyle(GUI.skin.textField) { fontSize = 22, alignment = TextAnchor.MiddleLeft };
         style.padding.left = 10;
         return style;
+    }
+
+    // Phones: the system keyboard of the field being typed in. IMGUI's own text and password fields do not work
+    // with a phone's keyboard, so on a phone a field is a box that opens the keyboard and shows what is typed.
+    TouchScreenKeyboard keyboard;
+    string keyboardField, keyboardDone;
+    int keyboardOpenedFrame;
+
+    /// <summary>A text field (<paramref name="secret"/>: a password, shown as stars). On a computer IMGUI's field;
+    /// on a phone a tap opens the system keyboard, whose text fills the field while typing.</summary>
+    string TextInput(Rect rect, string id, string value, int maxLength, bool secret = false,
+                     TouchScreenKeyboardType type = TouchScreenKeyboardType.Default)
+    {
+        value ??= "";
+        if (!TouchScreenKeyboard.isSupported)
+        {
+            GUI.SetNextControlName(id);
+            return secret ? GUI.PasswordField(rect, value, '*', maxLength, InputStyle()) : GUI.TextField(rect, value, maxLength, InputStyle());
+        }
+
+        bool editing = keyboard != null && keyboardField == id;
+        if (editing)
+        {
+            string typed = keyboard.text ?? "";
+            value = typed.Length > maxLength ? typed.Substring(0, maxLength) : typed;
+            // Closed with Done (or back / tapping elsewhere): stop following it. Done counts as pressing Enter.
+            if (Time.frameCount > keyboardOpenedFrame + 2 && keyboard.status != TouchScreenKeyboard.Status.Visible)
+            {
+                if (keyboard.status == TouchScreenKeyboard.Status.Done) keyboardDone = id;
+                keyboard = null;
+                keyboardField = null;
+                editing = false;
+            }
+        }
+        string shown = secret ? new string('*', value.Length) : value;
+        if (GUI.Button(rect, editing ? shown + "_" : shown, InputStyle()) && !editing)
+        {
+            keyboard = TouchScreenKeyboard.Open(value, type, false, false, secret, false, "");
+            keyboardField = id;
+            keyboardOpenedFrame = Time.frameCount;
+        }
+        return value;
+    }
+
+    /// <summary>Whether the phone keyboard of that field was just closed with Done (once).</summary>
+    bool KeyboardDone(string id)
+    {
+        if (keyboardDone != id) return false;
+        keyboardDone = null;
+        return true;
     }
 
     void DrawInventory()
@@ -684,9 +735,11 @@ public class GameUI : MonoBehaviour
     void DrawAccount()
     {
         if (accountName == null) accountName = Accounts.LastName;
-        bool submit = Event.current.type == EventType.KeyDown &&
-                      (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
-        if (submit) Event.current.Use();
+        bool enter = Event.current.type == EventType.KeyDown &&
+                     (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter);
+        if (enter) Event.current.Use();
+        // On a phone, Done on the (last) password keyboard logs in or creates the account.
+        bool submit = enter || KeyboardDone(accountSignUp ? "account-repeat" : "account-password");
 
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = 760f, h = accountSignUp ? 790f : 700f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
@@ -709,18 +762,15 @@ public class GameUI : MonoBehaviour
         cy += 76f;
 
         Label(new Rect(fx, cy, fw, 30f), accountSignUp ? "Nickname (3 to 16 letters, digits, _ or -)" : "Nickname", 20, Color.white);
-        GUI.SetNextControlName("account-name");
-        accountName = GUI.TextField(new Rect(fx, cy + 32f, fw, 42f), accountName ?? "", 16, InputStyle());
+        accountName = TextInput(new Rect(fx, cy + 32f, fw, 42f), "account-name", accountName, 16);
         cy += 90f;
         Label(new Rect(fx, cy, fw, 30f), accountSignUp ? $"Password (at least {Accounts.MinPasswordLength} characters)" : "Password", 20, Color.white);
-        GUI.SetNextControlName("account-password");
-        accountPassword = GUI.PasswordField(new Rect(fx, cy + 32f, fw, 42f), accountPassword, '*', 64, InputStyle());
+        accountPassword = TextInput(new Rect(fx, cy + 32f, fw, 42f), "account-password", accountPassword, 64, true);
         cy += 90f;
         if (accountSignUp)
         {
             Label(new Rect(fx, cy, fw, 30f), "Password again", 20, Color.white);
-            GUI.SetNextControlName("account-repeat");
-            accountRepeat = GUI.PasswordField(new Rect(fx, cy + 32f, fw, 42f), accountRepeat, '*', 64, InputStyle());
+            accountRepeat = TextInput(new Rect(fx, cy + 32f, fw, 42f), "account-repeat", accountRepeat, 64, true);
             cy += 90f;
         }
         if (accountFocus && Event.current.type == EventType.Repaint)
