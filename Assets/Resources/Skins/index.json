@@ -1834,6 +1834,10 @@
         {
             "weapon": "usp",
             "path": "Models/USP/model"
+        },
+        {
+            "weapon": "uzi",
+            "path": "Models/Uzi/model"
         }
     ]
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 public enum TouchButton { Fire, Jump, Crouch, Reload, Switch, Scope, Use, Drop, Buy, Scores, Pause, Talk, Previous, Next }
@@ -10,7 +11,8 @@ public enum TouchButton { Fire, Jump, Crouch, Reload, Switch, Scope, Use, Drop, 
 /// shooting), JUMP, CROUCH (on/off), RELOAD, a weapon switch, SCOPE for the AWP and select-fire pistols, PLANT or
 /// DEFUSE and DROP when the bomb matters, BUY in the spawn, MIC in LAN games, the scoreboard and pause; arrows to
 /// switch players while spectating. On by itself on phones and tablets; -ds-touch shows it on a PC, where the mouse
-/// acts as one finger. Laid out for a 1080-high screen like the rest of the HUD.
+/// acts as one finger. Laid out for a 1080-high screen like the rest of the HUD. Every button can be moved and
+/// resized in Settings > TOUCH CONTROLS (<see cref="DrawEditor"/>); that layout is saved on the device.
 /// </summary>
 [DefaultExecutionOrder(-100)]   // read the fingers before the player moves
 public class TouchControls : MonoBehaviour
@@ -61,8 +63,108 @@ public class TouchControls : MonoBehaviour
 
     void Awake()
     {
-        Active = Application.isMobilePlatform || Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-touch") >= 0;
+        var args = Environment.GetCommandLineArgs();
+        Active = Application.isMobilePlatform || Array.IndexOf(args, "-ds-touch") >= 0;
         if (Application.isMobilePlatform) Screen.sleepTimeout = SleepTimeout.NeverSleep;   // no dimming mid-round
+        LoadLayout();
+        if (Array.IndexOf(args, "-ds-touch-demo") >= 0) DemoLayout();
+    }
+
+    // ----------------------------------------------------------------- where the buttons are
+
+    // Buttons the player moved or resized: centre as a share of the screen's width and height (so the layout fits
+    // other screens too) and a size factor.
+    static readonly Dictionary<TouchButton, Vector3> custom = new Dictionary<TouchButton, Vector3>();
+    const string LayoutKey = "DesertStrike.touch.";
+
+    /// <summary>The buttons the layout editor shows (the spectator arrows keep their place).</summary>
+    static readonly (TouchButton Button, string Label)[] EditorButtons =
+    {
+        (TouchButton.Fire, "FIRE"), (TouchButton.Jump, "JUMP"), (TouchButton.Crouch, "CROUCH"), (TouchButton.Reload, "R"),
+        (TouchButton.Switch, "GUN"), (TouchButton.Scope, "SCOPE"), (TouchButton.Use, "PLANT"), (TouchButton.Drop, "DROP"),
+        (TouchButton.Buy, "BUY"), (TouchButton.Talk, "MIC"), (TouchButton.Scores, "TAB"), (TouchButton.Pause, "II"),
+    };
+
+    // Where each button sits until moved, and its size (1080p units; l and r: the safe area's left and right edge).
+    (Vector2 Center, float Radius) DefaultPlace(TouchButton button)
+    {
+        float h = RefHeight, l = safeLeft, r = safeRight;
+        switch (button)
+        {
+            case TouchButton.Pause: return (new Vector2(width / 2f + 290f, 40f), 36f);
+            case TouchButton.Scores: return (new Vector2(width / 2f - 290f, 40f), 36f);
+            case TouchButton.Previous: return (new Vector2(width / 2f - 330f, h - 110f), 55f);
+            case TouchButton.Next: return (new Vector2(width / 2f + 330f, h - 110f), 55f);
+            case TouchButton.Fire: return (new Vector2(r - 290f, h - 370f), 105f);
+            case TouchButton.Jump: return (new Vector2(r - 110f, h - 250f), 68f);
+            case TouchButton.Crouch: return (new Vector2(r - 470f, h - 200f), 58f);
+            case TouchButton.Reload: return (new Vector2(r - 110f, h - 420f), 58f);
+            case TouchButton.Switch: return (new Vector2(r - 120f, h - 580f), 52f);
+            case TouchButton.Scope: return (new Vector2(r - 470f, h - 390f), 55f);
+            case TouchButton.Use: return (new Vector2(r - 470f, h - 560f), 58f);
+            case TouchButton.Drop: return (new Vector2(r - 300f, h - 560f), 44f);
+            case TouchButton.Buy: return (new Vector2(l + 110f, 560f), 62f);
+            default: return (new Vector2(l + 110f, 430f), 52f);   // MIC
+        }
+    }
+
+    /// <summary>Where a button is now: where the player put it, or its default place.</summary>
+    (Vector2 Center, float Radius) Place(TouchButton button)
+    {
+        var (center, radius) = DefaultPlace(button);
+        if (custom.TryGetValue(button, out var placed))
+        {
+            center = new Vector2(placed.x * width, placed.y * RefHeight);
+            radius *= placed.z;
+        }
+        return (center, radius);
+    }
+
+    public static float SizeOf(TouchButton button) => custom.TryGetValue(button, out var placed) ? placed.z : 1f;
+
+    void SetPlace(TouchButton button, Vector2 center, float size, bool save = true)
+    {
+        custom[button] = new Vector3(center.x / width, center.y / RefHeight, size);
+        if (save)
+            PlayerPrefs.SetString(LayoutKey + button, string.Format(CultureInfo.InvariantCulture, "{0:0.####};{1:0.####};{2:0.##}",
+                                                                  center.x / width, center.y / RefHeight, size));
+    }
+
+    static void LoadLayout()
+    {
+        custom.Clear();
+        foreach (TouchButton button in Enum.GetValues(typeof(TouchButton)))
+        {
+            string[] parts = PlayerPrefs.GetString(LayoutKey + button, "").Split(';');
+            if (parts.Length == 3
+                && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float x)
+                && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float y)
+                && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float size))
+                custom[button] = new Vector3(Mathf.Clamp01(x), Mathf.Clamp01(y), Mathf.Clamp(size, 0.5f, 2f));
+        }
+    }
+
+    /// <summary>Every button back to its default place and size.</summary>
+    public static void ResetLayout()
+    {
+        foreach (TouchButton button in Enum.GetValues(typeof(TouchButton))) PlayerPrefs.DeleteKey(LayoutKey + button);
+        custom.Clear();
+    }
+
+    // -ds-touch-demo: FIRE on the left and a big JUMP, for this run only (screenshots).
+    static void DemoLayout()
+    {
+        custom[TouchButton.Fire] = new Vector3(0.12f, 0.45f, 1f);
+        custom[TouchButton.Jump] = new Vector3(0.93f, 0.72f, 1.4f);
+    }
+
+    void Measure()
+    {
+        float unit = Screen.height / RefHeight;
+        width = Screen.width / unit;
+        var safe = Screen.safeArea;
+        safeLeft = safe.xMin / unit;
+        safeRight = safe.xMax / unit;
     }
 
     // ----------------------------------------------------------------- reading the fingers
@@ -75,10 +177,7 @@ public class TouchControls : MonoBehaviour
         Move = Vector2.zero;
         if (!Active) return;
 
-        width = Screen.width / (Screen.height / RefHeight);
-        var safe = Screen.safeArea;
-        safeLeft = safe.xMin / (Screen.height / RefHeight);
-        safeRight = safe.xMax / (Screen.height / RefHeight);
+        Measure();
         var gm = GameManager.Instance;
         bool playing = gm != null && !gm.IsPaused
                        && (gm.State == MatchState.Freeze || gm.State == MatchState.Live || gm.State == MatchState.RoundEnd);
@@ -174,60 +273,72 @@ public class TouchControls : MonoBehaviour
     void Layout(GameManager gm)
     {
         pads.Clear();
-        // Right-hand buttons keep clear of a notch on the right, left-hand ones of one on the left.
-        float w = safeRight, h = RefHeight, l = safeLeft;
         var me = gm.Player != null ? gm.Player.Self : null;   // null: watching the bots
-        void Add(TouchButton button, float x, float y, float radius, string label, bool lit = false) =>
-            pads.Add(new Pad { Button = button, Center = new Vector2(x, y), Radius = radius, Label = label, Lit = lit });
+        void Add(TouchButton button, string label, bool lit = false)
+        {
+            var (center, radius) = Place(button);
+            pads.Add(new Pad { Button = button, Center = center, Radius = radius, Label = label, Lit = lit });
+        }
 
-        Add(TouchButton.Pause, width / 2f + 290f, 40f, 36f, "II");
-        Add(TouchButton.Scores, width / 2f - 290f, 40f, 36f, "TAB");
+        Add(TouchButton.Pause, "II");
+        Add(TouchButton.Scores, "TAB");
 
         if (me == null || !me.IsAlive)
         {
-            Add(TouchButton.Previous, width / 2f - 330f, h - 110f, 55f, "<");
-            Add(TouchButton.Next, width / 2f + 330f, h - 110f, 55f, ">");
+            Add(TouchButton.Previous, "<");
+            Add(TouchButton.Next, ">");
             return;
         }
         if (gm.BuyMenuOpen)
         {
-            Add(TouchButton.Buy, l + 110f, 560f, 62f, "CLOSE", true);
+            Add(TouchButton.Buy, "CLOSE", true);
             return;
         }
 
-        Add(TouchButton.Fire, w - 290f, h - 370f, 105f, "FIRE");
-        Add(TouchButton.Jump, w - 110f, h - 250f, 68f, "JUMP");
-        Add(TouchButton.Crouch, w - 470f, h - 200f, 58f, "CROUCH", Crouched);
-        Add(TouchButton.Reload, w - 110f, h - 420f, 58f, "R");
-        Add(TouchButton.Switch, w - 120f, h - 580f, 52f, "GUN");
+        Add(TouchButton.Fire, "FIRE");
+        Add(TouchButton.Jump, "JUMP");
+        Add(TouchButton.Crouch, "CROUCH", Crouched);
+        Add(TouchButton.Reload, "R");
+        Add(TouchButton.Switch, "GUN");
         var weapon = me.Current?.Data;
         if (weapon != null && (weapon.ZoomFov > 0f || weapon.SelectFire))
-            Add(TouchButton.Scope, w - 470f, h - 390f, 55f, weapon.ZoomFov > 0f ? "SCOPE" : "AUTO");
+            Add(TouchButton.Scope, weapon.ZoomFov > 0f ? "SCOPE" : "AUTO");
 
         var bomb = gm.Bomb;
         if (bomb.State == BombState.Carried && bomb.Carrier == me)
         {
-            Add(TouchButton.Use, w - 470f, h - 560f, 58f, "PLANT", gm.Map.SiteAt(me.transform.position) != null);
-            Add(TouchButton.Drop, w - 300f, h - 560f, 44f, "DROP");
+            Add(TouchButton.Use, "PLANT", gm.Map.SiteAt(me.transform.position) != null);
+            Add(TouchButton.Drop, "DROP");
         }
         else if (bomb.State == BombState.Planted && me.Team == Team.Swat)
-            Add(TouchButton.Use, w - 470f, h - 560f, 58f, "DEFUSE",
-                Vector3.Distance(me.transform.position, bomb.Position) < BombManager.DefuseRadius);
+            Add(TouchButton.Use, "DEFUSE", Vector3.Distance(me.transform.position, bomb.Position) < BombManager.DefuseRadius);
 
-        if (gm.CanShop(me)) Add(TouchButton.Buy, l + 110f, 560f, 62f, "BUY", true);
+        if (gm.CanShop(me)) Add(TouchButton.Buy, "BUY", true);
         var voice = VoiceChat.Instance;
         if (voice != null && voice.InSession && GameSettings.VoiceChat && GameSettings.Voice == VoiceMode.HoldV)
-            Add(TouchButton.Talk, l + 110f, 430f, 52f, "MIC");
+            Add(TouchButton.Talk, "MIC");
     }
 
     // ----------------------------------------------------------------- drawing (called by GameUI with its 1080p matrix)
 
-    public void Draw()
+    void PrepareDrawing()
     {
-        if (!Active || pads.Count == 0) return;
         if (disc == null) disc = MakeDisc(128);
         if (labelStyle == null)
             labelStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
+    }
+
+    void PadLabel(Vector2 center, float radius, string label)
+    {
+        labelStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(radius * 0.36f, 14f, 30f));
+        labelStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
+        GUI.Label(new Rect(center.x - radius, center.y - radius, radius * 2f, radius * 2f), label, labelStyle);
+    }
+
+    public void Draw()
+    {
+        if (!Active || pads.Count == 0) return;
+        PrepareDrawing();
 
         if (stickHeld)
         {
@@ -249,10 +360,76 @@ public class TouchControls : MonoBehaviour
                        : pad.Lit ? new Color(0.85f, 0.55f, 0.15f, pressed ? 0.85f : 0.6f)
                        : new Color(0f, 0f, 0f, pressed ? 0.6f : 0.35f);
             Disc(pad.Center, pad.Radius, fill);
-            labelStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(pad.Radius * 0.36f, 14f, 30f));
-            labelStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
-            GUI.Label(new Rect(pad.Center.x - pad.Radius, pad.Center.y - pad.Radius, pad.Radius * 2f, pad.Radius * 2f), pad.Label, labelStyle);
+            PadLabel(pad.Center, pad.Radius, pad.Label);
         }
+    }
+
+    // ----------------------------------------------------------------- the layout editor (Settings > TOUCH CONTROLS)
+
+    TouchButton? dragging;
+    Vector2 dragOffset;
+
+    /// <summary>The button tapped last in the editor (its size can be changed).</summary>
+    public TouchButton? Selected { get; private set; }
+
+    /// <summary>
+    /// Draws every button where it is and lets the player drag them (called by GameUI with its 1080p matrix, before
+    /// its own panel so a touch on a button wins). Moving or resizing saves at once.
+    /// </summary>
+    public void DrawEditor()
+    {
+        Measure();
+        PrepareDrawing();
+        var hint = new Vector2(safeLeft + 260f, RefHeight - 330f);
+        Disc(hint, StickRadius, new Color(1f, 1f, 1f, 0.08f));
+        PadLabel(hint, StickRadius, "STICK");
+
+        foreach (var (button, label) in EditorButtons)
+        {
+            var (center, radius) = Place(button);
+            bool selected = Selected == button;
+            if (selected) Disc(center, radius + 8f, new Color(1f, 0.78f, 0.35f, 0.9f));
+            Disc(center, radius, button == TouchButton.Fire ? new Color(0.85f, 0.25f, 0.2f, 0.7f)
+                                : selected ? new Color(0.85f, 0.55f, 0.15f, 0.85f) : new Color(0f, 0f, 0f, 0.55f));
+            PadLabel(center, radius, label);
+        }
+
+        var e = Event.current;
+        if (e.type == EventType.MouseDown)
+        {
+            for (int i = EditorButtons.Length - 1; i >= 0; i--)   // the one drawn on top first
+            {
+                var button = EditorButtons[i].Button;
+                var (center, radius) = Place(button);
+                if (Vector2.Distance(e.mousePosition, center) > radius * 1.1f) continue;
+                Selected = dragging = button;
+                dragOffset = center - e.mousePosition;
+                e.Use();
+                break;
+            }
+        }
+        else if (e.type == EventType.MouseDrag && dragging is TouchButton moved)
+        {
+            float radius = Place(moved).Radius;
+            var center = e.mousePosition + dragOffset;
+            center.x = Mathf.Clamp(center.x, radius, width - radius);
+            center.y = Mathf.Clamp(center.y, radius, RefHeight - radius);
+            SetPlace(moved, center, SizeOf(moved));
+            e.Use();
+        }
+        else if (e.type == EventType.MouseUp && dragging != null)
+        {
+            dragging = null;
+            e.Use();
+        }
+    }
+
+    /// <summary>Resizes the selected button (0.6 to 1.6 of its normal size).</summary>
+    public void ResizeSelected(float size)
+    {
+        if (Selected is not TouchButton button) return;
+        Measure();
+        SetPlace(button, Place(button).Center, Mathf.Clamp(size, 0.6f, 1.6f));
     }
 
     void Disc(Vector2 center, float radius, Color color)

@@ -46,7 +46,10 @@ Both files are in the [`Builds`](Builds) folder of this repository, and every ve
 pushing it a little walks quietly), dragging on the right looks around, and the buttons are **FIRE** (drag it to
 aim while shooting), **JUMP**, **CROUCH** (on/off), **R** reload, **GUN** next weapon, **SCOPE** / **AUTO** when the
 weapon has it, **PLANT** / **DEFUSE** (hold) and **DROP** when the bomb matters, **BUY** in your spawn, **MIC** to talk
-in LAN games, **TAB** scores and **II** pause; **<** and **>** switch players while spectating. Phones start on Low
+in LAN games, **TAB** scores and **II** pause; **<** and **>** switch players while spectating. **Settings >
+TOUCH CONTROLS** moves the buttons: drag one where you want it, tap one to change its size with the slider, RESET
+puts them all back (saved on the phone). Text fields (nickname, password, friends, IP) open the phone's keyboard;
+its Done key logs in or sends the request. Phones start on Low
 graphics with the 3D at 75%; LAN games work over WiFi. On iPhone, finding LAN games and friends by themselves needs
 an extra permission from Apple (the multicast networking entitlement), so there you join a LAN game by its IP address.
 
@@ -188,7 +191,7 @@ shows it twice the size; **RESET** goes back to the default. Saved on the comput
 | TEC-DC9 | T | $500 | 12/24 | Right click: semi-auto or full-auto |
 | M1911 | SWAT | $500 | 10/30 | Right click: semi-auto or full-auto |
 | Desert Eagle | Both | $700 | 7/35 | |
-| Uzi | Both | $1200 | 24/96 | Very fast fire, but a big spread |
+| Uzi | Both | $1200 | 24/96 | Very fast fire, but a big spread (model: `Art/Blender/Usi.blend`) |
 | MP5 / Pump Shotgun | Both | $1500 / $1700 | 30/120, 8/32 | |
 | AK-47 / M4A1 | T / SWAT | $2500 / $3100 | 30/90 | |
 | AWP | Both | $4750 | 10/30 | Scope with right click; no-scope shots work too |
@@ -401,7 +404,8 @@ map and shows them from the side (with `-ds-capture`: a picture to check the ani
 (with `-ds-money 5000`, also on a LAN client) buys and sells in round 1 by itself and logs each step, and `-ds-give rpg -ds-equip rpg Web -ds-fire-test` gives the
 player a weapon and skin and fires every 3 s, with `-ds-capture <folder>` (a full path) taking a screenshot just after.
 Otherwise `-ds-capture <folder>` takes a screenshot every 8 s (`-ds-capture-every <seconds>` changes it).
-`-ds-touch` shows the phone controls on a PC (the mouse is one finger), `-ds-crosshair` opens the crosshair page and
+`-ds-touch` shows the phone controls on a PC (the mouse is one finger; `-ds-touch-layout` opens the button editor,
+`-ds-touch-demo` moves FIRE and enlarges JUMP for one run without saving), `-ds-crosshair` opens the crosshair page and
 `-ds-crosshair-demo` shows a different crosshair for one run without saving it, `-ds-friends` opens the friends screen, `-ds-friend-request <nickname>` sends a request, `-ds-accept-friends`
 accepts every request and `-ds-hide-status on|off` sets the online status (two games on one PC with their own
 `-ds-accounts-file` can test friends), `-ds-hidefps` hides the FPS counter for one run (clean screenshots), and `-ds-background` keeps a test running

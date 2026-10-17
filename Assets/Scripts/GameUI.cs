@@ -24,7 +24,8 @@ public class GameUI : MonoBehaviour
     const string TouchHelp =
         "Left thumb: move (a small push walks quietly)  ·  Right side: drag to look around\n" +
         "FIRE (drag it to aim while shooting)  ·  JUMP  ·  CROUCH on / off  ·  R reload  ·  GUN next weapon\n" +
-        "SCOPE (AWP) or AUTO (TEC-DC9, M1911)  ·  PLANT / DEFUSE (hold)  ·  BUY in your spawn  ·  TAB scores  ·  II pause";
+        "SCOPE (AWP) or AUTO (TEC-DC9, M1911)  ·  PLANT / DEFUSE (hold)  ·  BUY in your spawn  ·  TAB scores  ·  II pause\n" +
+        "Move or resize the buttons: Settings > TOUCH CONTROLS";
 
     GameManager gm;
     Texture2D scopeMask;
@@ -45,6 +46,7 @@ public class GameUI : MonoBehaviour
     // Settings screen, and its crosshair page
     bool settingsOpen;
     bool crosshairOpen;
+    bool touchLayoutOpen;   // Settings > TOUCH CONTROLS: moving the phone's buttons
     TouchControls touch;
 
     // Friends screen
@@ -86,6 +88,8 @@ public class GameUI : MonoBehaviour
         friendsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-friends") >= 0;
         crosshairOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-crosshair") >= 0;   // screenshots
         if (crosshairOpen) settingsOpen = true;
+        touchLayoutOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-touch-layout") >= 0;   // screenshots
+        if (touchLayoutOpen) settingsOpen = true;
         if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-crosshair-demo") >= 0) GameSettings.CrosshairDemoThisRun();
         touch = GetComponent<TouchControls>();
         gm.Friends.Noticed += text =>
@@ -140,6 +144,7 @@ public class GameUI : MonoBehaviour
             else if (lanOpen) DrawLanMenu();
             else if (friendsOpen) DrawFriends();
             else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
+            else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
             else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
             DrawFps(20f, 20f);
@@ -153,8 +158,9 @@ public class GameUI : MonoBehaviour
         if (gm.State == MatchState.MatchOver) DrawMatchOver();
         else if (GameInput.ScoresHeld) DrawScoreboard(170f);
         if (!gm.IsPaused && gm.State != MatchState.MatchOver && touch != null) touch.Draw();
-        if (!gm.IsPaused) settingsOpen = crosshairOpen = false;
+        if (!gm.IsPaused) settingsOpen = crosshairOpen = touchLayoutOpen = false;
         else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
+        else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
         else if (settingsOpen) DrawSettings();
         else DrawPauseMenu();
     }
@@ -881,6 +887,40 @@ public class GameUI : MonoBehaviour
 
         if (Button(new Rect(x + w / 2f - 470f, top + height - 80f, 300f, 56f), "CROSSHAIR")) crosshairOpen = true;
         if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) settingsOpen = false;
+        if (GameInput.Touch && Button(new Rect(x + w / 2f + 170f, top + height - 80f, 300f, 56f), "TOUCH CONTROLS")) touchLayoutOpen = true;
+    }
+
+    // ----------------------------------------------------------------- moving the phone's buttons (Settings > TOUCH CONTROLS)
+
+    /// <summary>Every on-screen button where it is: drag one to move it, tap one and change its size, RESET puts them
+    /// all back. Saved on the device at once.</summary>
+    void DrawTouchLayout()
+    {
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+        {
+            touchLayoutOpen = false;
+            Event.current.Use();
+            return;
+        }
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
+        if (touch == null) return;
+        touch.DrawEditor();   // first, so a touch on a button is the button's
+
+        float w = 600f, x = (width - w) / 2f, y = 100f, h = touch.Selected != null ? 300f : 210f;
+        Fill(new Rect(x, y, w, h), PanelColor);
+        Label(new Rect(x, y + 12f, w, 44f), "TOUCH CONTROLS", 34, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x + 20f, y + 58f, w - 40f, 28f), "Drag a button to move it. Tap one to change its size.", 18, Dim, TextAnchor.MiddleCenter);
+        float cy = y + 96f;
+        if (touch.Selected is TouchButton selected)
+        {
+            float size = TouchControls.SizeOf(selected);
+            Label(new Rect(x + 30f, cy, w - 60f, 30f), $"Size of {selected.ToString().ToUpperInvariant()}   {Mathf.RoundToInt(size * 100f)}%", 20, Color.white);
+            float changed = GUI.HorizontalSlider(new Rect(x + 30f, cy + 38f, w - 60f, 30f), size, 0.6f, 1.6f);
+            if (Mathf.Abs(changed - size) > 0.005f) touch.ResizeSelected(Mathf.Round(changed * 20f) / 20f);
+            cy += 90f;
+        }
+        if (Button(new Rect(x + 30f, cy, w / 2f - 40f, 56f), "RESET")) TouchControls.ResetLayout();
+        if (Button(new Rect(x + w / 2f + 10f, cy, w / 2f - 40f, 56f), "DONE", true)) touchLayoutOpen = false;
     }
 
     // ----------------------------------------------------------------- crosshair page (Settings > CROSSHAIR)
