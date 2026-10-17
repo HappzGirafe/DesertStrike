@@ -110,8 +110,8 @@ public static class DesertStrikeSetup
     }
 
     const string BundleId = "com.happzgirafe.lowstrike";
-    const string MobileVersion = "1.17";
-    const int MobileVersionCode = 117;
+    const string MobileVersion = "1.18";
+    const int MobileVersionCode = 118;
 
     // Phones: always landscape (either way round), the version shown in the system's app info.
     static void SetMobileSettings()
