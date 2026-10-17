@@ -150,6 +150,13 @@ public static class Effects
         return mesh;
     }
 
+    // GameObject.CreatePrimitive adds these colliders from inside the engine, so no script names them; IL2CPP builds
+    // (Android, iOS) strip engine classes that no script names, and de_dune's walls and floor, the crates and
+    // everything else made of boxes then had no collider on phones (players fell through the map). Naming them here
+    // keeps them (Assets/link.xml keeps them too).
+    static readonly System.Type[] PrimitiveColliders =
+        { typeof(BoxCollider), typeof(SphereCollider), typeof(CapsuleCollider), typeof(MeshCollider), typeof(MeshFilter), typeof(MeshRenderer) };
+
     /// <summary>Creates a primitive under <paramref name="parent"/> (or in world space when null).
     /// <paramref name="palette"/> draws it with the shared <see cref="PaletteMaterial"/> (not for parts that skins repaint).</summary>
     public static GameObject Shape(PrimitiveType type, Transform parent, Vector3 localPosition, Vector3 localScale,

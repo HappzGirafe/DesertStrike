@@ -89,6 +89,21 @@ public class GameUI : MonoBehaviour
         crosshairOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-crosshair") >= 0;   // screenshots
         if (crosshairOpen) settingsOpen = true;
         touchLayoutOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-touch-layout") >= 0;   // screenshots
+        int demo = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-keyboard-demo");
+        if (demo >= 0 && demo + 2 < Environment.GetCommandLineArgs().Length)
+        {
+            string[] demoArgs = Environment.GetCommandLineArgs();
+            keyboardDemo.Enqueue("@account-name");
+            foreach (char c in demoArgs[demo + 1])
+            {
+                if (char.IsUpper(c)) keyboardDemo.Enqueue("SHIFT");
+                keyboardDemo.Enqueue(char.ToLowerInvariant(c).ToString());
+            }
+            keyboardDemo.Enqueue("DONE");
+            foreach (char c in demoArgs[demo + 2]) keyboardDemo.Enqueue(c.ToString());
+            keyboardDemo.Enqueue("DONE");
+            keyboardDemoFrame = 60;
+        }
         if (touchLayoutOpen) settingsOpen = true;
         if (Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-crosshair-demo") >= 0) GameSettings.CrosshairDemoThisRun();
         touch = GetComponent<TouchControls>();
@@ -133,6 +148,7 @@ public class GameUI : MonoBehaviour
                 askAccount = false;
                 accountOpen = !Accounts.LoggedIn;   // -ds-login has logged in already
             }
+            HandleGameKeyboard();
             bool searching = lanOpen && !inventoryOpen && !accountOpen && gm.Net.Role == NetSession.Mode.Off;
             if (searching) gm.Net.StartDiscovery();
             else gm.Net.StopDiscovery();
@@ -147,6 +163,7 @@ public class GameUI : MonoBehaviour
             else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
             else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
+            DrawGameKeyboard();
             DrawFps(20f, 20f);
             return;
         }
@@ -443,8 +460,7 @@ public class GameUI : MonoBehaviour
 
         y += 10f;
         Label(new Rect(x + 40f, y, 220f, 40f), "Or join by IP", 22, Color.white);
-        joinAddress = TextInput(new Rect(x + 220f, y + 2f, w - 430f, 36f), "join-address", joinAddress, 40, false,
-                                TouchScreenKeyboardType.NumbersAndPunctuation);
+        joinAddress = TextInput(new Rect(x + 220f, y + 2f, w - 430f, 36f), "join-address", joinAddress, 40, false, true);
         if (Button(new Rect(x + w - 200f, y, 160f, 40f), "JOIN", false, !string.IsNullOrWhiteSpace(joinAddress), 20)) gm.Net.Join(joinAddress);
         y += 56f;
 
@@ -538,46 +554,182 @@ public class GameUI : MonoBehaviour
         return style;
     }
 
-    // Phones: the system keyboard of the field being typed in. IMGUI's own text and password fields do not work
-    // with a phone's keyboard, so on a phone a field is a box that opens the keyboard and shows what is typed.
-    TouchScreenKeyboard keyboard;
-    string keyboardField, keyboardDone;
-    int keyboardOpenedFrame;
+    // Phones: the game's own keyboard. The phone's system keyboard (TouchScreenKeyboard) did not type into the
+    // fields on every phone, so on a phone a field is a box that opens this keyboard at the bottom of the screen:
+    // letters, digits, symbols, SHIFT, space, delete and DONE (DONE counts as Enter: log in, send the request).
+    string keyboardField, keyboardDone, keyboardText = "";
+    bool keyboardSecret, keyboardShift, keyboardSymbols;
+    int keyboardMax, keyboardSeenFrame;
+    const float KeyboardHeight = 430f;
+    static readonly string[] LetterRows = { "1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm" };
+    static readonly string[] SymbolRows = { "1234567890", "-_.@#$%&*+", "!?/()=:;,'", "~^[]{}<>|" };
 
-    /// <summary>A text field (<paramref name="secret"/>: a password, shown as stars). On a computer IMGUI's field;
-    /// on a phone a tap opens the system keyboard, whose text fills the field while typing.</summary>
-    string TextInput(Rect rect, string id, string value, int maxLength, bool secret = false,
-                     TouchScreenKeyboardType type = TouchScreenKeyboardType.Default)
+    // -ds-keyboard-demo <nickname> <password>: types them on the game's keyboard, key by key, and logs in (tests).
+    readonly Queue<string> keyboardDemo = new Queue<string>();
+    int keyboardDemoFrame;
+
+    static bool OnPhone => Application.isMobilePlatform || GameInput.Touch;
+
+    static string FieldName(string id) => id switch
+    {
+        "account-name" => "Nickname",
+        "account-password" => "Password",
+        "account-repeat" => "Password again",
+        "friend-name" => "Friend's nickname",
+        "lan-name" => "Your name",
+        "join-address" => "IP address",
+        _ => "",
+    };
+
+    /// <summary>A text field (<paramref name="secret"/>: a password, shown as stars; <paramref name="numbers"/>:
+    /// the keyboard starts on digits and symbols). On a computer IMGUI's field; on a phone a box that opens the
+    /// game's keyboard when tapped.</summary>
+    string TextInput(Rect rect, string id, string value, int maxLength, bool secret = false, bool numbers = false)
     {
         value ??= "";
-        if (!TouchScreenKeyboard.isSupported)
+        if (!OnPhone)
         {
             GUI.SetNextControlName(id);
             return secret ? GUI.PasswordField(rect, value, '*', maxLength, InputStyle()) : GUI.TextField(rect, value, maxLength, InputStyle());
         }
 
-        bool editing = keyboard != null && keyboardField == id;
+        bool editing = keyboardField == id;
         if (editing)
         {
-            string typed = keyboard.text ?? "";
-            value = typed.Length > maxLength ? typed.Substring(0, maxLength) : typed;
-            // Closed with Done (or back / tapping elsewhere): stop following it. Done counts as pressing Enter.
-            if (Time.frameCount > keyboardOpenedFrame + 2 && keyboard.status != TouchScreenKeyboard.Status.Visible)
-            {
-                if (keyboard.status == TouchScreenKeyboard.Status.Done) keyboardDone = id;
-                keyboard = null;
-                keyboardField = null;
-                editing = false;
-            }
+            value = keyboardText;
+            keyboardSeenFrame = Time.frameCount;
+            Fill(new Rect(rect.x - 3f, rect.y - 3f, rect.width + 6f, rect.height + 6f), Gold);
         }
         string shown = secret ? new string('*', value.Length) : value;
-        if (GUI.Button(rect, editing ? shown + "_" : shown, InputStyle()) && !editing)
+        GUI.Label(rect, editing ? shown + "|" : shown, InputStyle());
+        var e = Event.current;
+        if (e.type == EventType.MouseDown && rect.Contains(e.mousePosition) && !editing)
         {
-            keyboard = TouchScreenKeyboard.Open(value, type, false, false, secret, false, "");
-            keyboardField = id;
-            keyboardOpenedFrame = Time.frameCount;
+            OpenKeyboard(id, value, maxLength, secret, numbers);
+            e.Use();
         }
         return value;
+    }
+
+    void OpenKeyboard(string id, string value, int maxLength, bool secret, bool numbers = false)
+    {
+        keyboardField = id;
+        keyboardText = value ?? "";
+        keyboardMax = maxLength;
+        keyboardSecret = secret;
+        keyboardSymbols = numbers;
+        keyboardShift = false;
+        keyboardSeenFrame = Time.frameCount;
+    }
+
+    bool KeyboardOpen => keyboardField != null && Time.frameCount - keyboardSeenFrame <= 2;   // its field is still drawn
+
+    // The keys and where they are (1080p units), for drawing and for taps.
+    List<(Rect Rect, string Key)> KeyboardKeys()
+    {
+        var keys = new List<(Rect, string)>();
+        const float keyHeight = 64f, gap = 8f;
+        float rowsWidth = Mathf.Min(width - 40f, 1400f), left = (width - rowsWidth) / 2f;
+        float top = RefHeight - KeyboardHeight + 62f;
+        float keyWidth = (rowsWidth - 9f * gap) / 10f;   // ten keys fill a row
+        var rows = keyboardSymbols ? SymbolRows : LetterRows;
+        for (int r = 0; r < rows.Length; r++)
+        {
+            string row = rows[r];
+            float rowWidth = row.Length * keyWidth + (row.Length - 1) * gap;
+            float x = left + (rowsWidth - rowWidth) / 2f, y = top + r * (keyHeight + gap);
+            for (int i = 0; i < row.Length; i++)
+            {
+                string key = row[i].ToString();
+                if (!keyboardSymbols && keyboardShift) key = key.ToUpperInvariant();
+                keys.Add((new Rect(x + i * (keyWidth + gap), y, keyWidth, keyHeight), key));
+            }
+        }
+        // Bottom row, in tenths of the width: SHIFT 2, ?123 / ABC 2, space 2.5, DEL 1.5, DONE 2.
+        float bottom = top + rows.Length * (keyHeight + gap), unit = (rowsWidth + gap) / 10f, bx = left;
+        foreach (var (key, units) in new[] { ("SHIFT", 2f), (keyboardSymbols ? "ABC" : "?123", 2f), ("SPACE", 2.5f), ("DEL", 1.5f), ("DONE", 2f) })
+        {
+            keys.Add((new Rect(bx, bottom, unit * units - gap, keyHeight), key));
+            bx += unit * units;
+        }
+        return keys;
+    }
+
+    // Taps on the keyboard, before anything else on the screen sees them (the keyboard is drawn last, on top).
+    void HandleGameKeyboard()
+    {
+        if (!KeyboardOpen) return;
+        var e = Event.current;
+        if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)   // Android's back button closes it
+        {
+            keyboardField = null;
+            e.Use();
+            return;
+        }
+        if (!new Rect(0f, RefHeight - KeyboardHeight, width, KeyboardHeight).Contains(e.mousePosition)) return;
+        if (e.type == EventType.MouseDown)
+        {
+            foreach (var (rect, key) in KeyboardKeys())
+                if (rect.Contains(e.mousePosition))
+                {
+                    PressKey(key);
+                    break;
+                }
+            e.Use();
+        }
+        else if (e.type == EventType.MouseUp || e.type == EventType.MouseDrag) e.Use();
+    }
+
+    void PressKey(string key)
+    {
+        switch (key)
+        {
+            case "SHIFT": keyboardShift = !keyboardShift; break;
+            case "?123": keyboardSymbols = true; break;
+            case "ABC": keyboardSymbols = false; break;
+            case "DEL": if (keyboardText.Length > 0) keyboardText = keyboardText.Substring(0, keyboardText.Length - 1); break;
+            case "DONE":
+                keyboardDone = keyboardField;
+                keyboardField = null;
+                break;
+            case "SPACE": Type(" "); break;
+            default:
+                Type(keyboardShift && !keyboardSymbols ? key.ToUpperInvariant() : key);
+                keyboardShift = false;   // SHIFT is for one letter, like on a phone
+                break;
+        }
+    }
+
+    void Type(string text)
+    {
+        if (keyboardText.Length < keyboardMax) keyboardText += text;
+    }
+
+    void DrawGameKeyboard()
+    {
+        RunKeyboardDemo();
+        if (!KeyboardOpen) return;
+        var area = new Rect(0f, RefHeight - KeyboardHeight, width, KeyboardHeight);
+        Fill(area, new Color(0.07f, 0.07f, 0.08f, 0.97f));
+        string shown = keyboardSecret ? new string('*', keyboardText.Length) : keyboardText;
+        Label(new Rect(30f, area.y + 8f, width - 60f, 44f), $"{FieldName(keyboardField)}:   {shown}|", 26, Gold);
+        foreach (var (rect, key) in KeyboardKeys())
+        {
+            bool special = key.Length > 1;
+            bool lit = key == "DONE" || (key == "SHIFT" && keyboardShift);
+            Fill(rect, lit ? new Color(0.85f, 0.55f, 0.15f, 0.95f) : special ? new Color(0.27f, 0.27f, 0.3f, 0.95f) : new Color(0.19f, 0.19f, 0.21f, 0.95f));
+            Label(rect, key == "SPACE" ? "space" : key, special ? 20 : 28, Color.white, TextAnchor.MiddleCenter);
+        }
+    }
+
+    // One key every quarter of a second, as a finger would.
+    void RunKeyboardDemo()
+    {
+        if (keyboardDemo.Count == 0 || Event.current.type != EventType.Repaint || Time.frameCount < keyboardDemoFrame) return;
+        keyboardDemoFrame = Time.frameCount + 15;
+        string key = keyboardDemo.Dequeue();
+        if (key.StartsWith("@")) OpenKeyboard(key.Substring(1), "", key == "@account-name" ? 16 : 64, key != "@account-name");
+        else PressKey(key);
     }
 
     /// <summary>Whether the phone keyboard of that field was just closed with Done (once).</summary>
@@ -746,6 +898,8 @@ public class GameUI : MonoBehaviour
         if (enter) Event.current.Use();
         // On a phone, Done on the (last) password keyboard logs in or creates the account.
         bool submit = enter || KeyboardDone(accountSignUp ? "account-repeat" : "account-password");
+        if (KeyboardDone("account-name")) OpenKeyboard("account-password", accountPassword, 64, true);
+        if (accountSignUp && KeyboardDone("account-password")) OpenKeyboard("account-repeat", accountRepeat, 64, true);
 
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = 760f, h = accountSignUp ? 790f : 700f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;

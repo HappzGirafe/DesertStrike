@@ -1,0 +1,15 @@
+<!-- Keeps engine classes that only the engine itself creates (GameObject.CreatePrimitive adds Box/Sphere/Capsule/
+     Mesh colliders) in IL2CPP builds for phones, which strip classes no script names: without them de_dune had no
+     floor or walls on Android. -->
+<linker>
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.BoxCollider" preserve="all" />
+    <type fullname="UnityEngine.SphereCollider" preserve="all" />
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all" />
+    <type fullname="UnityEngine.MeshCollider" preserve="all" />
+  </assembly>
+  <assembly fullname="UnityEngine.CoreModule">
+    <type fullname="UnityEngine.MeshFilter" preserve="all" />
+    <type fullname="UnityEngine.MeshRenderer" preserve="all" />
+  </assembly>
+</linker>
