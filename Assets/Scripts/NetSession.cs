@@ -8,25 +8,39 @@ using System.Text;
 using UnityEngine;
 
 /// <summary>
-/// LAN multiplayer over UDP.
+/// Multiplayer over UDP: LAN games, and online rooms.
 ///
 /// The host runs the whole match (bots, rounds, money, damage, the bomb) and sends every client a
 /// snapshot ~30 times a second plus short events (shots, impacts, rockets) as they happen. A client
 /// moves its own player, sends its position, shots and actions (reload, buy, plant...), and shows
 /// everyone else from the snapshots. Hosts announce themselves on the local network every second,
 /// so clients on the same WiFi can find them without typing an IP address.
+///
+/// Online (<see cref="OnlineHost"/>): the host is a game server on the owner's PC, reached through a playit.gg UDP
+/// tunnel at a name and port the online API hands out. Its Hello must carry a ticket from that API
+/// (<see cref="JoinTicket"/>), which sets the player's account and nickname; the host checks every move and shot
+/// (see <see cref="RemotePlayerController"/>), limits how many packets each player sends, and keeps a dropped
+/// player's place for a minute so they can come back.
 /// </summary>
 public class NetSession : MonoBehaviour
 {
     public const int GamePort = 27015;
     public const int DiscoveryPort = 27016;
-    const int ProtocolVersion = 4;   // 2: the map is part of the lobby and of every snapshot; 3: selling guns; 4: the Uzi
+    // 2: the map is part of the lobby and of every snapshot; 3: selling guns; 4: the Uzi; 5: online rooms (a ticket in
+    // Hello, spectators, Reject)
+    const int ProtocolVersion = 5;
+    public static int Protocol => ProtocolVersion;
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
     const float InputInterval = 1f / 60f;
     const float Timeout = 8f;
+    const float AwayTime = 60f;          // online: a player whose connection dropped keeps their place this long
+    const int MaxPacket = 1400;          // bytes; anything bigger is not a Low Strike packet
+    const float PacketRate = 200f;       // packets a second a client may send (60 moves, 50 voice frames, shots...)
+    const float PacketBurst = 120f;
+    const int MaxPeers = 14;             // 5v5 and four watching
 
-    enum Msg : byte { Hello = 1, Input, Fire, Action, Bye, Voice, Welcome = 101, Lobby, Snapshot, Events, Ended, VoiceRelay }
+    enum Msg : byte { Hello = 1, Input, Fire, Action, Bye, Voice, Welcome = 101, Lobby, Snapshot, Events, Ended, VoiceRelay, Reject }
     enum Ev : byte { Fire = 1, Tracer, Impact, Blood, Rocket, HitMarker }
 
     public enum Mode { Off, Host, Client }
@@ -37,9 +51,14 @@ public class NetSession : MonoBehaviour
         public IPEndPoint EndPoint;
         public string Name;
         public Team Team;
+        public bool Spectator;          // watches without a player (online rooms)
+        public string AccountId;        // online: the account its ticket was for; null in LAN games
         public Dictionary<string, string> SkinChoices;
         public float LastHeard;
+        public float AwaySince = -1f;   // online: when its connection dropped (its player waits for it)
         public RemotePlayerController Player;
+        internal float Tokens = PacketBurst, TokensAt;
+        public bool Away => AwaySince >= 0f;
     }
 
     /// <summary>A game found on the local network.</summary>
@@ -57,7 +76,26 @@ public class NetSession : MonoBehaviour
     public bool IsClient => Role == Mode.Client;
     public bool Connected { get; private set; }
     public string Status { get; private set; } = "";
-    public string HostName { get; private set; } = "";
+    public string HostName { get; set; } = "";
+
+    // Online game host (-ds-server): players need a ticket to this room, from an account the room lists.
+    public bool OnlineHost { get; private set; }
+    public string RoomId;
+    public HashSet<string> AllowedAccounts = new HashSet<string>();
+    string joinSecret;
+    readonly Dictionary<string, long> usedTickets = new Dictionary<string, long>();   // nonce -> expiry: each ticket works once
+    float helloTokens = 50f, helloTokensAt;
+
+    // Online player: the ticket sent with every Hello, and how the last game ended.
+    string ticket;
+    public bool OnlineClient => !string.IsNullOrEmpty(ticket);
+    public bool PreferSpectator;              // online rooms: watch instead of playing
+    public float PingMs { get; private set; } = -1f;
+    public bool LastEndWasDrop { get; private set; }   // the connection was lost (not: left, kicked or the room closed)
+    string hostLabel = "";
+    System.Threading.Tasks.Task<IPAddress[]> resolving;
+    string resolvingHost;
+    int resolvingPort;
     public string LobbySettings { get; private set; } = "";
     public int MyNetId { get; private set; }
     public string PlayerName = "Player";
@@ -92,12 +130,16 @@ public class NetSession : MonoBehaviour
 
     // ----------------------------------------------------------------- starting and stopping
 
-    public bool StartHost()
+    /// <summary>Hosts a game. <paramref name="online"/>: an online game host (-ds-server), which only lets in players
+    /// with a ticket signed with <paramref name="secret"/> and does not announce itself on the LAN.</summary>
+    public bool StartHost(int port = GamePort, bool online = false, string secret = null)
     {
         Stop();
         try
         {
-            socket = OpenSocket(GamePort);
+            // An online game host is reached only through the playit agent on the same PC: it listens on this PC's
+            // own address (127.0.0.1), not on the network, so Windows' firewall has nothing to ask about it.
+            socket = OpenSocket(port, loopbackOnly: online);
         }
         catch (Exception e)
         {
@@ -108,44 +150,136 @@ public class NetSession : MonoBehaviour
         Application.runInBackground = true;   // keep the game running for the others when this window is not in front
         HostName = PlayerName;
         Status = "";
+        OnlineHost = online;
+        joinSecret = secret;
+        usedTickets.Clear();
         beaconTargets.Clear();
-        beaconTargets.Add(new IPEndPoint(IPAddress.Broadcast, DiscoveryPort));
-        foreach (var (address, mask) in LocalIPv4())
-            if (mask != null) beaconTargets.Add(new IPEndPoint(BroadcastAddress(address, mask), DiscoveryPort));
-        Debug.Log($"[Net] Hosting on port {GamePort} ({string.Join(", ", LocalAddresses())})");
+        if (!online)
+        {
+            beaconTargets.Add(new IPEndPoint(IPAddress.Broadcast, DiscoveryPort));
+            foreach (var (address, mask) in LocalIPv4())
+                if (mask != null) beaconTargets.Add(new IPEndPoint(BroadcastAddress(address, mask), DiscoveryPort));
+        }
+        Debug.Log(online ? $"[Net] Online game host on UDP port {port}" : $"[Net] Hosting on port {port} ({string.Join(", ", LocalAddresses())})");
         return true;
     }
 
+    /// <summary>Joins a LAN game by what the player typed: an IP address ("192.168.1.20"), or an address or name with
+    /// a port ("192.168.1.20:27015", "example.com:12345").</summary>
     public void Join(string address)
     {
-        if (!IPAddress.TryParse((address ?? "").Trim(), out var ip))
+        address = (address ?? "").Trim();
+        string host = address;
+        int port = GamePort;
+        int colon = address.LastIndexOf(':');
+        if (colon > 0 && address.IndexOf(':') == colon)   // one colon: a port (an IPv6 address has several)
+        {
+            if (!int.TryParse(address.Substring(colon + 1), out port) || port < 1 || port > 65535)
+            {
+                Status = "The port after ':' must be a number from 1 to 65535.";
+                return;
+            }
+            host = address.Substring(0, colon);
+        }
+        if (host.Length == 0 || host.Contains(" "))
         {
             Status = "That is not an IP address (it looks like 192.168.1.20).";
             return;
         }
-        Join(ip);
+        Join(host, port);
+    }
+
+    /// <summary>Joins the game at an IP address or a name (looked up without stopping the game) and a port. An
+    /// online room's <paramref name="joinTicket"/> goes with every Hello.</summary>
+    public void Join(string host, int port, string joinTicket = null)
+    {
+        Stop();
+        ticket = joinTicket;
+        LastEndWasDrop = false;
+        PingMs = -1f;
+        if (IPAddress.TryParse(host, out var ip))
+        {
+            Connect(new IPEndPoint(ip, port), host);
+            return;
+        }
+        Role = Mode.Client;
+        Application.runInBackground = true;
+        Connected = false;
+        resolvingHost = host;
+        resolvingPort = port;
+        connectStarted = Time.unscaledTime;
+        Status = OnlineClient ? "Connecting to the game server..." : $"Looking up {host}...";
+        try
+        {
+            resolving = Dns.GetHostAddressesAsync(host);
+        }
+        catch (Exception e)
+        {
+            resolving = null;
+            Fail($"Could not look up {host}: {e.Message}");
+        }
     }
 
     public void Join(IPAddress address)
     {
         Stop();
+        ticket = null;
+        LastEndWasDrop = false;
+        PingMs = -1f;
+        Connect(new IPEndPoint(address, GamePort), address.ToString());
+    }
+
+    void Connect(IPEndPoint target, string label)
+    {
         try
         {
             socket = OpenSocket(0);
         }
         catch (Exception e)
         {
-            Status = "Could not open the network: " + e.Message;
+            Fail("Could not open the network: " + e.Message);
             return;
         }
         Role = Mode.Client;
         Application.runInBackground = true;
         Connected = false;
-        hostEndPoint = new IPEndPoint(address, GamePort);
+        hostEndPoint = target;
+        hostLabel = label;
         connectStarted = lastHeardFromHost = Time.unscaledTime;
         nextHello = 0f;
-        Status = $"Connecting to {address}...";
-        Debug.Log($"[Net] Joining {address}");
+        Status = OnlineClient ? "Connecting to the game server..." : $"Connecting to {label}...";
+        Debug.Log(label == target.Address.ToString() ? $"[Net] Joining {label}:{target.Port}" : $"[Net] Joining {label} ({target})");
+    }
+
+    // The name being looked up: once known, connect (IPv4, like the game's socket).
+    void FinishResolving()
+    {
+        if (!resolving.IsCompleted)
+        {
+            if (Time.unscaledTime - connectStarted > 10f) Fail($"Looking up {resolvingHost} took too long. Check the internet connection.");
+            return;
+        }
+        var task = resolving;
+        resolving = null;
+        IPAddress address = null;
+        if (task.Status == System.Threading.Tasks.TaskStatus.RanToCompletion)
+            address = Array.Find(task.Result, a => a.AddressFamily == AddressFamily.InterNetwork);
+        if (address == null)
+        {
+            Fail(task.Status == System.Threading.Tasks.TaskStatus.RanToCompletion
+                ? $"{resolvingHost} has no IPv4 address."
+                : OnlineClient ? "Could not find the game server. Check the internet connection, or try again in a minute."
+                : $"Could not find {resolvingHost}. Check the name and the internet connection.");
+            return;
+        }
+        Connect(new IPEndPoint(address, resolvingPort), resolvingHost);
+    }
+
+    void Fail(string why)
+    {
+        Stop();
+        Status = why;
+        Debug.Log("[Net] " + why);
     }
 
     /// <summary>Leave or stop hosting (telling the other side).</summary>
@@ -163,6 +297,11 @@ public class NetSession : MonoBehaviour
         Role = Mode.Off;
         Application.runInBackground = false;  // alone, the game pauses in the background (saves battery)
         Connected = false;
+        resolving = null;
+        hostEndPoint = null;
+        OnlineHost = false;
+        RoomId = null;
+        AllowedAccounts.Clear();
         Peers.Clear();
         LobbyPlayers.Clear();
         MyNetId = 0;
@@ -233,9 +372,10 @@ public class NetSession : MonoBehaviour
         return new IPAddress(broadcast);
     }
 
-    static UdpClient OpenSocket(int port)
+    static UdpClient OpenSocket(int port, bool loopbackOnly = false)
     {
-        var client = new UdpClient(port) { EnableBroadcast = true };
+        var client = loopbackOnly ? new UdpClient(new IPEndPoint(IPAddress.Loopback, port)) : new UdpClient(port);
+        client.EnableBroadcast = true;
         // Windows reports "connection reset" on a UDP socket after a packet bounced off a closed port; ignore that.
         try { client.Client.IOControl(-1744830452, new byte[] { 0 }, null); } catch (Exception) { }
         return client;
@@ -258,10 +398,12 @@ public class NetSession : MonoBehaviour
             {
                 break;
             }
-            if (data.Length == 0) continue;
+            if (data.Length == 0 || data.Length > MaxPacket) continue;
+            int start = IsHost ? ProxyHeaderLength(data) : 0;
+            if (start < 0 || start >= data.Length) continue;
             try
             {
-                using (var reader = new BinaryReader(new MemoryStream(data)))
+                using (var reader = new BinaryReader(new MemoryStream(data, start, data.Length - start)))
                 {
                     if (IsHost) HostReceive(reader, from);
                     else if (IsClient) ClientReceive(reader, from);
@@ -274,10 +416,25 @@ public class NetSession : MonoBehaviour
         }
     }
 
+    // playit.gg passes each player's packets on from its own local address (127.x.y.z), so players are told apart by
+    // address and port as on a LAN. With its "Proxy Protocol" option on, every UDP packet also starts with a PROXY
+    // protocol v2 header (the player's real address): skipped here, so the option does no harm.
+    static readonly byte[] ProxySignature = { 0x0D, 0x0A, 0x0D, 0x0A, 0x00, 0x0D, 0x0A, 0x51, 0x55, 0x49, 0x54, 0x0A };
+
+    static int ProxyHeaderLength(byte[] data)
+    {
+        if (data.Length < 16) return 0;
+        for (int i = 0; i < ProxySignature.Length; i++)
+            if (data[i] != ProxySignature[i]) return 0;
+        int length = 16 + (data[14] << 8 | data[15]);
+        return length <= data.Length ? length : -1;
+    }
+
     void LateUpdate()
     {
+        if (resolving != null) FinishResolving();
         if (IsHost) HostSend();
-        else if (IsClient) ClientSend();
+        else if (IsClient && hostEndPoint != null) ClientSend();
     }
 
     void ReadDiscovery()
@@ -315,35 +472,21 @@ public class NetSession : MonoBehaviour
     {
         var msg = (Msg)reader.ReadByte();
         var peer = Peers.Find(p => p.EndPoint.Equals(from));
+        if (peer != null && !TakeToken(peer)) return;   // sending far too much: the rest is dropped
         if (msg == Msg.Hello)
         {
-            int version = reader.ReadInt32();
-            string name = CleanName(reader.ReadString());
-            var team = (Team)reader.ReadByte();
-            string skins = reader.ReadString();
-            if (version != ProtocolVersion)
-            {
-                Send(new[] { (byte)Msg.Ended }, from);
-                return;
-            }
-            if (peer == null)
-            {
-                peer = new Peer { EndPoint = from, Name = UniqueName(name), Team = team, SkinChoices = WeaponSkins.DecodeChoices(skins) };
-                Peers.Add(peer);
-                Debug.Log($"[Net] {peer.Name} joined from {from} ({TeamName(team)})");
-                if (gm.State != MatchState.Menu) gm.AddRemotePlayer(peer, midRound: true);
-            }
-            peer.LastHeard = Time.unscaledTime;
-            Send(Packet(w =>
-            {
-                w.Write((byte)Msg.Welcome);
-                w.Write(HostName);
-            }), from);
+            if (peer == null && !TakeHelloToken()) return;
+            HostHello(reader, from, peer);
             return;
         }
 
         if (peer == null) return;
         peer.LastHeard = Time.unscaledTime;
+        if (peer.Away)
+        {
+            peer.AwaySince = -1f;
+            Debug.Log($"[Net] {peer.Name} is back");
+        }
         switch (msg)
         {
             case Msg.Input:
@@ -373,13 +516,151 @@ public class NetSession : MonoBehaviour
                     // Pass it on to everyone else.
                     byte[] relay = VoicePacket(peer.Name, sequence, frame, offset, frame.Length - offset);
                     foreach (var other in Peers)
-                        if (other != peer) Send(relay, other.EndPoint);
+                        if (other != peer && !other.Away) Send(relay, other.EndPoint);
                 }
                 break;
             case Msg.Bye:
                 RemovePeer(peer, "left");
                 break;
         }
+    }
+
+    void HostHello(BinaryReader reader, IPEndPoint from, Peer peer)
+    {
+        int version = reader.ReadInt32();
+        if (version != ProtocolVersion)
+        {
+            Send(RejectPacket(version < ProtocolVersion
+                ? "This game server runs a newer Low Strike. Update the game (download it from the website)."
+                : "This game server runs an older Low Strike than yours."), from);
+            Send(new[] { (byte)Msg.Ended }, from);   // games older than Reject leave on this
+            return;
+        }
+        string name = CleanName(reader.ReadString());
+        int side = reader.ReadByte();   // 0 Terrorists, 1 SWAT, 2 watching
+        string skins = reader.ReadString();
+        string ticketText = reader.ReadString();
+        float sentAt = reader.ReadSingle();
+        var team = side == 1 ? Team.Swat : Team.Terrorists;
+        bool spectator = side == 2;
+
+        if (peer == null)
+        {
+            string accountId = null;
+            if (OnlineHost)
+            {
+                if (!JoinTicket.TryRead(ticketText, joinSecret, out var t))
+                {
+                    Send(RejectPacket("Your ticket to this room is not valid. Join the room again."), from);
+                    return;
+                }
+                // Not for this room, or the room does not list them yet (the API's list comes every second): no
+                // answer, so their game keeps asking until it gives up.
+                if (RoomId == null || t.RoomId != RoomId || !AllowedAccounts.Contains(t.AccountId)) return;
+                if (t.Expires < DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+                {
+                    Send(RejectPacket("Your ticket to this room ran out. Join the room again."), from);
+                    return;
+                }
+                if (usedTickets.ContainsKey(t.Nonce)) return;   // a copy of a ticket that was used already
+                usedTickets[t.Nonce] = t.Expires;
+                accountId = t.AccountId;
+                name = CleanName(t.Nick);
+                spectator = t.Team == "spectator";
+                team = t.Team == "swat" ? Team.Swat : Team.Terrorists;
+
+                // Coming back (a new address after the connection dropped, or the game restarted): same place, same player.
+                peer = Peers.Find(p => p.AccountId == accountId);
+                if (peer != null)
+                {
+                    Debug.Log($"[Net] {peer.Name} is back (from {from})");
+                    peer.EndPoint = from;
+                    peer.AwaySince = -1f;
+                    if (gm.State == MatchState.Menu) SetSide(peer, spectator, team);
+                }
+            }
+            if (peer == null)
+            {
+                if (Peers.Count >= MaxPeers)
+                {
+                    Send(RejectPacket("This game is full."), from);
+                    return;
+                }
+                if (OnlineHost && !spectator && !HasPlace(team, null))
+                {
+                    team = team == Team.Swat ? Team.Terrorists : Team.Swat;
+                    spectator = !HasPlace(team, null);
+                }
+                peer = new Peer
+                {
+                    EndPoint = from, Name = UniqueName(name), Team = team, Spectator = spectator, AccountId = accountId,
+                    SkinChoices = WeaponSkins.DecodeChoices(skins),
+                };
+                Peers.Add(peer);
+                Debug.Log($"[Net] {peer.Name} joined from {from} ({(spectator ? "watching" : TeamName(team))})");
+                if (gm.State != MatchState.Menu && !peer.Spectator) gm.AddRemotePlayer(peer, midRound: true);
+            }
+        }
+        else if (gm.State == MatchState.Menu && (peer.Spectator != spectator || peer.Team != team))
+        {
+            SetSide(peer, spectator, team);   // changed team in the lobby
+        }
+        peer.LastHeard = Time.unscaledTime;
+        peer.AwaySince = -1f;
+        Send(Packet(w =>
+        {
+            w.Write((byte)Msg.Welcome);
+            w.Write(HostName);
+            w.Write(sentAt);   // back to the player, who measures the ping with it
+        }), from);
+    }
+
+    // A team change in the lobby; online, only into a team with a free place.
+    void SetSide(Peer peer, bool spectator, Team team)
+    {
+        if (!spectator && OnlineHost && !HasPlace(team, peer)) return;
+        if (peer.Spectator == spectator && peer.Team == team) return;
+        peer.Spectator = spectator;
+        peer.Team = team;
+        Debug.Log($"[Net] {peer.Name} now {(spectator ? "watches" : "plays for " + TeamName(team))}");
+    }
+
+    bool HasPlace(Team team, Peer except) =>
+        Peers.FindAll(p => p != except && !p.Spectator && p.Team == team).Count < gm.TeamSize;
+
+    // Each client may send PacketRate packets a second (PacketBurst at once); the rest is dropped.
+    bool TakeToken(Peer peer)
+    {
+        float now = Time.unscaledTime;
+        peer.Tokens = Mathf.Min(PacketBurst, peer.Tokens + (now - peer.TokensAt) * PacketRate);
+        peer.TokensAt = now;
+        if (peer.Tokens < 1f) return false;
+        peer.Tokens -= 1f;
+        return true;
+    }
+
+    // Hellos from unknown addresses: 50 a second at most (each checks a ticket).
+    bool TakeHelloToken()
+    {
+        float now = Time.unscaledTime;
+        helloTokens = Mathf.Min(50f, helloTokens + (now - helloTokensAt) * 50f);
+        helloTokensAt = now;
+        if (helloTokens < 1f) return false;
+        helloTokens -= 1f;
+        return true;
+    }
+
+    static byte[] RejectPacket(string reason) => Packet(w =>
+    {
+        w.Write((byte)Msg.Reject);
+        w.Write(reason);
+    });
+
+    /// <summary>Sends a player away from the game (online: they left the room, or it closed).</summary>
+    public void Kick(Peer peer, string reason)
+    {
+        Send(RejectPacket(reason), peer.EndPoint);
+        RemovePeer(peer, "was sent away: " + reason);
     }
 
     void RemovePeer(Peer peer, string reason)
@@ -389,13 +670,42 @@ public class NetSession : MonoBehaviour
         Debug.Log($"[Net] {peer.Name} {reason}");
     }
 
+    /// <summary>Online game host, back in the lobby after a match: players whose connection dropped are let go.</summary>
+    public void ForgetAwayPlayers()
+    {
+        for (int i = Peers.Count - 1; i >= 0; i--)
+            if (Peers[i].Away) RemovePeer(Peers[i], "did not come back");
+    }
+
     void HostSend()
     {
         float now = Time.unscaledTime;
         for (int i = Peers.Count - 1; i >= 0; i--)
-            if (now - Peers[i].LastHeard > Timeout) RemovePeer(Peers[i], "timed out");
+        {
+            var peer = Peers[i];
+            if (peer.Away)
+            {
+                if (now - peer.AwaySince > AwayTime) RemovePeer(peer, "did not come back");
+            }
+            else if (now - peer.LastHeard > Timeout)
+            {
+                // Online, during a match, their player stays a minute: their game may join again.
+                if (peer.AccountId != null && gm.State != MatchState.Menu)
+                {
+                    peer.AwaySince = now;
+                    Debug.Log($"[Net] {peer.Name} lost the connection; keeping their place for {AwayTime:0} s");
+                }
+                else RemovePeer(peer, "timed out");
+            }
+        }
+        if (usedTickets.Count > 0 && Time.frameCount % 600 == 0)
+        {
+            long unix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            foreach (var nonce in new List<string>(usedTickets.Keys))
+                if (usedTickets[nonce] < unix) usedTickets.Remove(nonce);
+        }
 
-        if (now >= nextBeacon)
+        if (beaconTargets.Count > 0 && now >= nextBeacon)
         {
             nextBeacon = now + 1f;
             byte[] beacon = Encoding.UTF8.GetBytes($"{BeaconTag}|{ProtocolVersion}|{HostName}|{Peers.Count + 1}|{(gm.State == MatchState.Menu ? 0 : 1)}");
@@ -423,7 +733,7 @@ public class NetSession : MonoBehaviour
         var names = new List<string>();
         if (gm.Side != PlayerSide.Spectate)
             names.Add($"{HostName}  ({TeamName(gm.Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat)}, host)");
-        foreach (var peer in Peers) names.Add($"{peer.Name}  ({TeamName(peer.Team)})");
+        foreach (var peer in Peers) names.Add($"{peer.Name}  ({(peer.Spectator ? "watching" : TeamName(peer.Team))})");
         byte[] data = Packet(w =>
         {
             w.Write((byte)Msg.Lobby);
@@ -433,7 +743,8 @@ public class NetSession : MonoBehaviour
             w.Write((byte)names.Count);
             foreach (var name in names) w.Write(name);
         });
-        foreach (var peer in Peers) Send(data, peer.EndPoint);
+        foreach (var peer in Peers)
+            if (!peer.Away) Send(data, peer.EndPoint);
     }
 
     void SendSnapshots()
@@ -448,6 +759,7 @@ public class NetSession : MonoBehaviour
         });
         foreach (var peer in Peers)
         {
+            if (peer.Away) continue;
             var me = peer.Player != null ? peer.Player.Self : null;
             Send(Packet(w =>
             {
@@ -607,7 +919,8 @@ public class NetSession : MonoBehaviour
         packet[0] = (byte)Msg.Events;
         packet[1] = (byte)eventCount;
         Buffer.BlockCopy(payload, 0, packet, 2, payload.Length);
-        foreach (var peer in Peers) Send(packet, peer.EndPoint);
+        foreach (var peer in Peers)
+            if (!peer.Away) Send(packet, peer.EndPoint);
         events.SetLength(0);
         eventCount = 0;
     }
@@ -622,11 +935,14 @@ public class NetSession : MonoBehaviour
         {
             case Msg.Welcome:
                 HostName = reader.ReadString();
-                if (!Connected) Debug.Log($"[Net] Connected to {HostName}");
+                PingMs = (Time.unscaledTime - reader.ReadSingle()) * 1000f;
+                if (!Connected) Debug.Log($"[Net] Connected to {HostName} (ping {PingMs:0} ms)");
                 Connected = true;
                 Status = "";
                 break;
             case Msg.Lobby:
+                // Online: the game server went back to the room's lobby after the match; this player stays.
+                if (gm.IsClient) gm.EndClientMatch();
                 HostName = reader.ReadString();
                 LobbySettings = reader.ReadString();
                 if (gm.State == MatchState.Menu) gm.UseHostMap(reader.ReadString());   // the host's map shows behind the lobby
@@ -644,7 +960,11 @@ public class NetSession : MonoBehaviour
                 PlayEvents(reader);
                 break;
             case Msg.Ended:
-                gm.OnNetworkGameEnded("The host ended the game.");
+                gm.OnNetworkGameEnded(Connected ? "The host ended the game."
+                                                : "The host has another version of Low Strike. Use the same version on both.");
+                break;
+            case Msg.Reject:
+                gm.OnNetworkGameEnded(reader.ReadString());
                 break;
             case Msg.VoiceRelay:
                 {
@@ -828,17 +1148,21 @@ public class NetSession : MonoBehaviour
                 nextHello = now + 0.5f;
                 SendHello();
             }
-            if (now - connectStarted > 6f)
+            if (now - connectStarted > (OnlineClient ? 10f : 6f))
             {
-                string target = hostEndPoint.Address.ToString();
+                bool online = OnlineClient;
+                string target = hostLabel;
                 Stop();
-                Status = $"No answer from {target}. Is a game hosted there, and did that PC allow Low Strike through its firewall?";
+                LastEndWasDrop = online;
+                Status = online ? "The game server does not answer. It may be restarting: try again in a minute."
+                                : $"No answer from {target}. Is a game hosted there, and did that PC allow Low Strike through its firewall?";
             }
             return;
         }
         if (now - lastHeardFromHost > Timeout)
         {
-            gm.OnNetworkGameEnded("Lost the connection to the host.");
+            gm.OnNetworkGameEnded(OnlineClient ? "Lost the connection to the game server." : "Lost the connection to the host.");
+            LastEndWasDrop = true;
             return;
         }
 
@@ -865,8 +1189,10 @@ public class NetSession : MonoBehaviour
             w.Write((byte)Msg.Hello);
             w.Write(ProtocolVersion);
             w.Write(PlayerName);
-            w.Write((byte)PreferredTeam);
+            w.Write((byte)(PreferSpectator && OnlineClient ? 2 : (int)PreferredTeam));
             w.Write(WeaponSkins.EncodeChoices(WeaponSkins.EquippedChoices()));
+            w.Write(ticket ?? "");
+            w.Write(Time.unscaledTime);
         }), hostEndPoint);
     }
 
@@ -921,7 +1247,8 @@ public class NetSession : MonoBehaviour
         else if (IsHost && Peers.Count > 0)
         {
             byte[] packet = VoicePacket(HostName, sequence, frame, 0, frame.Length);
-            foreach (var peer in Peers) Send(packet, peer.EndPoint);
+            foreach (var peer in Peers)
+                if (!peer.Away) Send(packet, peer.EndPoint);
         }
     }
 
@@ -971,7 +1298,8 @@ public class NetSession : MonoBehaviour
     string UniqueName(string name)
     {
         string unique = name;
-        for (int n = 2; unique == HostName || Peers.Exists(p => p.Name == unique); n++) unique = $"{name} {n}";
+        for (int n = 2; (unique == HostName && !OnlineHost) || Peers.Exists(p => p.Name == unique) || gm.Combatants.Exists(c => c.DisplayName == unique); n++)
+            unique = $"{name} {n}";
         return unique;
     }
 }

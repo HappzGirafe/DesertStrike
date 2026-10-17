@@ -71,7 +71,7 @@ public static class DesertStrikeSetup
         PlayerSettings.macRetinaSupport = false;
         // Voice chat: macOS asks the player once, the first time they hold V in a LAN game, and shows this text.
         // (Unity keeps one setting for this on Apple platforms; it becomes NSMicrophoneUsageDescription.)
-        PlayerSettings.iOS.microphoneUsageDescription = "Low Strike uses the microphone for voice chat in LAN games while you hold V.";
+        PlayerSettings.iOS.microphoneUsageDescription = "Low Strike uses the microphone for voice chat in LAN and online games while you hold V.";
         Build(BuildTarget.StandaloneOSX, "Builds/macOS/Low Strike.app");
     }
 
@@ -105,18 +105,18 @@ public static class DesertStrikeSetup
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, BundleId);
         PlayerSettings.iOS.buildNumber = MobileVersionCode.ToString();
         PlayerSettings.iOS.targetOSVersionString = "15.0";
-        PlayerSettings.iOS.microphoneUsageDescription = "Low Strike uses the microphone for voice chat in LAN games while you hold MIC.";
+        PlayerSettings.iOS.microphoneUsageDescription = "Low Strike uses the microphone for voice chat in LAN and online games while you hold MIC.";
         Build(BuildTarget.iOS, "Builds/iOS");
     }
 
     const string BundleId = "com.happzgirafe.lowstrike";
-    const string MobileVersion = "1.18";
-    const int MobileVersionCode = 118;
+    // The game's version (Application.version): shown by the systems, and online rooms need the one the server has.
+    const string GameVersion = "1.19";
+    const int MobileVersionCode = 119;
 
-    // Phones: always landscape (either way round), the version shown in the system's app info.
+    // Phones: always landscape (either way round).
     static void SetMobileSettings()
     {
-        PlayerSettings.bundleVersion = MobileVersion;
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
         PlayerSettings.allowedAutorotateToPortrait = false;
         PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
@@ -127,6 +127,10 @@ public static class DesertStrikeSetup
     static void Build(BuildTarget target, string path, BuildOptions options = BuildOptions.None)
     {
         PlayerSettings.productName = GameName;
+        PlayerSettings.bundleVersion = GameVersion;
+        // Online game hosts (-ds-server) report to the online API on the same PC over plain HTTP (127.0.0.1). Players'
+        // games use HTTPS only: OnlineClient refuses other addresses except this computer's (tests).
+        PlayerSettings.insecureHttpOption = InsecureHttpOption.AlwaysAllowed;
         // CPU and GPU frame times for the FPS counter (FrameTimingManager).
         PlayerSettings.enableFrameTimingStats = true;
         // Settings > Display > Window: the window can be resized by dragging its edges.

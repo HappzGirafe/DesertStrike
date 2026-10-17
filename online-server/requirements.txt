@@ -1,0 +1,5 @@
+# Low Strike online server (Python 3.10 or newer)
+fastapi==0.143.3
+uvicorn==0.54.0
+argon2-cffi==25.1.0
+pydantic==2.14.1

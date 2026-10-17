@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Voice chat for LAN games: hold V during a match to talk (or, with Open mic, just speak); everyone in the game
-/// hears you.
+/// Voice chat for LAN and online games: hold V during a match to talk (or, with Open mic, just speak); everyone in
+/// the game hears you. A player can be muted for yourself (pause menu, or the online room's player list).
 ///
 /// The microphone is recorded at 16 kHz, cut into 20 ms frames, squeezed to 8 bits per sample (G.711 mu-law,
 /// 16 KB/s, plenty for a LAN) and sent through <see cref="NetSession"/>: a client sends to the host, the host plays
@@ -75,6 +75,25 @@ public class VoiceChat : MonoBehaviour
     float nextLog;
 
     readonly Dictionary<string, VoiceOutput> speakers = new Dictionary<string, VoiceOutput>();
+    readonly HashSet<string> muted = new HashSet<string>();   // nicknames this player does not want to hear
+
+    public bool IsMuted(string speaker) => muted.Contains(speaker);
+
+    /// <summary>Mutes or unmutes one player for this player only (until the game is closed).</summary>
+    public void SetMuted(string speaker, bool mute)
+    {
+        if (!mute)
+        {
+            muted.Remove(speaker);
+            return;
+        }
+        muted.Add(speaker);
+        if (speakers.TryGetValue(speaker, out var output))
+        {
+            if (output != null) Destroy(output.gameObject);
+            speakers.Remove(speaker);
+        }
+    }
 
     void Awake()
     {
@@ -88,6 +107,7 @@ public class VoiceChat : MonoBehaviour
 
     void Update()
     {
+        if (gm.ServerMode) return;   // an online game host passes voices on but has no microphone or speakers
         var net = gm.Net;
         InSession = net.IsHost ? net.Peers.Count > 0 : net.IsClient && net.Connected;
         bool inMatch = gm.State != MatchState.Menu && !gm.IsPaused;
@@ -146,7 +166,7 @@ public class VoiceChat : MonoBehaviour
     /// <summary>One voice frame from another player (called by NetSession).</summary>
     public void Receive(string speaker, byte[] data, int offset, int count)
     {
-        if (!GameSettings.VoiceChat || count <= 0) return;
+        if (!GameSettings.VoiceChat || count <= 0 || gm.ServerMode || muted.Contains(speaker)) return;
         if (!speakers.TryGetValue(speaker, out var output) || output == null)
         {
             var go = new GameObject("Voice " + speaker);

@@ -70,6 +70,12 @@ Accounts are saved on the computer in `accounts.json` in the game's data folder,
 The password itself is never saved, only a salted PBKDF2-SHA256 hash of it. Accounts are per computer: there is no
 server, so the same nickname can exist on another computer (in a LAN game the second one gets a number added).
 
+**Online account:** the log-in screen's **ONLINE ACCOUNT** makes an account on the Low Strike server instead (password
+at least 8 characters, kept there only as an Argon2id hash). It works on every computer and phone, its nickname is
+unique everywhere, and its skins and crosshair and voice settings are saved on the server. The first time, the game
+offers to bring this computer's skins and settings along. **ACCOUNT** (main menu, when logged in online) changes the
+password or deletes the account and everything the server keeps about it.
+
 ### Friends
 
 **FRIENDS** in the main menu (it needs an account): type a friend's nickname and click **SEND REQUEST**; on their
@@ -126,6 +132,23 @@ Measured on a laptop with Intel UHD 620 graphics, 1280x720, 5v5 bots, no frame l
 
 The gun models and skins make no measurable difference: the models have 24 to 1,424 triangles each.
 
+### Online multiplayer
+
+**PLAY ONLINE** (needs an online account): the list of rooms, with their map, players, and whether they are waiting
+or playing. **JOIN** one, **QUICK JOIN** the first with a free place, join a private one with its **code**, or
+**CREATE ROOM** (name, map, 1v1 to 5v5, bots, rounds, friendly fire, everyone or with the code). In the room you pick
+Terrorists, SWAT or Watch, invite friends, and its owner presses **START MATCH**; bots fill the free places. After the
+match everyone is back in the room. If the connection drops, the game joins again by itself and gets its player back
+(within a minute). Voice chat works as in LAN games; the pause menu and the room's player list can **MUTE** a player.
+
+**FRIENDS** with an online account are friends over the internet: find players by nickname, requests, invitations to
+rooms (kept on the server while a friend is offline), and Online / In match / Offline. The LAN friends are still there.
+
+The rooms run on a Low Strike server on a home PC, reached through Cloudflare Tunnel (accounts, rooms:
+`https://lowstrike-api.lokvetia.com`) and playit.gg (the game itself, over UDP); players need no IP addresses, VPN or
+router settings. The game finds the server through `online.json` on the website. The server, its setup and its scripts
+are in [`online-server/`](online-server/README.md).
+
 ### LAN multiplayer (same WiFi)
 
 1. On one PC: **LAN GAME > HOST A GAME**, choose your team, the map and the match settings (everyone plays the
@@ -141,7 +164,7 @@ The game uses UDP ports 27015 (game), 27016 (finding games) and 27017 (friends: 
 people talking appear under the radar. Settings > *When the others hear you* > **Open mic** sends your voice
 whenever you speak, without a key (use headphones). During a LAN match the HUD always shows the microphone:
 "Hold V to talk", "You" with a level bar while talking, "Open mic", or what is wrong. The microphone starts the first time you press V (macOS asks for
-permission once) and stops when the LAN game ends. Settings > *Voice chat in LAN games* turns it off.
+permission once) and stops when the LAN game ends. Settings > *Voice chat (LAN and online games)* turns it off.
 **TEST MICROPHONE** in Settings shows a level bar that moves when you speak, without a second computer. If the
 game cannot use the microphone, it says why (not allowed, no microphone, only silence) and where to turn it on;
 on a Mac that is System Settings > Privacy & Security > Microphone > Low Strike (then restart the game).
@@ -175,7 +198,7 @@ While in a LAN game the game keeps running when its window is not in front, so t
 | E | Plant the bomb (Terrorists, on site A or B) / defuse it (SWAT) — hold |
 | G | Drop the bomb |
 | Tab | Scoreboard |
-| V | Voice chat: hold to talk (LAN games) |
+| V | Voice chat: hold to talk (LAN and online games) |
 | Esc | Pause (menu only, in a LAN game) and settings |
 
 **Crosshair** (Settings > **CROSSHAIR**), like Counter-Strike 2: color (Green, Yellow, Red, Blue, Cyan, White, or

@@ -219,15 +219,17 @@ public class Combatant : MonoBehaviour
     public bool CanFire => IsAlive && Current != null && !IsReloading && Time.time >= nextFireTime
                            && (Current.Data.IsMelee || Current.Mag > 0);
 
-    /// <param name="ignoreFireRate">For shots from another PC, which already paced them.</param>
-    public bool TryFire(Vector3 direction, float spreadDegrees, bool ignoreFireRate = false)
+    /// <param name="fireRateSlack">For shots from another PC: one may arrive this share of the weapon's interval
+    /// early (the network does not deliver them evenly), but the next one is then due a whole interval later, so on
+    /// average they come no faster than the weapon fires.</param>
+    public bool TryFire(Vector3 direction, float spreadDegrees, float fireRateSlack = 0f)
     {
         if (!IsAlive || Current == null || IsReloading) return false;
-        if (!ignoreFireRate && Time.time < nextFireTime) return false;
+        if (Time.time < nextFireTime - fireRateSlack * Current.Data.FireInterval) return false;
         if (!Current.Data.IsMelee && Current.Mag <= 0) return false;
 
         var weapon = Current.Data;
-        nextFireTime = Time.time + weapon.FireInterval;
+        nextFireTime = Mathf.Max(nextFireTime, Time.time) + weapon.FireInterval;
         Current.LastShotAt = Time.time;
         if (!weapon.IsMelee) Current.Mag--;
 

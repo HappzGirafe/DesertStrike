@@ -8,8 +8,9 @@ page per language, with the translated text already in the HTML:
     docs/ua/index.html    Ukrainian
     docs/de/ fr/ it/ es/  German, French, Italian, Spanish
 
-plus sitemap.xml and a favicon. The video and pictures live in docs/media (the preview page uses the same files). (A robots.txt would have to sit at the root of
-happzgirafe.github.io, so the sitemap is handed to Google in Search Console instead.)
+plus sitemap.xml, robots.txt, a favicon, online.json (where the game and the Play Online block find the online server)
+and CNAME (the site's own domain, lowstrike.lokvetia.com; happzgirafe.github.io/DesertStrike/ redirects there). The
+video and pictures live in docs/media (the preview page uses the same files).
 
     python Tools/build_site.py
 
@@ -25,7 +26,8 @@ import shutil
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(ROOT, "Website", "index.html")
 OUT = os.path.join(ROOT, "docs")
-SITE = "https://happzgirafe.github.io/DesertStrike/"
+DOMAIN = "lowstrike.lokvetia.com"   # GitHub Pages custom domain (a CNAME record at Cloudflare, "DNS only")
+SITE = f"https://{DOMAIN}/"
 
 # folder, html lang, Open Graph locale, language name, switcher label
 LANGUAGES = [
@@ -39,12 +41,12 @@ LANGUAGES = [
 SWITCHER_ORDER = ["ua", "en", "de", "fr", "it", "es"]   # as on the page: UA, UK, DEU, FR, IT, ES
 
 TITLES = {
-    "en": "Low Strike: free shooter with bots and LAN for Windows, macOS and Android",
-    "ua": "Low Strike: безкоштовний шутер з ботами та LAN для Windows, macOS і Android",
-    "de": "Low Strike: kostenloser Shooter mit Bots und LAN für Windows, macOS und Android",
-    "fr": "Low Strike : jeu de tir gratuit avec bots et LAN pour Windows, macOS et Android",
-    "it": "Low Strike: sparatutto gratuito con bot e LAN per Windows, macOS e Android",
-    "es": "Low Strike: shooter gratis con bots y LAN para Windows, macOS y Android",
+    "en": "Low Strike: free shooter with bots, online and LAN play for Windows, macOS and Android",
+    "ua": "Low Strike: безкоштовний шутер з ботами, онлайном і LAN для Windows, macOS і Android",
+    "de": "Low Strike: kostenloser Shooter mit Bots, Online und LAN für Windows, macOS und Android",
+    "fr": "Low Strike : jeu de tir gratuit avec bots, en ligne et LAN pour Windows, macOS et Android",
+    "it": "Low Strike: sparatutto gratuito con bot, online e LAN per Windows, macOS e Android",
+    "es": "Low Strike: shooter gratis con bots, online y LAN para Windows, macOS y Android",
 }
 
 # Extra styles for the static pages: the language switcher is made of links there.
@@ -114,6 +116,29 @@ STATIC_SCRIPT = """<script>
         show(data);
       })
       .catch(() => {});
+  })();
+  // Play Online: whether the online server is up. Its address is in online.json (the server's owner fills it in);
+  // /health says only whether it runs and how many play. The texts come from hidden elements, so they are translated.
+  (function loadOnlineStatus() {
+    const box = document.getElementById("online-status");
+    if (!box) return;
+    const say = (state, key, players) => {
+      const label = document.getElementById("on-s-" + key).textContent;
+      box.dataset.state = state;
+      document.getElementById("online-status-text").textContent =
+        players > 0 ? label + " · " + players + " " + document.getElementById("on-s-players").textContent : label;
+    };
+    fetch("https://happzgirafe.github.io/DesertStrike/online.json", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(config => {
+        if (!config.api || !config.api.startsWith("https://")) { say("soon", "soon", 0); return; }
+        let api = config.api;
+        while (api.endsWith("/")) api = api.slice(0, -1);
+        return fetch(api + "/health", { cache: "no-store" })
+          .then(r => r.ok ? r.json() : Promise.reject(r.status))
+          .then(health => say(health.servers > 0 ? "online" : "offline", health.servers > 0 ? "online" : "offline", health.servers > 0 ? health.players_online : 0));
+      })
+      .catch(() => say("offline", "offline", 0));
   })();
   const clock = document.getElementById("clock");
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -287,6 +312,12 @@ def build():
         if re.fullmatch(r"google[0-9a-f]+\.html", name):
             shutil.copy(os.path.join(ROOT, "Website", name), OUT)
     shutil.copy(os.path.join(ROOT, "Website", "favicon.png"), OUT)
+    # Where the game and the Play Online block find the online server (see online-server/README.md).
+    shutil.copy(os.path.join(ROOT, "Website", "online.json"), OUT)
+    with open(os.path.join(OUT, "CNAME"), "w", encoding="utf-8", newline="\n") as file:
+        file.write(DOMAIN + "\n")
+    with open(os.path.join(OUT, "robots.txt"), "w", encoding="utf-8", newline="\n") as file:
+        file.write(f"User-agent: *\nAllow: /\n\nSitemap: {SITE}sitemap.xml\n")
     open(os.path.join(OUT, ".nojekyll"), "w").close()
 
     for code, folder, _, _, _, _ in LANGUAGES:

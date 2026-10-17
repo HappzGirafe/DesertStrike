@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>Menus and HUD, drawn with IMGUI so the project needs no UI assets.</summary>
-public class GameUI : MonoBehaviour
+public partial class GameUI : MonoBehaviour
 {
     const float RefHeight = 1080f;   // everything is laid out for 1080p and scaled to the screen
 
@@ -143,26 +143,34 @@ public class GameUI : MonoBehaviour
 
         if (gm.State == MatchState.Menu)
         {
-            if (askAccount)
+            if (askAccount && !Online.Restoring)
             {
                 askAccount = false;
-                accountOpen = !Accounts.LoggedIn;   // -ds-login has logged in already
+                accountOpen = !Accounts.LoggedIn;   // -ds-login (or the saved online session) has logged in already
+                accountOnline = Online.ApiUrl != null;
             }
+            Online.WantRooms = Online.WantFriends = false;   // the screens drawn below ask for what they show
+            OpenTestScreen();
             HandleGameKeyboard();
             bool searching = lanOpen && !inventoryOpen && !accountOpen && gm.Net.Role == NetSession.Mode.Off;
             if (searching) gm.Net.StartDiscovery();
             else gm.Net.StopDiscovery();
 
             if (accountOpen) DrawAccount();
+            else if (onlineAccountOpen) DrawOnlineAccount();
             else if (inventoryOpen) DrawInventory();
             else if (gm.Net.IsHost) DrawHostLobby();
+            else if (Online.Room != null || (gm.Net.IsClient && gm.Net.OnlineClient)) DrawOnlineRoom();
             else if (gm.Net.IsClient) DrawClientLobby();
+            else if (onlineOpen) DrawOnline();
             else if (lanOpen) DrawLanMenu();
+            else if (friendsOpen && Accounts.IsOnline && !friendsLan) DrawOnlineFriends();
             else if (friendsOpen) DrawFriends();
             else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
             else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
             else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
+            if (Online.AskLink && !accountOpen) DrawLinkQuestion();
             DrawGameKeyboard();
             DrawFps(20f, 20f);
             return;
@@ -205,14 +213,30 @@ public class GameUI : MonoBehaviour
         rightEnd = FriendlyFireRow(right, rightEnd, column);
         y = Mathf.Max(leftEnd, rightEnd) + 6f;
 
-        float buttons = 320f + 4f * 200f + 4f * 14f, bx = x + (w - buttons) / 2f;
-        if (Button(new Rect(bx, y, 320f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
-        if (Button(new Rect(bx + 334f, y, 200f, 66f), "LAN GAME", false, true, 22)) OpenLan();
-        int requests = gm.Friends.Incoming.Count, online = Accounts.LoggedIn ? gm.Friends.OnlineCount : 0;
-        string friends = requests > 0 ? $"FRIENDS\n{requests} request{(requests == 1 ? "" : "s")}" : online > 0 ? $"FRIENDS\n{online} online" : "FRIENDS";
-        if (Button(new Rect(bx + 548f, y, 200f, 66f), friends, requests > 0, true, friends.Contains("\n") ? 19 : 22)) friendsOpen = true;
-        if (Button(new Rect(bx + 762f, y, 200f, 66f), "INVENTORY", false, true, 22)) inventoryOpen = true;
-        if (Button(new Rect(bx + 976f, y, 200f, 66f), "SETTINGS", false, true, 22)) settingsOpen = true;
+        const float small = 188f, gap = 12f;
+        float buttons = 300f + 5f * small + 5f * gap, bx = x + (w - buttons) / 2f;
+        if (Button(new Rect(bx, y, 300f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
+        bx += 300f + gap;
+        if (Button(new Rect(bx, y, small, 66f), "PLAY ONLINE", false, true, 21)) OpenOnline();
+        bx += small + gap;
+        if (Button(new Rect(bx, y, small, 66f), "LAN GAME", false, true, 21)) OpenLan();
+        bx += small + gap;
+        bool onlineFriends = Accounts.IsOnline;
+        int requests = onlineFriends ? Online.RequestCount + Online.InviteCount : gm.Friends.Incoming.Count;
+        int online = onlineFriends ? Online.Friends.FindAll(f => f.status == "online" || f.status == "in_match").Count
+                   : Accounts.LoggedIn ? gm.Friends.OnlineCount : 0;
+        string news = onlineFriends && Online.InviteCount > 0 ? $"{Online.InviteCount} invitation{(Online.InviteCount == 1 ? "" : "s")}"
+                    : $"{requests} request{(requests == 1 ? "" : "s")}";
+        string friends = requests > 0 ? $"FRIENDS\n{news}" : online > 0 ? $"FRIENDS\n{online} online" : "FRIENDS";
+        if (Button(new Rect(bx, y, small, 66f), friends, requests > 0, true, friends.Contains("\n") ? 18 : 21))
+        {
+            friendsOpen = true;
+            friendsLan = false;
+        }
+        bx += small + gap;
+        if (Button(new Rect(bx, y, small, 66f), "INVENTORY", false, true, 21)) inventoryOpen = true;
+        bx += small + gap;
+        if (Button(new Rect(bx, y, small, 66f), "SETTINGS", false, true, 21)) settingsOpen = true;
         y += 82f;
         if (!string.IsNullOrEmpty(gm.MenuNotice))
         {
@@ -296,10 +320,20 @@ public class GameUI : MonoBehaviour
         const float top = 70f, h = 940f;
         float w = 820f, x = (width - w) / 2f, y = top;
         Fill(new Rect(x, y, w, h), PanelColor);
-        Label(new Rect(x, y + 20f, w, 60f), "FRIENDS", 50, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 20f, w, 60f), Accounts.IsOnline ? "LAN FRIENDS" : "FRIENDS", 50, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 78f, w, 28f), "Friends who play on the same WiFi or network show as online", 20, Dim, TextAnchor.MiddleCenter);
         y += 130f;
         float bx = x + 40f, bw = w - 80f;
+        if (Accounts.IsOnline)
+        {
+            if (Button(new Rect(bx, y - 14f, bw, 40f), "BACK TO ONLINE FRIENDS", false, true, 18)) friendsLan = false;
+            y += 40f;
+        }
+        else if (Online.State == OnlineClient.Service.Online || Online.ApiUrl != null)
+        {
+            Label(new Rect(bx, y - 16f, bw, 26f), "Friends over the internet: log in with an online account (main menu).", 16, Dim, TextAnchor.MiddleCenter);
+            y += 18f;
+        }
 
         if (!Accounts.LoggedIn)
         {
@@ -578,6 +612,13 @@ public class GameUI : MonoBehaviour
         "friend-name" => "Friend's nickname",
         "lan-name" => "Your name",
         "join-address" => "IP address",
+        "online-code" => "Room code",
+        "online-room-name" => "Room name",
+        "online-search" => "Player's nickname",
+        "pw-old" => "Current password",
+        "pw-new" => "New password",
+        "pw-repeat" => "New password again",
+        "delete-password" => "Your password",
         _ => "",
     };
 
@@ -860,7 +901,7 @@ public class GameUI : MonoBehaviour
 
     static readonly Color LockColor = new Color(1f, 0.82f, 0.4f, 0.95f);
 
-    void OpenAccount(string message = null)
+    void OpenAccount(string message = null, bool? online = null)
     {
         if (inventoryOpen) CloseInventory();
         settingsOpen = false;
@@ -868,6 +909,7 @@ public class GameUI : MonoBehaviour
         accountMessage = message;
         accountPassword = accountRepeat = "";
         accountFocus = true;
+        accountOnline = online ?? Online.ApiUrl != null;
     }
 
     /// <summary>Top left of the main menu: who is playing, and the way to log in or out.</summary>
@@ -875,8 +917,17 @@ public class GameUI : MonoBehaviour
     {
         if (Accounts.LoggedIn)
         {
-            Label(new Rect(x, y, 300f, 28f), $"Logged in as {Accounts.Current}", 20, Gold);
-            if (Button(new Rect(x, y + 32f, 140f, 38f), "LOG OUT", false, true, 18)) Accounts.LogOut();
+            Label(new Rect(x, y, 420f, 28f), $"Logged in as {Accounts.Current}{(Accounts.IsOnline ? "  (online)" : "")}", 20, Gold);
+            if (Button(new Rect(x, y + 32f, 140f, 38f), "LOG OUT", false, true, 18))
+            {
+                if (Accounts.IsOnline) Online.LogOut();
+                else Accounts.LogOut();
+            }
+            if (Accounts.IsOnline && Button(new Rect(x + 150f, y + 32f, 140f, 38f), "ACCOUNT", false, true, 18))
+            {
+                onlineAccountOpen = true;
+                accountPageMessage = null;
+            }
         }
         else
         {
@@ -902,11 +953,24 @@ public class GameUI : MonoBehaviour
         if (accountSignUp && KeyboardDone("account-password")) OpenKeyboard("account-repeat", accountRepeat, 64, true);
 
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
-        float w = 760f, h = accountSignUp ? 790f : 700f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        float w = 760f, h = (accountSignUp ? 790f : 700f) + 100f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
         Fill(new Rect(x, y, w, h), PanelColor);
         Label(new Rect(x, y + 20f, w, 70f), "LOW STRIKE", 58, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 88f, w, 30f), "Log in or sign up", 22, Dim, TextAnchor.MiddleCenter);
         float fx = x + 60f, fw = w - 120f, cy = y + 140f;
+        // Online (one account on every computer and phone) or only on this computer.
+        if (Button(new Rect(fx, cy, fw / 2f - 5f, 44f), "ONLINE ACCOUNT", accountOnline, true, 19))
+        {
+            accountOnline = true;
+            accountMessage = null;
+        }
+        if (Button(new Rect(fx + fw / 2f + 5f, cy, fw / 2f - 5f, 44f), "THIS COMPUTER ONLY", !accountOnline, true, 19))
+        {
+            accountOnline = false;
+            accountMessage = null;
+        }
+        if (accountOnline) OnlineStatusLine(new Rect(x, cy + 50f, w, 28f));
+        cy += 96f;
         if (Button(new Rect(fx, cy, fw / 2f - 5f, 52f), "LOG IN", !accountSignUp))
         {
             accountSignUp = false;
@@ -924,7 +988,8 @@ public class GameUI : MonoBehaviour
         Label(new Rect(fx, cy, fw, 30f), accountSignUp ? "Nickname (3 to 16 letters, digits, _ or -)" : "Nickname", 20, Color.white);
         accountName = TextInput(new Rect(fx, cy + 32f, fw, 42f), "account-name", accountName, 16);
         cy += 90f;
-        Label(new Rect(fx, cy, fw, 30f), accountSignUp ? $"Password (at least {Accounts.MinPasswordLength} characters)" : "Password", 20, Color.white);
+        int minimum = accountOnline ? 8 : Accounts.MinPasswordLength;
+        Label(new Rect(fx, cy, fw, 30f), accountSignUp ? $"Password (at least {minimum} characters)" : "Password", 20, Color.white);
         accountPassword = TextInput(new Rect(fx, cy + 32f, fw, 42f), "account-password", accountPassword, 64, true);
         cy += 90f;
         if (accountSignUp)
@@ -942,14 +1007,32 @@ public class GameUI : MonoBehaviour
         if (!string.IsNullOrEmpty(accountMessage))
             Label(new Rect(x + 20f, cy, w - 40f, 30f), accountMessage, 19, Danger, TextAnchor.MiddleCenter);
         cy += 42f;
-        if (Button(new Rect(fx, cy, fw, 64f), accountSignUp ? "CREATE ACCOUNT" : "LOG IN", true, true, 28) || submit)
+        bool waiting = accountOnline && Online.Busy;
+        string action = waiting ? "CONNECTING..." : accountSignUp ? "CREATE ACCOUNT" : "LOG IN";
+        if ((Button(new Rect(fx, cy, fw, 64f), action, true, !waiting, 28) || submit) && !waiting)
         {
-            accountMessage = accountSignUp ? Accounts.SignUp(accountName, accountPassword, accountRepeat)
-                                           : Accounts.LogIn(accountName, accountPassword);
-            if (accountMessage == null)
+            if (!accountOnline)
             {
-                accountOpen = false;
-                accountPassword = accountRepeat = "";
+                accountMessage = accountSignUp ? Accounts.SignUp(accountName, accountPassword, accountRepeat)
+                                               : Accounts.LogIn(accountName, accountPassword);
+                if (accountMessage == null)
+                {
+                    accountOpen = false;
+                    accountPassword = accountRepeat = "";
+                }
+            }
+            else if (accountSignUp && accountPassword != accountRepeat) accountMessage = "The two passwords are not the same";
+            else if (Online.State == OnlineClient.Service.NotSetUp) accountMessage = "Online play is not open yet: use THIS COMPUTER ONLY";
+            else
+            {
+                accountMessage = null;
+                Online.LogIn(accountName, accountPassword, accountSignUp, problem =>
+                {
+                    accountMessage = problem;
+                    if (problem != null) return;
+                    accountOpen = false;
+                    accountPassword = accountRepeat = "";
+                });
             }
         }
         cy += 80f;
@@ -960,8 +1043,9 @@ public class GameUI : MonoBehaviour
             accountPassword = accountRepeat = "";
         }
         cy += 66f;
-        Label(new Rect(x + 30f, cy, w - 60f, 56f),
-              "With an account: the Halloween map, the RPG's Web skin and Extreme bots,\nand the skins you equip are kept with your account on this computer.",
+        Label(new Rect(x + 30f, cy, w - 60f, 80f), accountOnline
+              ? "An online account works on every computer and phone: online rooms, friends over the internet,\nand your skins and settings kept on the server. Plus the Halloween map, the Web skin and Extreme bots."
+              : "With an account: the Halloween map, the RPG's Web skin and Extreme bots,\nand the skins you equip are kept with your account on this computer.",
               17, Dim, TextAnchor.UpperCenter);
     }
 
@@ -1024,7 +1108,7 @@ public class GameUI : MonoBehaviour
         OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1), column);
 
         y = top + 145f;
-        y = OptionRow(right, y, "Voice chat in LAN games", new[] { "Off", "On" }, GameSettings.VoiceChat ? 1 : 0,
+        y = OptionRow(right, y, "Voice chat (LAN and online games)", new[] { "Off", "On" }, GameSettings.VoiceChat ? 1 : 0,
                       i => GameSettings.SetVoiceChat(i == 1), column);
         y = OptionRow(right, y, "When the others hear you", new[] { "Hold V", "Open mic" }, (int)GameSettings.Voice,
                       i => GameSettings.SetVoiceMode((VoiceMode)i), column);
@@ -1190,14 +1274,15 @@ public class GameUI : MonoBehaviour
         float w = 440f, x = (width - w) / 2f, y = 260f;
         Fill(new Rect(x, y, w, 520f), PanelColor);
         bool online = gm.Net.Role != NetSession.Mode.Off;
+        DrawMuteList(x + w + 20f, y);
         Label(new Rect(x, y + 15f, w, 60f), online ? "MENU" : "PAUSED", 44, Gold, TextAnchor.MiddleCenter);
-        if (online) Label(new Rect(x, y + 62f, w, 24f), "The LAN game keeps running", 16, Dim, TextAnchor.MiddleCenter);
+        if (online) Label(new Rect(x, y + 62f, w, 24f), gm.Net.OnlineClient ? "The online game keeps running" : "The LAN game keeps running", 16, Dim, TextAnchor.MiddleCenter);
         y += 90f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "RESUME")) gm.SetPaused(false);
         y += 70f;
         if (gm.IsClient)
         {
-            if (Button(new Rect(x + 40f, y, w - 80f, 56f), "LEAVE GAME")) gm.ReturnToMenu();
+            if (Button(new Rect(x + 40f, y, w - 80f, 56f), gm.Net.OnlineClient ? "LEAVE ROOM" : "LEAVE GAME")) LeaveGame();
             y += 70f;
         }
         else
@@ -1205,7 +1290,7 @@ public class GameUI : MonoBehaviour
             if (Button(new Rect(x + 40f, y, w - 80f, 56f), "RESTART MATCH")) gm.StartMatch();
             y += 70f;
         }
-        if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) gm.ReturnToMenu();
+        if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) LeaveGame();
         y += 70f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SETTINGS")) settingsOpen = true;
         y += 70f;
@@ -1224,8 +1309,10 @@ public class GameUI : MonoBehaviour
         float center = width / 2f;
         if (gm.IsClient)
         {
-            Label(new Rect(0f, RefHeight - 190f, width, 40f), "Waiting for the host to play again...", 22, Dim, TextAnchor.MiddleCenter);
-            if (Button(new Rect(center - 120f, RefHeight - 130f, 240f, 60f), "LEAVE GAME")) gm.ReturnToMenu();
+            bool room = gm.Net.OnlineClient;
+            Label(new Rect(0f, RefHeight - 190f, width, 40f), room ? "Back to the room in a few seconds..." : "Waiting for the host to play again...",
+                  22, Dim, TextAnchor.MiddleCenter);
+            if (Button(new Rect(center - 120f, RefHeight - 130f, 240f, 60f), room ? "LEAVE ROOM" : "LEAVE GAME")) LeaveGame();
             return;
         }
         if (Button(new Rect(center - 260f, RefHeight - 130f, 240f, 60f), "PLAY AGAIN")) gm.StartMatch();
@@ -1402,7 +1489,7 @@ public class GameUI : MonoBehaviour
         else if (voice.Holding || voice.Talking)
         {
             VoiceRow(y, "You", MoneyGreen, voice.Level);
-            if (!voice.InSession) Label(new Rect(272f, y, 420f, 30f), "Voice chat works in LAN games", 16, Dim);
+            if (!voice.InSession) Label(new Rect(272f, y, 420f, 30f), "Voice chat works in LAN and online games", 16, Dim);
             y += 34f;
         }
         else if (openMic)

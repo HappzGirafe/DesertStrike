@@ -11,6 +11,10 @@ using UnityEngine;
 /// the skins equipped with it, its friends (see <see cref="Friends"/>) and whether its online status is hidden. Logged
 /// in, a player can choose the Halloween map, the RPG's Web skin and Extreme bots. The game asks to log in or sign up
 /// at every start; playing as a guest stays possible.
+///
+/// An online account (see <see cref="OnlineClient"/>) is checked by the online server, which also keeps its skins and
+/// settings. Logged in online, this file keeps a copy of it without any password (<see cref="BeginOnline"/>), so
+/// its skins and LAN friends work here like a local account's.
 /// </summary>
 public static class Accounts
 {
@@ -40,6 +44,7 @@ public static class Accounts
         public List<SkinChoice> skins = new List<SkinChoice>();
         public List<Friend> friends = new List<Friend>();
         public bool hideStatus;  // nobody sees this player online, and it sees nobody
+        public bool online;      // a copy of an online account (id = its online id, no password here)
     }
 
     [Serializable]
@@ -59,6 +64,8 @@ public static class Accounts
     public static string Current => current?.name;
     public static string CurrentId => current?.id;
     public static bool LoggedIn => current != null;
+    /// <summary>Logged in with an online account (not one kept only on this computer).</summary>
+    public static bool IsOnline => current != null && current.online;
 
     /// <summary>The nickname that logged in last on this computer (filled in on the log-in screen).</summary>
     public static string LastName => Data.lastName ?? "";
@@ -146,7 +153,9 @@ public static class Accounts
         }
     }
 
+    // A local account first: an online account's copy may have the same nickname.
     static Account Find(string name) =>
+        Data.accounts.Find(a => !a.online && string.Equals(a.name, name?.Trim(), StringComparison.OrdinalIgnoreCase)) ??
         Data.accounts.Find(a => string.Equals(a.name, name?.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Why a nickname cannot be used for a new account, or null when it can.</summary>
@@ -196,6 +205,7 @@ public static class Accounts
     public static string LogIn(string name, string password)
     {
         var account = Find(name);
+        if (account != null && account.online) return "This is an online account: choose ONLINE above to log in";
         if (account == null || string.IsNullOrEmpty(password)) return "Wrong nickname or password";
         byte[] expected, salt;
         try
@@ -219,6 +229,71 @@ public static class Accounts
         if (current == null) return;
         current = null;
         Changed?.Invoke();
+    }
+
+    /// <summary>Logged in online: uses this computer's copy of the account (made the first time), with the skins the
+    /// server keeps for it (when it keeps any) and its online status setting.</summary>
+    public static void BeginOnline(string id, string name, List<(string Weapon, string Skin)> skins, bool hideStatus)
+    {
+        var account = Data.accounts.Find(a => a.online && a.id == id);
+        if (account == null)
+        {
+            account = new Account { id = id, online = true, created = DateTime.UtcNow.ToString("yyyy-MM-dd") };
+            Data.accounts.Add(account);
+        }
+        account.name = name;
+        account.salt = account.hash = "";
+        if (skins != null && skins.Count > 0) SetSkins(account, skins);
+        account.hideStatus = hideStatus;
+        Begin(account);
+        Debug.Log($"[Accounts] {name} logged in online");
+    }
+
+    /// <summary>The online account was deleted: its copy on this computer goes as well.</summary>
+    public static void RemoveOnlineCopy(string id)
+    {
+        if (id == null || Data.accounts.RemoveAll(a => a.online && a.id == id) == 0) return;
+        if (current != null && current.online && current.id == id) current = null;
+        Save();
+        Changed?.Invoke();
+    }
+
+    /// <summary>The skins equipped with the logged-in account (weapon id, skin id).</summary>
+    public static List<(string Weapon, string Skin)> Skins() =>
+        current == null ? new List<(string, string)>() : current.skins.ConvertAll(s => (s.weapon, s.skin));
+
+    /// <summary>The skins of a local (not online) account on this computer, or the guest's choices for null.</summary>
+    public static List<(string Weapon, string Skin)> LocalSkins(string name)
+    {
+        if (name == null)
+        {
+            var list = new List<(string, string)>();
+            foreach (var pair in WeaponSkins.GuestChoices()) list.Add((pair.Key, pair.Value));
+            return list;
+        }
+        var account = Data.accounts.Find(a => !a.online && string.Equals(a.name, name, StringComparison.OrdinalIgnoreCase));
+        return account == null ? new List<(string, string)>() : account.skins.ConvertAll(s => (s.weapon, s.skin));
+    }
+
+    /// <summary>The local (not online) account used last on this computer, or null.</summary>
+    public static string LastLocalName =>
+        Data.accounts.Find(a => !a.online && string.Equals(a.name, Data.lastName, StringComparison.OrdinalIgnoreCase))?.name
+        ?? Data.accounts.Find(a => !a.online)?.name;
+
+    /// <summary>Replaces the logged-in account's skins (online: what the server keeps, or what the player brought along).</summary>
+    public static void ReplaceSkins(List<(string Weapon, string Skin)> skins)
+    {
+        if (current == null) return;
+        SetSkins(current, skins);
+        Save();
+        Changed?.Invoke();
+    }
+
+    static void SetSkins(Account account, List<(string Weapon, string Skin)> skins)
+    {
+        account.skins = new List<SkinChoice>();
+        foreach (var (weapon, skin) in skins)
+            if (!string.IsNullOrEmpty(weapon) && !string.IsNullOrEmpty(skin)) account.skins.Add(new SkinChoice { weapon = weapon, skin = skin });
     }
 
     static void Begin(Account account)

@@ -88,6 +88,9 @@ public class GameManager : MonoBehaviour
 
     /// <summary>This PC is a network client in a running match: the host decides everything.</summary>
     public bool IsClient => clientMatch && Net.IsClient;
+    /// <summary>-ds-server: an online game host with no player of its own (see <see cref="OnlineHost"/>).</summary>
+    public bool ServerMode { get; private set; }
+    public OnlineClient Online { get; private set; }
     public bool SpectatingNow => State != MatchState.Menu && (Player == null || !Player.Self.IsAlive);
     public float BuyTimeLeft => BuyTime - (Time.time - roundStartedAt);
     public float SellTimeLeft => SellTime - (Time.time - roundStartedAt);
@@ -115,6 +118,8 @@ public class GameManager : MonoBehaviour
     List<(Vector3 Eye, Vector3 Target)> views;   // -ds-view "x,y,z,tx,ty,tz;...": the menu camera shows these spots
     int viewShot = -1;                           // (2 s each, without the menu), with a screenshot of each in -ds-capture
     bool keepRunning;       // -ds-background: tests keep running when their window is not in front
+    bool teleportTest;      // -ds-teleport-test: a client jumps 8 m ahead every 3 s, like a cheat (the host must refuse it)
+    float nextTeleport;
     int startMoney = StartMoney;
     float timeScale = 1f;
     float quitAt = -1f;
@@ -147,8 +152,13 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<TouchControls>();
         gameObject.AddComponent<VoiceChat>();
         Bomb = gameObject.AddComponent<BombManager>();
-        if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();
         ReadCommandLine();
+        if (ServerMode) gameObject.AddComponent<OnlineHost>();
+        else
+        {
+            Online = gameObject.AddComponent<OnlineClient>();
+            if (GetComponent<GameUI>() == null) gameObject.AddComponent<GameUI>();
+        }
     }
 
     void Start()
@@ -177,6 +187,7 @@ public class GameManager : MonoBehaviour
         }
         foreach (var peer in Net.Peers)
         {
+            if (peer.Spectator) continue;   // watching (online rooms)
             AddRemotePlayer(peer, midRound: false);
             if (peer.Team == Team.Terrorists) terroristHumans++; else swatHumans++;
         }
@@ -199,6 +210,43 @@ public class GameManager : MonoBehaviour
         clientMatch = false;
         State = MatchState.Menu;
         LoadMap(MapId);   // after a LAN game on the host's map, back to this player's own choice
+    }
+
+    /// <summary>Online game host: the match is over (or everyone left); back to the room's lobby. The players stay
+    /// connected; those whose connection dropped are let go.</summary>
+    public void BackToLobby()
+    {
+        ClearMatch();
+        foreach (var peer in Net.Peers) peer.Player = null;
+        Net.ForgetAwayPlayers();
+        State = MatchState.Menu;
+        Round = 0;
+        TerroristWins = SwatWins = 0;
+        Debug.Log("[DesertStrike] Back to the lobby");
+    }
+
+    /// <summary>Online player: the game server went back to the room's lobby after the match; still connected.</summary>
+    public void EndClientMatch()
+    {
+        ClearMatch();
+        clientMatch = false;
+        State = MatchState.Menu;
+        Debug.Log("[Net] The match is over; back in the room");
+    }
+
+    /// <summary>Online game host: the room's settings, from the online API (in the lobby only).</summary>
+    public void ApplyRoomSettings(string mapId, int teamSize, BotDifficulty difficulty, int roundsToWin, bool friendlyFire)
+    {
+        if (State != MatchState.Menu) return;
+        if (MapCatalog.Find(mapId) != null && mapId != MapId)
+        {
+            MapId = mapId;
+            LoadMap(mapId);
+        }
+        TeamSize = Mathf.Clamp(teamSize, 1, 5);
+        Difficulty = difficulty;
+        RoundsToWin = Mathf.Clamp(roundsToWin, 1, 16);
+        FriendlyFire = friendlyFire;
     }
 
     // ----------------------------------------------------------------- maps
@@ -955,6 +1003,21 @@ public class GameManager : MonoBehaviour
                 case "-ds-autostart":
                     autoStart = true;
                     break;
+                case "-ds-server":
+                    // -ds-server [-ds-port <udp port>] [-ds-room-id <slot id>] [-ds-control <internal API url>]: an
+                    // online game host, started by online-server/ (see OnlineHost).
+                    ServerMode = true;
+                    Side = PlayerSide.Spectate;
+                    break;
+                case "-ds-port" when hasValue:
+                    OnlineHost.Port = int.Parse(args[++i], CultureInfo.InvariantCulture);
+                    break;
+                case "-ds-room-id" when hasValue:
+                    OnlineHost.SlotId = args[++i];
+                    break;
+                case "-ds-control" when hasValue:
+                    OnlineHost.ControlUrl = args[++i].TrimEnd('/');
+                    break;
                 case "-ds-side" when hasValue:
                     if (Enum.TryParse(args[++i], true, out PlayerSide side)) Side = side;
                     break;
@@ -1028,6 +1091,9 @@ public class GameManager : MonoBehaviour
                     break;
                 case "-ds-background":
                     keepRunning = true;
+                    break;
+                case "-ds-teleport-test":
+                    teleportTest = true;
                     break;
                 case "-ds-perf":
                     perfLog = true;
@@ -1182,7 +1248,7 @@ public class GameManager : MonoBehaviour
     void RunAutomation()
     {
         float now = Time.realtimeSinceStartup;
-        if (keepRunning) Application.runInBackground = true;   // leaving a LAN game would switch it off again
+        if (keepRunning || ServerMode) Application.runInBackground = true;   // leaving a LAN game would switch it off again
         if (holdSlot.HasValue && Player != null && Player.Self.IsAlive && Player.Self.Current != null
             && Player.Self.Current.Data.Slot != holdSlot.Value)
             Player.Self.Equip(holdSlot.Value);
@@ -1233,6 +1299,13 @@ public class GameManager : MonoBehaviour
             Player.Self.Equip(giveWeapon.Slot, instant: true);
         }
         if (sellTestStep >= 0 && Player != null && Round == 1) RunSellTest();
+        if (teleportTest && IsClient && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTeleport)
+        {
+            nextTeleport = now + 3f;
+            Vector3 from = Player.transform.position;
+            Player.Respawn(from + Player.transform.forward * 8f, Player.transform.eulerAngles.y);
+            Debug.Log($"[Test] Jumped 8 m from {from} (a cheat the host should refuse)");
+        }
         // Client test: shoot straight ahead now and then, to check that shots reach the host.
         bool firing = (clientFireTest && IsClient) || fireTest;
         if (firing && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTestShot)

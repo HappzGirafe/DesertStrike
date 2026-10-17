@@ -37,3 +37,9 @@ __pycache__/
 
 # Temporary files of the Android native build (CMake / NDK)
 /.utmp/
+
+# Online server: its Python environment, secrets, database and logs stay on the home PC
+/online-server/.venv/
+/online-server/.env
+/online-server/data/
+/online-server/logs/
