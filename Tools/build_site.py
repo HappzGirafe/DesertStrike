@@ -119,6 +119,8 @@ STATIC_SCRIPT = """<script>
   })();
   // Play Online: whether the online server is up. Its address is in online.json (the server's owner fills it in);
   // /health says only whether it runs and how many play. The texts come from hidden elements, so they are translated.
+  // online.json is read from this site's own address first (browsers do not follow GitHub's redirect from the old
+  // github.io address to another domain), then from the github.io address.
   (function loadOnlineStatus() {
     const box = document.getElementById("online-status");
     if (!box) return;
@@ -128,8 +130,10 @@ STATIC_SCRIPT = """<script>
       document.getElementById("online-status-text").textContent =
         players > 0 ? label + " · " + players + " " + document.getElementById("on-s-players").textContent : label;
     };
-    fetch("https://happzgirafe.github.io/DesertStrike/online.json", { cache: "no-store" })
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    const sources = ["/online.json", "https://happzgirafe.github.io/DesertStrike/online.json"];
+    const loadConfig = i => i >= sources.length ? Promise.reject("no online.json")
+      : fetch(sources[i], { cache: "no-store" }).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => loadConfig(i + 1));
+    loadConfig(0)
       .then(config => {
         if (!config.api || !config.api.startsWith("https://")) { say("soon", "soon", 0); return; }
         let api = config.api;
