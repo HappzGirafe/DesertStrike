@@ -2,7 +2,7 @@ using System.IO;
 using UnityEngine;
 
 /// <summary>Things a client asks the host to do for its player.</summary>
-public enum NetAction : byte { Reload = 1, Equip, AutoMode, BuyWeapon, BuyArmor, BuyDefuseKit, DropBomb, SellWeapon }
+public enum NetAction : byte { Reload = 1, Equip, AutoMode, BuyWeapon, BuyArmor, BuyDefuseKit, DropBomb, SellWeapon, DropWeapon, PickUp }
 
 /// <summary>One combatant as the host describes it in a snapshot.</summary>
 public struct NetCombatantState
@@ -31,6 +31,7 @@ public struct NetMatchState
     public bool FriendlyFire;
     public string MapId;
     public string ClosedSite;   // null, "A" or "B" (small matches)
+    public bool Warmup;
 }
 
 static class NetIO

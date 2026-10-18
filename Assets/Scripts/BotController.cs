@@ -151,6 +151,7 @@ public class BotController : MonoBehaviour, ICombatantController
             var rifle = me.Team == Team.Terrorists ? WeaponData.Ak47 : WeaponData.M4a1;
             if (me.Money >= WeaponData.Rpg.Price + WeaponData.KevlarHelmetPrice && Random.value < 0.15f) me.TryBuy(WeaponData.Rpg);
             else if (me.Money >= WeaponData.Awp.Price + WeaponData.KevlarHelmetPrice && Random.value < 0.2f) me.TryBuy(WeaponData.Awp);
+            else if (me.Money >= WeaponData.Svd.Price + WeaponData.KevlarPrice && Random.value < 0.15f) me.TryBuy(WeaponData.Svd);
             else if (me.Money >= rifle.Price + WeaponData.KevlarPrice) me.TryBuy(rifle);
             else if (me.Money >= WeaponData.Mp5.Price + WeaponData.KevlarPrice)
             {
@@ -265,7 +266,7 @@ public class BotController : MonoBehaviour, ICombatantController
         else
         {
             target = null;
-            if (!PlayBomb()) FollowRoute();
+            if (!PlayBomb() && !FetchWeapon()) FollowRoute();
         }
 
         ManageAmmo();
@@ -331,6 +332,40 @@ public class BotController : MonoBehaviour, ICombatantController
                 return true;
         }
         return false;
+    }
+
+    // No main gun: go for one lying near (a fallen player's), when in sight and not far.
+    float nextWeaponLook;
+    Vector3? weaponToFetch;
+
+    bool FetchWeapon()
+    {
+        var gm = GameManager.Instance;
+        if (Self.Primary != null || gm.State != MatchState.Live)
+        {
+            weaponToFetch = null;
+            return false;
+        }
+        if (Time.time >= nextWeaponLook)
+        {
+            nextWeaponLook = Time.time + 1f;
+            weaponToFetch = null;
+            float best = 14f;
+            foreach (var d in gm.Drops.Items)
+            {
+                if (d.Data.Slot != WeaponSlot.Primary) continue;
+                float distance = FlatDistance(transform.position, d.Position);
+                if (distance < best && Ballistics.HasLineOfSight(Self.EyePosition, d.Position + Vector3.up * 0.3f))
+                {
+                    best = distance;
+                    weaponToFetch = d.Position;
+                }
+            }
+        }
+        if (weaponToFetch == null) return false;
+        agent.updateRotation = true;
+        MoveTo(weaponToFetch.Value);
+        return true;
     }
 
     bool IsClosestTerroristTo(Vector3 position)

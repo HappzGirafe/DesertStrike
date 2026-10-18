@@ -305,13 +305,17 @@ public class TouchControls : MonoBehaviour
             Add(TouchButton.Scope, weapon.ZoomFov > 0f ? "SCOPE" : "AUTO");
 
         var bomb = gm.Bomb;
-        if (bomb.State == BombState.Carried && bomb.Carrier == me)
-        {
-            Add(TouchButton.Use, "PLANT", gm.Map.SiteAt(me.transform.position) != null);
-            Add(TouchButton.Drop, "DROP");
-        }
-        else if (bomb.State == BombState.Planted && me.Team == Team.Swat)
-            Add(TouchButton.Use, "DEFUSE", Vector3.Distance(me.transform.position, bomb.Position) < BombManager.DefuseRadius);
+        bool carrier = bomb.State == BombState.Carried && bomb.Carrier == me;
+        bool onSite = carrier && gm.Map.SiteAt(me.transform.position) != null;
+        bool nearBomb = bomb.State == BombState.Planted && me.Team == Team.Swat
+                        && Vector3.Distance(me.transform.position, bomb.Position) < BombManager.DefuseRadius;
+        bool nearGun = gm.Drops.Nearest(me, WeaponDrops.SwapRadius) != null;
+        if (onSite || (carrier && !nearGun)) Add(TouchButton.Use, "PLANT", onSite);
+        else if (nearBomb || (bomb.State == BombState.Planted && me.Team == Team.Swat && !nearGun)) Add(TouchButton.Use, "DEFUSE", nearBomb);
+        else if (nearGun) Add(TouchButton.Use, "TAKE", true);
+        // DROP: the gun in hand, or the bomb with the knife in hand.
+        bool knife = me.Current == null || me.Current.Data.Slot == WeaponSlot.Knife;
+        if (!knife || carrier) Add(TouchButton.Drop, "DROP");
 
         if (gm.CanShop(me)) Add(TouchButton.Buy, "BUY", true);
         var voice = VoiceChat.Instance;

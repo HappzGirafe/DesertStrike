@@ -17,6 +17,7 @@ $models = @(
     @("digle.blend", "Assets/Resources/Models/Desert Eagle/model.fbx", "--roles", "Main=Cube.007,Cube.001;Grip=Cube.003,Cube.004", "--copy-textures"),
     @("pumpshotgun.blend", "Assets/Resources/Models/Pump Shotgun/model.fbx", "--roles", "Main=Cube.002,Cylinder,Cylinder.001;Grip=Cube.010,Cube.001,Cube.004", "--copy-textures"),
     @("Usi.blend", "Assets/Resources/Models/Uzi/model.fbx", "--roles", "Main=Cube.002;Grip=Cube", "--copy-textures"),
+    @("SVD.blend", "Assets/Resources/Models/SVD/model.fbx", "--roles", "Main=Cube,Cube.004,Cube.009;Grip=Cube.001,Cube.002,Cube.003,Cube.014", "--copy-textures"),
     # Skins that bring their own model (Assets/Resources/Skins/<weapon name>/<skin name>/model.fbx)
     @("nogektestskin.blend", "Assets/Resources/Skins/Knife/nogektestskin/model.fbx"),
     @("nogenkerambit.blend", "Assets/Resources/Skins/Knife/karambit/model.fbx", "--roles", "Blade=Cube.008;Grip=Cube.001"),

@@ -323,6 +323,15 @@ public static class WeaponModels
                 p.Box(Detail, new Vector3(0f, -0.12f, 0.1f), new Vector3(0.04f, 0.15f, 0.06f), DarkMetal, new Vector3(8f, 0f, 0f));
                 return 0.65f;
 
+            case "svd":
+                p.Box(Main, new Vector3(0f, 0f, 0.02f), new Vector3(0.06f, 0.09f, 0.38f), Metal);
+                p.Box(Grip, new Vector3(0f, -0.01f, 0.33f), new Vector3(0.065f, 0.075f, 0.26f), Wood);
+                p.Box(Detail, new Vector3(0f, 0.01f, 0.64f), new Vector3(0.025f, 0.025f, 0.4f), DarkMetal);
+                p.Box(Detail, new Vector3(0f, 0.095f, 0.02f), new Vector3(0.045f, 0.05f, 0.26f), DarkMetal);
+                p.Box(Grip, new Vector3(0f, -0.05f, -0.3f), new Vector3(0.055f, 0.13f, 0.28f), Wood, new Vector3(-4f, 0f, 0f));
+                p.Box(Detail, new Vector3(0f, -0.11f, 0.1f), new Vector3(0.04f, 0.13f, 0.08f), DarkMetal, new Vector3(10f, 0f, 0f));
+                return 0.84f;
+
             default: // awp
                 p.Box(Main, new Vector3(0f, 0f, 0.05f), new Vector3(0.07f, 0.1f, 0.5f), Olive);
                 p.Box(Detail, new Vector3(0f, 0.09f, 0.08f), new Vector3(0.05f, 0.05f, 0.32f), DarkMetal);

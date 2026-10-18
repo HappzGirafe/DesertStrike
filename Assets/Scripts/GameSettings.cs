@@ -14,12 +14,17 @@ public static class GameSettings
 {
     public static readonly int[] FrameLimits = { 30, 60, 120, 0 };   // 0 = unlimited
     public static readonly float[] RenderScales = { 1f, 0.75f, 0.5f };
+    public static readonly float[] HudScales = { 1f, 1.15f, 1.3f, 1.5f };
+
+    /// <summary>Phones: how big the match's screen text and panels are (health, money, ammo, hints, the score).</summary>
+    public static float HudScale { get; private set; } = 1f;
 
     const string QualityKey = "DesertStrike.quality";
     const string FrameLimitKey = "DesertStrike.fps";
     const string ShowFpsKey = "DesertStrike.showFps";
     const string SensitivityKey = "DesertStrike.sensitivity";
     const string RenderScaleKey = "DesertStrike.renderScale";
+    const string HudScaleKey = "DesertStrike.hudScale";
     const string VoiceKey = "DesertStrike.voice";
     const string VoiceModeKey = "DesertStrike.voiceMode";
     const string CrosshairKey = "DesertStrike.crosshair.";
@@ -84,6 +89,7 @@ public static class GameSettings
         ShowFps = PlayerPrefs.GetInt(ShowFpsKey, 0) == 1;
         // A phone's screen has many pixels for its small graphics chip: 3D at 75% to start with.
         RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(RenderScaleKey, Application.isMobilePlatform ? 0.75f : 1f), 0.5f, 1f);
+        HudScale = Mathf.Clamp(PlayerPrefs.GetFloat(HudScaleKey, 1f), 1f, 1.5f);
         VoiceChat = PlayerPrefs.GetInt(VoiceKey, 1) == 1;
         Voice = (VoiceMode)Mathf.Clamp(PlayerPrefs.GetInt(VoiceModeKey, 0), 0, 1);
         PlayerController.MouseSensitivity = PlayerPrefs.GetFloat(SensitivityKey, 2f);
@@ -171,6 +177,12 @@ public static class GameSettings
         FrameLimit = fps;
         PlayerPrefs.SetInt(FrameLimitKey, fps);
         Apply();
+    }
+
+    public static void SetHudScale(float scale)
+    {
+        HudScale = Mathf.Clamp(scale, 1f, 1.5f);
+        PlayerPrefs.SetFloat(HudScaleKey, HudScale);
     }
 
     public static void SetRenderScale(float scale)

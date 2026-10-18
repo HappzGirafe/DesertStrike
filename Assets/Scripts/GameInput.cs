@@ -55,7 +55,10 @@ public static class GameInput
 
     /// <summary>E: plant or defuse the bomb (held).</summary>
     public static bool UseHeld => Touch ? TouchControls.Held(TouchButton.Use) : Input.GetKey(KeyCode.E);
-    public static bool DropBombDown => Touch ? TouchControls.Down(TouchButton.Drop) : Input.GetKeyDown(KeyCode.G);
+    /// <summary>E pressed: takes a gun from the ground (swapping it for the one carried).</summary>
+    public static bool UseDown => Touch ? TouchControls.Down(TouchButton.Use) : Input.GetKeyDown(KeyCode.E);
+    /// <summary>G: drops the gun in hand; with the knife in hand, the bomb.</summary>
+    public static bool DropDown => Touch ? TouchControls.Down(TouchButton.Drop) : Input.GetKeyDown(KeyCode.G);
     public static bool BuyDown => Touch ? TouchControls.Down(TouchButton.Buy) : Input.GetKeyDown(KeyCode.B);
     public static bool ScoresHeld => Touch ? TouchControls.Held(TouchButton.Scores) : Input.GetKey(KeyCode.Tab);
 

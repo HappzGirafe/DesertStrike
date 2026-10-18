@@ -26,7 +26,8 @@ public class OnlineUser
     public OnlineProfile profile = new OnlineProfile();
 }
 
-[Serializable] public class FriendInfo { public string id, nick, status; }
+[Serializable] public class FriendInfo { public string id, nick, status; public int played; }
+[Serializable] public class PlayedInfo { public string nick; public int played; }
 [Serializable] public class RequestInfo { public string id, user_id, nick; }
 [Serializable] public class MemberInfo { public string user_id, nick, team; public bool connected, owner; }
 
@@ -72,6 +73,7 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class Credentials { public string nick, password; }
     [Serializable] class AuthAnswer { public string token; public OnlineUser user; }
     [Serializable] class Error { public string detail; }
+    [Serializable] class PlayedAnswer { public List<PlayedInfo> players = new List<PlayedInfo>(); }
     [Serializable] class PresenceAnswer { public List<FriendInfo> friends = new List<FriendInfo>(); public bool hidden; public int requests, invites; public string room_id; }
     [Serializable] class FriendsAnswer { public List<FriendInfo> friends = new List<FriendInfo>(); public List<RequestInfo> incoming = new List<RequestInfo>(), outgoing = new List<RequestInfo>(); }
     [Serializable] class RoomsAnswer { public List<RoomInfo> rooms = new List<RoomInfo>(); public int servers, rooms_free; }
@@ -267,7 +269,9 @@ public class OnlineClient : MonoBehaviour
         if (now >= nextPresence)
         {
             nextPresence = now + (State == Service.Online ? 4f : RetryDelay());
-            Ask("presence", "GET", "/presence", null, text =>
+            // In a match (playing, not watching), the time counts as played for the account.
+            bool playing = gm.State != MatchState.Menu && gm.State != MatchState.MatchOver && gm.Side != PlayerSide.Spectate;
+            Ask("presence", "GET", playing ? "/presence?playing=1" : "/presence", null, text =>
             {
                 var answer = JsonUtility.FromJson<PresenceAnswer>(text);
                 Friends = answer.friends;
@@ -276,6 +280,7 @@ public class OnlineClient : MonoBehaviour
                 if (InviteCount > 0 && Invites.Count != InviteCount) nextFriends = 0f;
             });
         }
+        AskPlayed(now);
         if ((WantRooms || testAction == "join") && Room == null && now >= nextRooms)
         {
             nextRooms = now + 4f;
@@ -696,6 +701,32 @@ public class OnlineClient : MonoBehaviour
         busy++;
         Ask("join", "POST", $"/invites/{invite.id}/accept", new JoinBody(), text => { busy--; JoinWith(text); done?.Invoke(null); },
             (code, message) => { busy--; done?.Invoke(message); });
+    }
+
+    // How long players have played (seconds), by nickname: for the names in a match (GameUI asks for them).
+    readonly Dictionary<string, int> played = new Dictionary<string, int>();
+    readonly HashSet<string> playedWanted = new HashSet<string>();
+    float nextPlayed;
+
+    /// <summary>Seconds played by an online account with this nickname, or -1 when not known (yet).</summary>
+    public int PlayedSeconds(string nick)
+    {
+        if (string.IsNullOrEmpty(nick)) return -1;
+        playedWanted.Add(nick);
+        return played.TryGetValue(nick, out int seconds) ? seconds : -1;
+    }
+
+    void AskPlayed(float now)
+    {
+        if (playedWanted.Count == 0 || now < nextPlayed) return;
+        nextPlayed = now + 30f;
+        var nicks = new List<string>(playedWanted);
+        playedWanted.Clear();
+        if (nicks.Count > 20) nicks.RemoveRange(20, nicks.Count - 20);
+        Ask("played", "GET", "/players/played?nicks=" + UnityWebRequest.EscapeURL(string.Join(",", nicks)), null, text =>
+        {
+            foreach (var p in JsonUtility.FromJson<PlayedAnswer>(text).players) played[p.nick] = p.played;
+        });
     }
 
     /// <summary>What people did in a match this game ran, for every game's bots (BotKnowledge). Needs the login.</summary>

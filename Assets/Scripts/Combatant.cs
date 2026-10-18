@@ -188,6 +188,26 @@ public class Combatant : MonoBehaviour
         return true;
     }
 
+    /// <summary>Takes the gun out of a slot (dropped on the ground): the hands go to the best weapon left.</summary>
+    public void RemoveWeapon(WeaponSlot slot)
+    {
+        var weapon = slot == WeaponSlot.Knife ? null : Get(slot);
+        if (weapon == null) return;
+        if (slot == WeaponSlot.Primary) Primary = null;
+        else Secondary = null;
+        if (previous == weapon) previous = null;
+        if (Current == weapon) SetCurrent(Get(BestSlot()), 0.4f);
+    }
+
+    /// <summary>A gun from the ground: into its slot, and into the hands.</summary>
+    public void GiveWeapon(WeaponInstance weapon)
+    {
+        if (weapon.Data.Slot == WeaponSlot.Primary) Primary = weapon;
+        else if (weapon.Data.Slot == WeaponSlot.Secondary) Secondary = weapon;
+        else return;
+        SetCurrent(weapon, 0.4f);
+    }
+
     public bool TryBuyArmor(bool withHelmet)
     {
         int price;
@@ -281,8 +301,13 @@ public class Combatant : MonoBehaviour
         float height = point.y - transform.position.y;
         headshot = !weapon.IsMelee && height > Height - 0.32f;
         float damage = weapon.Damage;
-        if (headshot) damage *= 4f;
-        else if (height < Height * 0.42f) damage *= 0.75f;
+        // An arm: off to the side of the body, between the hips and the shoulders (only weapons with limb damage).
+        Vector2 side = new Vector2(point.x - transform.position.x, point.z - transform.position.z);
+        bool arm = weapon.LimbDamage > 0 && height > Height * 0.42f && side.magnitude > 0.3f;
+        if (headshot) damage = weapon.HeadDamage > 0 ? weapon.HeadDamage : damage * 4f;
+        else if (height < Height * 0.42f || arm)
+            damage = weapon.LimbDamage > 0 ? UnityEngine.Random.Range(weapon.LimbDamage, weapon.LimbDamageMax + 1) : damage * 0.75f;
+        else if (weapon.BodyDamageMax > weapon.Damage) damage = UnityEngine.Random.Range(weapon.Damage, weapon.BodyDamageMax + 1);
         return ApplyDamage(attacker, weapon, damage, headshot);
     }
 

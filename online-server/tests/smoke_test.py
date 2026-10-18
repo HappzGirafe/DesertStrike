@@ -139,7 +139,7 @@ def run(join_secret):
     check("only bob_2 can accept it", call("POST", f"/friends/requests/{friends['incoming'][0]['id']}/accept", token=a)[0] == 404)
     check("bob_2 accepts", call("POST", f"/friends/requests/{friends['incoming'][0]['id']}/accept", token=b)[0] == 200)
     status, presence = call("GET", "/presence", token=a)
-    check("Alice sees bob_2 online", presence["friends"] == [{"id": b_id, "nick": "bob_2", "status": "online"}], presence)
+    check("Alice sees bob_2 online", presence["friends"] == [{"id": b_id, "nick": "bob_2", "status": "online", "played": 0}], presence)
     call("PATCH", "/me", {"hide_status": True}, b)
     status, presence = call("GET", "/presence", token=a)
     check("hidden bob_2 shows offline", presence["friends"][0]["status"] == "offline", presence)
@@ -237,6 +237,18 @@ def run(join_secret):
     check("host is told the room is gone", answer == {"has_room": False}, answer)
     status, health = call("GET", "/health")
     check("slot free again", health["rooms_free"] == 1 and health["servers"] == 1, health)
+
+    print("time played")
+    status, me_before = call("GET", "/players/played?nicks=carol,nobody", token=c)
+    check("played time starts at 0, unknown names left out", status == 200 and me_before["players"] == [{"nick": "carol", "played": 0}], me_before)
+    call("GET", "/presence?playing=1", token=c)
+    time.sleep(2.2)
+    call("GET", "/presence?playing=1", token=c)
+    call("GET", "/presence", token=c)
+    status, after = call("GET", "/players/played?nicks=carol", token=c)
+    check("time in a match counts", after["players"][0]["played"] == 2, after)
+    status, friends = call("GET", "/friends", token=a)
+    check("friends show how long they played", any(f["nick"] == "carol" and f["played"] == 2 for f in friends["friends"]), friends)
 
     print("the bots' knowledge")
     flat = lambda *cells: [v for cell in cells for v in cell]

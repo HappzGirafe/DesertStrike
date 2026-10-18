@@ -34,9 +34,9 @@ IGNORE = {
 # Joined with the next line in the code, or only a piece of what is shown (the translation files hold the whole text,
 # or a template for it), or text for tests and logs.
 JOINED = re.compile(r"^(Add your own|with main\.png|Play with people anywhere|phone, keeps your|Rooms run on the Low Strike|"
-                    r"Voice chat: hold \{0\} in the match|Use \{0\}, and this computer|with it and come along|"
+                    r"Voice chat: hold \{0\}, in the room|Use \{0\}, and this computer|with it and come along|"
                     r"On (a Mac|Windows|Android|iPhone)|Could not (start hosting|open the network|search the network):$|"
-                    r": speak, the bar|\{0\} sensitivity|\{0\} \{1\} to (buy|sell)|"
+                    r": speak, the bar|\{0\} sensitivity|\{0\} \{1\} to (buy|sell|take)|"
                     r"\{0\} (invitation|request)\{1\}$|bodies in view|CPU \{0\} ms, GPU|tris \{0\}|\$\{0\}, main|level now|\^\[A-Za-z)")
 
 

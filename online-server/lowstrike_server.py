@@ -55,7 +55,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 HERE = Path(__file__).resolve().parent
-PROTOCOL_VERSION = 6          # NetSession.ProtocolVersion of the game build these hosts run
+PROTOCOL_VERSION = 7          # NetSession.ProtocolVersion of the game build these hosts run
 MAX_BODY = 16 * 1024          # bytes in one request
 MAX_PROFILE = 8 * 1024        # bytes of saved skins and settings per account
 MAX_FRIENDS = 100
@@ -63,6 +63,7 @@ ONLINE_SECONDS = 15           # the game asks every 4 s while it is open; silent
 SLOT_ALIVE_SECONDS = 10       # a game host reports every second
 SLOT_LOST_SECONDS = 45        # a room whose host has been silent this long is closed
 INVITE_SECONDS = 30 * 60
+PLAYED_GAP = 20               # seconds between two presence asks that still count as played
 TICKET_SECONDS = 120
 MAPS = ("dune", "village", "halloween", "industrial")
 DIFFICULTIES = ("Easy", "Normal", "Hard", "Extreme")
@@ -294,6 +295,11 @@ MIGRATIONS = [
     """,
     bot_knowledge.SCHEMA,   # 4: what real players do on each map, for the bots of every game
     reviews.SCHEMA,         # 5: the website's reviews
+    # 6: how long each account has played (time in matches, counted by its game's presence while in one)
+    """
+    ALTER TABLE users ADD COLUMN played_seconds REAL NOT NULL DEFAULT 0;
+    ALTER TABLE users ADD COLUMN played_at REAL NOT NULL DEFAULT 0;
+    """,
 ]
 
 
@@ -511,7 +517,8 @@ def friends_view(con, me) -> list:
         return []
     rows = con.execute(f"SELECT * FROM users WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()
     order = {"in_match": 0, "online": 1, "offline": 2, "hidden": 3}
-    result = [{"id": r["id"], "nick": r["nick"], "status": status_of(con, r, bool(me["hide_status"]))} for r in rows]
+    result = [{"id": r["id"], "nick": r["nick"], "status": status_of(con, r, bool(me["hide_status"])),
+               "played": int(r["played_seconds"])} for r in rows]
     result.sort(key=lambda f: (order[f["status"]], f["nick"].lower()))
     return result
 
@@ -920,8 +927,17 @@ def remove_friend(friend_id: str, user=Depends(current_user)):
 
 
 @app.get("/presence")
-def presence(user=Depends(current_user)):
+def presence(playing: int = 0, user=Depends(current_user)):
+    t = now()
     with DB_LOCK:
+        # The game asks every few seconds; while it is in a match, the time between two asks counts as played (a
+        # longer gap means the game was closed or lost its connection meanwhile: that time does not count).
+        if playing:
+            gap = t - user["played_at"]
+            if 0 < gap <= PLAYED_GAP:
+                DB.execute("UPDATE users SET played_seconds = played_seconds + ?, played_at = ? WHERE id = ?", (gap, t, user["id"]))
+            else:
+                DB.execute("UPDATE users SET played_at = ? WHERE id = ?", (t, user["id"]))
         friends = friends_view(DB, user)
         pending = DB.execute("SELECT COUNT(*) AS n FROM friend_requests WHERE to_id = ?", (user["id"],)).fetchone()["n"]
         invites = DB.execute("SELECT COUNT(*) AS n FROM invites WHERE to_id = ? AND status = 'pending' AND expires_at > ?",
@@ -930,6 +946,19 @@ def presence(user=Depends(current_user)):
                           (user["id"],)).fetchone()
     return {"friends": friends, "hidden": bool(user["hide_status"]), "requests": pending, "invites": invites,
             "room_id": room["id"] if room else ""}
+
+
+@app.get("/players/played")
+def players_played(nicks: str = "", user=Depends(current_user)):
+    """How long players have played, for the names in a match (up to 20, comma-separated); unknown names are left out."""
+    wanted = [n.strip() for n in nicks.split(",") if n.strip()][:20]
+    found = []
+    with DB_LOCK:
+        for nick in wanted:
+            row = DB.execute("SELECT played_seconds FROM users WHERE nick_key = ?", (nick.lower()[:32],)).fetchone()
+            if row:
+                found.append({"nick": nick, "played": int(row["played_seconds"])})
+    return {"players": found}
 
 
 @app.get("/rooms")

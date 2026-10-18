@@ -36,6 +36,18 @@ public class GameManager : MonoBehaviour
     public const float RoundEndDelay = 5f;
     public const int StartMoney = 800;
     public const int MaxMoney = 16000;
+    public const float WarmupTime = 30f;
+    public const int WarmupMoney = 16000;
+
+    /// <summary>
+    /// The warm-up before every match: 30 s with no bomb, $16000 to buy anything (in your spawn), and back to life a
+    /// moment after dying. Then everything is taken away: the match starts with a pistol and $800.
+    /// </summary>
+    public bool Warmup { get; private set; }
+    bool noWarmup;   // -ds-no-warmup: straight to the first round (tests)
+    bool dropTest;   // -ds-drop-test: bots drop their main guns every round (tests)
+    int droppedInRound = -1;
+    readonly Dictionary<Combatant, float> respawnAt = new Dictionary<Combatant, float>();
     public const int WinReward = 3250;
     public const int LossReward = 1400;
     public const int LossBonusStep = 500;
@@ -67,6 +79,7 @@ public class GameManager : MonoBehaviour
     public NetSession Net { get; private set; }
     public Friends Friends { get; private set; }
     public BombManager Bomb { get; private set; }
+    public WeaponDrops Drops { get; private set; }
     public Camera MainCamera { get; private set; }
     public PlayerController Player { get; private set; }
     public Combatant Spectated { get; private set; }
@@ -96,8 +109,8 @@ public class GameManager : MonoBehaviour
     public bool ServerMode { get; private set; }
     public OnlineClient Online { get; private set; }
     public bool SpectatingNow => State != MatchState.Menu && (Player == null || !Player.Self.IsAlive);
-    public float BuyTimeLeft => BuyTime - (Time.time - roundStartedAt);
-    public float SellTimeLeft => SellTime - (Time.time - roundStartedAt);
+    public float BuyTimeLeft => Warmup ? StateEndsAt - Time.time : BuyTime - (Time.time - roundStartedAt);
+    public float SellTimeLeft => Warmup ? StateEndsAt - Time.time : SellTime - (Time.time - roundStartedAt);
 
     readonly List<BotController> bots = new List<BotController>();
     float roundStartedAt;
@@ -156,6 +169,7 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<TouchControls>();
         gameObject.AddComponent<VoiceChat>();
         Bomb = gameObject.AddComponent<BombManager>();
+        Drops = gameObject.AddComponent<WeaponDrops>();
         gameObject.AddComponent<BotKnowledge>();
         string savedSite = PlayerPrefs.GetString(ClosedSiteKey, "B");
         ClosedSite = savedSite == "A" ? "A" : "B";
@@ -210,6 +224,60 @@ public class GameManager : MonoBehaviour
 
         foreach (var c in Combatants) c.Money = startMoney;
         Debug.Log($"[DesertStrike] Match started on {Map.Name}: {Side}, {TeamSize}v{TeamSize}, {Difficulty}, first to {RoundsToWin}, friendly fire {(FriendlyFire ? "on" : "off")}, {Net.Peers.Count} remote players");
+        if (noWarmup) StartRound();
+        else StartWarmup();
+    }
+
+    void StartWarmup()
+    {
+        Warmup = true;
+        Round = 0;
+        State = MatchState.Live;
+        roundStartedAt = Time.time;
+        StateEndsAt = Time.time + WarmupTime;
+        Banner = null;
+        BuyMenuOpen = false;
+        Spectated = null;
+        Effects.ClearDecals();
+        Drops.Clear();
+        Bomb.Clear();   // no bomb in the warm-up
+        respawnAt.Clear();
+        foreach (var c in Combatants) RespawnForWarmup(c);
+        var terroristBots = bots.FindAll(b => b.Self.Team == Team.Terrorists);
+        var swatBots = Shuffled(bots.FindAll(b => b.Self.Team == Team.Swat));
+        BotController.PlanRound(terroristBots, swatBots, Map, Time.time);
+        ShowMessage("WARMUP: 30 SECONDS", 4f);
+        SoundFX.Play(SoundFX.RoundStart, Vector3.zero, 0.4f, 1f, false);
+        Debug.Log("[DesertStrike] Warm-up started");
+    }
+
+    // Warm-up: back at the team's spawn, with $16000 and a pistol (bots buy at once).
+    void RespawnForWarmup(Combatant c)
+    {
+        c.ResetForRound(false);
+        c.Money = WarmupMoney;
+        bool terrorist = c.Team == Team.Terrorists;
+        var spawns = terrorist ? Map.TerroristSpawns : Map.SwatSpawns;
+        c.SpawnCount++;
+        c.GetComponent<ICombatantController>().Respawn(spawns[Random.Range(0, spawns.Count)], terrorist ? Map.TerroristSpawnYaw : Map.SwatSpawnYaw);
+        var bot = c.GetComponent<BotController>();
+        if (bot != null) bot.BuyGear();
+        if (c.IsPlayer) Spectated = null;
+    }
+
+    // The warm-up is over: everything is taken away and the first round starts (pistol, $800, a clean score).
+    void EndWarmup()
+    {
+        Warmup = false;
+        respawnAt.Clear();
+        KillFeed.Clear();
+        foreach (var c in Combatants)
+        {
+            c.Kills = c.Deaths = 0;
+            c.Money = startMoney;
+        }
+        Round = 0;
+        Debug.Log("[DesertStrike] Warm-up over");
         StartRound();
     }
 
@@ -315,6 +383,7 @@ public class GameManager : MonoBehaviour
         if (Map != null)
         {
             Bomb?.Clear();
+            Drops?.Clear();
             Effects.ClearDecals();
             // Hidden at once, so the new map's spawn checks and radar picture do not see it before it is gone.
             if (Map.Root != null) Map.Root.gameObject.SetActive(false);
@@ -401,6 +470,7 @@ public class GameManager : MonoBehaviour
         BuyMenuOpen = false;
         Spectated = null;
         Effects.ClearDecals();
+        Drops.Clear();
 
         var terroristSpawns = Shuffled(Map.TerroristSpawns);
         var swatSpawns = Shuffled(Map.SwatSpawns);
@@ -437,7 +507,7 @@ public class GameManager : MonoBehaviour
 
     void EndRound(Team winner, string reason)
     {
-        if (State != MatchState.Live && State != MatchState.Freeze) return;
+        if (Warmup || (State != MatchState.Live && State != MatchState.Freeze)) return;
         State = MatchState.RoundEnd;
         StateEndsAt = Time.time + RoundEndDelay;
         LastWinner = winner;
@@ -486,6 +556,28 @@ public class GameManager : MonoBehaviour
                 {
                     State = MatchState.Live;
                     StateEndsAt = Time.time + RoundTime;
+                }
+                break;
+            case MatchState.Live when Warmup:
+                if (Time.time >= StateEndsAt)
+                {
+                    EndWarmup();
+                    break;
+                }
+                // Back to life a moment after dying (a player who joined meanwhile too).
+                foreach (var c in Combatants)
+                {
+                    if (c.IsAlive)
+                    {
+                        respawnAt.Remove(c);
+                        continue;
+                    }
+                    if (!respawnAt.TryGetValue(c, out float at)) respawnAt[c] = Time.time + 1f;
+                    else if (Time.time >= at)
+                    {
+                        respawnAt.Remove(c);
+                        RespawnForWarmup(c);
+                    }
                 }
                 break;
             case MatchState.Live:
@@ -621,6 +713,7 @@ public class GameManager : MonoBehaviour
         if (KillFeed.Count > 6) KillFeed.RemoveAt(0);
 
         BotKnowledge.Instance.OnKill(victim, killer);
+        Drops.OnDeath(victim);
         if (killer != null && killer != victim && killer.Team != victim.Team)
         {
             killer.Kills++;
@@ -633,7 +726,7 @@ public class GameManager : MonoBehaviour
 
     void CheckElimination()
     {
-        if (State != MatchState.Live && State != MatchState.Freeze) return;
+        if (Warmup || (State != MatchState.Live && State != MatchState.Freeze)) return;
         if (AliveCount(Team.Swat) == 0) EndRound(Team.Terrorists, "TERRORISTS WIN");
         // With the bomb planted, SWAT still have to defuse it even after killing every Terrorist.
         else if (AliveCount(Team.Terrorists) == 0 && Bomb.State != BombState.Planted) EndRound(Team.Swat, "SWAT WIN");
@@ -780,6 +873,7 @@ public class GameManager : MonoBehaviour
         BuyMenuOpen = false;
         Message = null;
         Bomb.Clear();
+        Drops.Clear();
         Effects.ClearDecals();
         SetPaused(false);
     }
@@ -809,6 +903,7 @@ public class GameManager : MonoBehaviour
         LastWinner = match.LastWinner;
         FriendlyFire = match.FriendlyFire;
         Map.SetClosedSite(match.ClosedSite);
+        Warmup = match.Warmup;
         Message = string.IsNullOrEmpty(match.Message) ? null : match.Message;
         MessageUntil = Time.time + match.MessageLeft;
         PlayerAmmoResupply = string.IsNullOrEmpty(resupply) ? null : resupply;
@@ -1108,6 +1203,12 @@ public class GameManager : MonoBehaviour
                 case "-ds-difficulty" when hasValue:
                     if (Enum.TryParse(args[++i], true, out BotDifficulty difficulty)) Difficulty = difficulty;
                     break;
+                case "-ds-no-warmup":
+                    noWarmup = true;
+                    break;
+                case "-ds-drop-test":
+                    dropTest = true;
+                    break;
                 case "-ds-rounds" when hasValue:
                     // -ds-rounds <1-16>: rounds to win (tests)
                     RoundsToWin = Mathf.Clamp(int.Parse(args[++i], CultureInfo.InvariantCulture), 1, 16);
@@ -1290,6 +1391,15 @@ public class GameManager : MonoBehaviour
             Player.Self.Equip(holdSlot.Value);
         // Hosting test: start the match once a client has joined.
         if (autoHost && autoStart && State == MatchState.Menu && Net.Peers.Count > 0) StartMatch();
+        // -ds-drop-test: when a round goes live, every bot drops its main gun (they should go and take one again).
+        if (dropTest && State == MatchState.Live && !Warmup && Round != droppedInRound)
+        {
+            droppedInRound = Round;
+            int dropped = 0;
+            foreach (var bot in bots)
+                if (Drops.Drop(bot.Self, WeaponSlot.Primary)) dropped++;
+            Debug.Log($"[DropTest] round {Round}: {dropped} bots dropped their main gun");
+        }
         // Discovery test: join the first game found on the network.
         if (autoFind && Net.Role == NetSession.Mode.Off && Net.FoundHosts.Count > 0)
         {

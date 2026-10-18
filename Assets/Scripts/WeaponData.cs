@@ -40,6 +40,10 @@ public class WeaponData
     public int RoundAmmoBonus;            // free reserve ammo at the start of every round after the first
     public Team? TeamOnly;
     public float ShotPitch = 1f;
+    // Damage by where a bullet hits, for weapons that set it (else: Damage, x4 to the head, x0.75 to the legs).
+    public int HeadDamage;                // a headshot does this much
+    public int BodyDamageMax;             // the body: Damage to this, at random
+    public int LimbDamage, LimbDamageMax; // arms and legs: from LimbDamage to LimbDamageMax
 
     public bool IsMelee => Slot == WeaponSlot.Knife;
     public bool AvailableTo(Team team) => TeamOnly == null || TeamOnly == team;
@@ -116,7 +120,7 @@ public class WeaponData
 
     public static readonly WeaponData Ak47 = new WeaponData
     {
-        Id = "ak47", Name = "AK-47", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 2500, Damage = 36,
+        Id = "ak47", Name = "AK-47", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 2700, Damage = 36,
         FireInterval = 0.1f, MagSize = 30, ReserveAmmo = 90, ReloadTime = 2.5f, Spread = 0.6f,
         MoveSpread = 4.5f, Recoil = 1.1f, Automatic = true, ArmorPenetration = 0.77f, MoveSpeed = 5.5f,
         TeamOnly = Team.Terrorists, ShotPitch = 0.95f,
@@ -124,7 +128,7 @@ public class WeaponData
 
     public static readonly WeaponData M4a1 = new WeaponData
     {
-        Id = "m4a1", Name = "M4A1", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 3100, Damage = 33,
+        Id = "m4a1", Name = "M4A1", RoundAmmoBonus = 40, Slot = WeaponSlot.Primary, Price = 2700, Damage = 33,
         FireInterval = 0.09f, MagSize = 30, ReserveAmmo = 90, ReloadTime = 3.1f, Spread = 0.45f,
         MoveSpread = 4.5f, Recoil = 0.9f, Automatic = true, ArmorPenetration = 0.7f, MoveSpeed = 5.6f,
         TeamOnly = Team.Swat, ShotPitch = 1.05f,
@@ -133,9 +137,20 @@ public class WeaponData
     public static readonly WeaponData Awp = new WeaponData
     {
         Id = "awp", Name = "AWP", RoundAmmoBonus = 5, Slot = WeaponSlot.Primary, Price = 4750, Damage = 115,
-        FireInterval = 1.45f, MagSize = 10, ReserveAmmo = 30, ReloadTime = 3.7f, Spread = 0.05f,
+        FireInterval = 1.45f, MagSize = 5, ReserveAmmo = 15, ReloadTime = 3.7f, Spread = 0.05f,
         MoveSpread = 6f, Recoil = 5f, ZoomFov = 20f, ArmorPenetration = 0.97f, MoveSpeed = 5f,
         KillReward = 100, ShotPitch = 0.6f,
+    };
+
+    // The Dragunov: a semi-automatic sniper rifle, cheaper and faster than the AWP but weaker. Where it hits decides:
+    // 110 to the head, 75-80 to the body, 20-30 to the arms and legs.
+    public static readonly WeaponData Svd = new WeaponData
+    {
+        Id = "svd", Name = "SVD", RoundAmmoBonus = 5, Slot = WeaponSlot.Primary, Price = 2900, Damage = 75,
+        BodyDamageMax = 80, HeadDamage = 110, LimbDamage = 20, LimbDamageMax = 30,
+        FireInterval = 0.45f, MagSize = 10, ReserveAmmo = 20, ReloadTime = 3.2f, Spread = 0.08f,
+        MoveSpread = 5f, Recoil = 3.2f, ZoomFov = 24f, ArmorPenetration = 0.95f, MoveSpeed = 5.2f,
+        ShotPitch = 0.72f,
     };
 
     /// <summary>Damage is the blast damage at the center; it falls off to zero at the blast radius.</summary>
@@ -154,7 +169,8 @@ public class WeaponData
     };
 
     // Declared after the weapons above so they are already initialized.
-    public static readonly WeaponData[] All = { Knife, Glock, Usp, TecDc9, M1911, Deagle, Uzi, Mp5, Shotgun, Ak47, M4a1, Awp, Rpg };
+    // New weapons go at the end: the network sends a weapon as its place in this list.
+    public static readonly WeaponData[] All = { Knife, Glock, Usp, TecDc9, M1911, Deagle, Uzi, Mp5, Shotgun, Ak47, M4a1, Awp, Rpg, Svd };
 
     /// <summary>Position in <see cref="All"/> (used to send weapons over the network); 255 for none.</summary>
     public static int IndexOf(WeaponData weapon) => weapon == null ? 255 : System.Array.IndexOf(All, weapon);

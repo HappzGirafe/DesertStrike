@@ -158,6 +158,8 @@ public class RemotePlayerController : MonoBehaviour, ICombatantController
             case NetAction.BuyDefuseKit: gm.TryBuyDefuseKit(Self); break;
             case NetAction.SellWeapon: gm.TrySellWeapon(Self, (WeaponSlot)Mathf.Clamp(argument, 0, 2)); break;
             case NetAction.DropBomb: gm.Bomb.Drop(Self); break;
+            case NetAction.DropWeapon: gm.Drops.Drop(Self, (WeaponSlot)Mathf.Clamp(argument, 0, 2)); break;
+            case NetAction.PickUp: gm.Drops.PickUp(Self, argument); break;
         }
     }
 

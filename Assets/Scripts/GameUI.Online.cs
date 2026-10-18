@@ -210,7 +210,7 @@ public partial class GameUI
         ry2 += 90f;
         WrapLabel(new Rect(right, ry2, rightWidth, 150f),
                   "Rooms run on the Low Strike server, up to 5v5; bots fill the free places. The room's owner starts the match. " +
-                  $"Voice chat: hold {GameInput.TalkName} in the match.", 16, Dim);
+                  $"Voice chat: hold {GameInput.TalkName}, in the room and in the match.", 16, Dim);
 
         if (Button(new Rect(x + w / 2f - 150f, bottom, 300f, 56f), "BACK")) onlineOpen = false;
     }
@@ -297,6 +297,7 @@ public partial class GameUI
             linkColor = Danger;
         }
         Label(new Rect(x, top + 102f, w, 28f), link, 18, linkColor, TextAnchor.MiddleCenter);
+        if (net.IsClient && net.Connected) DrawLobbyVoice(x + 160f, top + 130f, w - 320f);
         if (!net.IsClient && Button(new Rect(x + w / 2f - 110f, top + 134f, 220f, 40f), "REJOIN", true, !online.Busy, 18))
             online.Rejoin(problem => ShowOnlineResult(problem));
 
@@ -416,7 +417,7 @@ public partial class GameUI
             bool inRoom = online.Room.members.Exists(m => m.user_id == f.id);
             Fill(new Rect(0f, ry, content.width, row - 6f), new Color(1f, 1f, 1f, 0.05f));
             Fill(new Rect(12f, ry + 15f, 12f, 12f), StatusColor(f.status));
-            Label(new Rect(34f, ry, content.width - 200f, row - 6f), $"{f.nick}   ·  {StatusText(f.status)}", 19, Color.white);
+            Label(new Rect(34f, ry, content.width - 200f, row - 6f), $"{f.nick}   ·  {StatusText(f.status)}  ·  {PlayedText(f.played)}", 19, Color.white);
             if (Button(new Rect(content.width - 150f, ry + 4f, 140f, 34f), inRoom ? "IN ROOM" : "INVITE", false, !inRoom, 16))
             {
                 string nick = f.nick;

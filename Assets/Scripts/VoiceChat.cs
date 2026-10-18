@@ -26,6 +26,7 @@ public class VoiceChat : MonoBehaviour
     public enum MicState { Off, Starting, On, Failed }
 
     public static VoiceChat Instance { get; private set; }
+    bool wasButton;
 
     /// <summary>A LAN game with someone to talk to.</summary>
     public bool InSession { get; private set; }
@@ -38,6 +39,12 @@ public class VoiceChat : MonoBehaviour
 
     /// <summary>A LAN match is running (the HUD shows the microphone's state).</summary>
     public bool InMatch { get; private set; }
+
+    /// <summary>Connected in a lobby (an online room, or a LAN game before its match): people talk there too.</summary>
+    public bool InLobby { get; private set; }
+
+    /// <summary>GameUI: the lobby's HOLD TO TALK button (phones) is held; it says so every frame, until this time.</summary>
+    public float LobbyButtonUntil;
 
     /// <summary>The microphone test in Settings is running.</summary>
     public bool Testing { get; set; }
@@ -112,9 +119,15 @@ public class VoiceChat : MonoBehaviour
         InSession = net.IsHost ? net.Peers.Count > 0 : net.IsClient && net.Connected;
         bool inMatch = gm.State != MatchState.Menu && !gm.IsPaused;
         InMatch = InSession && inMatch;
-        bool openMic = GameSettings.VoiceChat && GameSettings.Voice == VoiceMode.OpenMic && InMatch;
-        Holding = GameSettings.VoiceChat && inMatch && GameInput.TalkHeld;
-        bool pressed = GameSettings.VoiceChat && inMatch && GameInput.TalkDown;
+        InLobby = InSession && gm.State == MatchState.Menu;
+        bool canTalk = inMatch || InLobby;
+        // In a lobby V is a letter too: not while typing in a field (the room's name, a friend's nickname...).
+        bool typing = InLobby && GUIUtility.keyboardControl != 0;
+        bool button = InLobby && Time.unscaledTime < LobbyButtonUntil;
+        bool openMic = GameSettings.VoiceChat && GameSettings.Voice == VoiceMode.OpenMic && (InMatch || InLobby);
+        Holding = GameSettings.VoiceChat && canTalk && ((GameInput.TalkHeld && !typing) || button);
+        bool pressed = GameSettings.VoiceChat && canTalk && ((GameInput.TalkDown && !typing) || (button && !wasButton));
+        wasButton = button;
         if (micCheck && !micCheckDone) Testing = true;
         bool testStarted = Testing && !wasTesting;
         wasTesting = Testing;
@@ -143,7 +156,7 @@ public class VoiceChat : MonoBehaviour
 
         // Open mic sends while you speak (and 0.4 s after, so word endings are not cut off).
         bool speaking = openMic && Time.unscaledTime - lastLoud < 0.4f;
-        Talking = InSession && (testTone ? GameSettings.VoiceChat && inMatch : (Holding || speaking) && State == MicState.On);
+        Talking = InSession && (testTone ? GameSettings.VoiceChat && canTalk : (Holding || speaking) && State == MicState.On);
         Capture(Talking);
 
         if (micCheck && !micCheckDone) ReportCheck();

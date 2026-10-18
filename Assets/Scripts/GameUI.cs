@@ -5,7 +5,10 @@ using UnityEngine;
 /// <summary>Menus and HUD, drawn with IMGUI so the project needs no UI assets.</summary>
 public partial class GameUI : MonoBehaviour
 {
-    const float RefHeight = 1080f;   // everything is laid out for 1080p and scaled to the screen
+    const float BaseHeight = 1080f;   // everything is laid out for 1080p and scaled to the screen
+    // The height the screen counts as: 1080, or less in a match on a phone with a bigger interface (Settings), so the
+    // match's screen text grows and its corners stay in the corners.
+    float RefHeight = BaseHeight;
 
     public static readonly Color TerroristColor = new Color(0.98f, 0.66f, 0.25f);
     public static readonly Color SwatColor = new Color(0.45f, 0.72f, 1f);
@@ -19,7 +22,7 @@ public partial class GameUI : MonoBehaviour
         "WASD move  ·  Mouse aim  ·  Left click shoot  ·  R reload  ·  Space jump\n" +
         "Right click: AWP scope  ·  TEC-DC9 / M1911 switch semi-auto and full-auto\n" +
         "1 / 2 / 3 weapons  ·  Q last weapon  ·  Ctrl crouch  ·  Shift walk (silent)  ·  V talk (LAN)\n" +
-        "E plant / defuse the bomb  ·  G drop the bomb  ·  B buy (in your spawn)  ·  Tab scores  ·  Esc pause";
+        "E plant / defuse, take a gun  ·  G drop the gun (knife in hand: the bomb)  ·  B buy (in your spawn)  ·  Tab scores  ·  Esc pause";
 
     const string TouchHelp =
         "Left thumb: move (a small push walks quietly)  ·  Right side: drag to look around\n" +
@@ -28,7 +31,7 @@ public partial class GameUI : MonoBehaviour
         "Move or resize the buttons: Settings > TOUCH CONTROLS";
 
     GameManager gm;
-    Texture2D scopeMask;
+    Texture2D scopeMask, svdScopeMask;
     readonly Dictionary<int, GUIStyle> styles = new Dictionary<int, GUIStyle>();
     float width;
     float scale;
@@ -77,6 +80,7 @@ public partial class GameUI : MonoBehaviour
         gm = GetComponent<GameManager>();
         useGUILayout = false;   // everything is placed by hand; skips IMGUI's layout pass every frame
         scopeMask = BuildScopeMask(512);
+        svdScopeMask = BuildScopeMask(512, 0.86f);
         preview = gameObject.AddComponent<SkinPreview>();
         gm.Net.PlayerName = PlayerPrefs.GetString(NameKey, Environment.UserName);
         Accounts.Changed += () => gm.Net.PlayerName = Accounts.LoggedIn ? Accounts.Current : PlayerPrefs.GetString(NameKey, Environment.UserName);
@@ -140,9 +144,7 @@ public partial class GameUI : MonoBehaviour
         if (gm.ShowingViews) return;
         if (!settingsOpen && VoiceChat.Instance != null && VoiceChat.Instance.Testing) VoiceChat.Instance.Testing = false;
 
-        scale = Screen.height / RefHeight;
-        width = Screen.width / scale;
-        GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
+        UseHeight(BaseHeight);
 
         if (gm.State == MatchState.Menu)
         {
@@ -182,9 +184,11 @@ public partial class GameUI : MonoBehaviour
             return;
         }
 
+        if (GameInput.Touch) UseHeight(BaseHeight / GameSettings.HudScale);
         DrawNameTags();
         DrawHud();
         DrawFps(20f, 268f);
+        UseHeight(BaseHeight);   // menus and the phone's buttons keep their own size
         if (gm.BuyMenuOpen) DrawBuyMenu();
         if (gm.State == MatchState.MatchOver) DrawMatchOver();
         else if (GameInput.ScoresHeld) DrawScoreboard(170f);
@@ -294,6 +298,18 @@ public partial class GameUI : MonoBehaviour
             }
             if (Button(new Rect(x + 70f + half, by, half, 64f), "NO, I DON'T AGREE", true, true, 22)) updateStep = 0;
         }
+    }
+
+    /// <summary>"37 h", or "25 min" under an hour.</summary>
+    static string PlayedText(int seconds) =>
+        seconds >= 3600 ? $"{seconds / 3600} {Loc.T("h")}" : $"{seconds / 60} {Loc.T("min")}";
+
+    void UseHeight(float height)
+    {
+        RefHeight = height;
+        scale = Screen.height / RefHeight;
+        width = Screen.width / scale;
+        GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
     }
 
     float TeamRow(float x, float y, bool allowSpectate, float rowWidth = 700f)
@@ -576,7 +592,7 @@ public partial class GameUI : MonoBehaviour
             Label(new Rect(x + 40f, y, w - 80f, 30f), notice, 17, Danger);
             y += 34f;
         }
-        Label(new Rect(x + 40f, y, w - 80f, 30f), "Voice chat: in the match, hold V to talk. Everyone in the game hears you.", 15, Dim);
+        Label(new Rect(x + 40f, y, w - 80f, 30f), "Voice chat: hold V to talk, in the lobby and in the match. Everyone in the game hears you.", 15, Dim);
         y += 30f;
         Label(new Rect(x + 40f, y, w - 80f, 60f),
               "Windows may ask whether Low Strike may use the network: allow it (at least on private networks).",
@@ -595,12 +611,13 @@ public partial class GameUI : MonoBehaviour
         const float top = 70f;
         float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
         float column = (w - 120f) / 2f, right = x + column + 40f;
-        Fill(new Rect(x, top, w, 900f), PanelColor);
+        Fill(new Rect(x, top, w, 940f), PanelColor);
         Label(new Rect(x, top + 20f, w, 60f), "HOSTING A LAN GAME", 44, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, top + 75f, w, 28f), $"Other PCs find this game automatically. Your IP: {string.Join(", ", NetSession.LocalAddresses())}",
               18, Dim, TextAnchor.MiddleCenter);
 
-        float y = top + 120f;
+        DrawLobbyVoice(x + 40f, top + 106f, w - 80f);
+        float y = top + 160f;
         Label(new Rect(x + 40f, y, column, 32f), "Players", 22, Color.white);
         y += 36f;
         if (gm.Side != PlayerSide.Spectate)
@@ -620,7 +637,7 @@ public partial class GameUI : MonoBehaviour
         }
         float leftEnd = TeamRow(x, y + 14f, allowSpectate: true, column);
 
-        float rightEnd = MapRow(right, top + 120f, column);
+        float rightEnd = MapRow(right, top + 160f, column);
         rightEnd = PlayersRow(right, rightEnd, column);
         rightEnd = DifficultyRow(right, rightEnd, column);
         rightEnd = RoundsRow(right, rightEnd, column);
@@ -649,7 +666,7 @@ public partial class GameUI : MonoBehaviour
         y += 20f;
         if (net.Connected)
             Label(new Rect(x, y, w, 30f), "Waiting for the host to start the match...", 22, Color.white, TextAnchor.MiddleCenter);
-        Label(new Rect(x, y + 40f, w, 26f), "Voice chat: in the match, hold V to talk.", 17, Dim, TextAnchor.MiddleCenter);
+        DrawLobbyVoice(x + 40f, y + 36f, w - 80f);
         if (Button(new Rect(x + w / 2f - 150f, (RefHeight + h) / 2f - 80f, 300f, 56f), "LEAVE")) net.Stop();
     }
 
@@ -1166,9 +1183,12 @@ public partial class GameUI : MonoBehaviour
         Label(new Rect(right + 40f, top + 105f, column, 30f), "VOICE & CONTROLS", 18, Gold);
 
         float y = top + 145f;
-        if (!Application.isMobilePlatform)   // a phone is always full screen
+        if (!Application.isMobilePlatform && !GameInput.Touch)   // a phone is always full screen
             y = OptionRow(x, y, "Display", new[] { "Fullscreen", "Window" }, GameSettings.Fullscreen ? 0 : 1,
                           i => GameSettings.SetFullscreen(i == 0), column);
+        else
+            y = OptionRow(x, y, "Interface size in the match", new[] { "100%", "115%", "130%", "150%" },
+                          Array.IndexOf(GameSettings.HudScales, GameSettings.HudScale), i => GameSettings.SetHudScale(GameSettings.HudScales[i]), column);
         y = OptionRow(x, y, "Graphics", new[] { "Low", "Medium", "High" }, (int)GameSettings.Quality,
                       i => GameSettings.SetQuality((GraphicsQuality)i), column);
         WrapLabel(new Rect(x + 40f, y - 14f, column, 26f), QualityHelp[(int)GameSettings.Quality], 16, Dim);
@@ -1440,7 +1460,7 @@ public partial class GameUI : MonoBehaviour
         {
             new[] { WeaponData.Glock, WeaponData.Usp, WeaponData.TecDc9, WeaponData.M1911, WeaponData.Deagle },
             new[] { WeaponData.Uzi, WeaponData.Mp5, WeaponData.Shotgun },
-            new[] { WeaponData.Ak47, WeaponData.M4a1, WeaponData.Awp, WeaponData.Rpg },
+            new[] { WeaponData.Ak47, WeaponData.M4a1, WeaponData.Svd, WeaponData.Awp, WeaponData.Rpg },
         };
         float columnWidth = (w - 60f - 3 * 20f) / 4f;
         for (int c = 0; c < titles.Length; c++)
@@ -1519,6 +1539,9 @@ public partial class GameUI : MonoBehaviour
                 if (c.IsPlayer) Fill(new Rect(x + 10f, y, w - 20f, rowHeight), new Color(1f, 1f, 1f, 0.1f));
                 Color color = c.IsAlive ? Color.white : new Color(1f, 1f, 1f, 0.4f);
                 Label(new Rect(x + 20f, y, 480f, rowHeight), c.DisplayName + (c.IsAlive ? "" : "   (dead)"), 22, color);
+                // People with an online account: how long they have played Low Strike.
+                int played = c.IsHuman && Accounts.IsOnline ? Online.PlayedSeconds(c.IsPlayer ? Accounts.Current : c.DisplayName) : -1;
+                if (played >= 0) Label(new Rect(x + 20f, y, 500f, rowHeight), PlayedText(played), 17, Dim, TextAnchor.MiddleRight);
                 Label(new Rect(x + 540f, y, 80f, rowHeight), c.Kills.ToString(), 22, color, TextAnchor.MiddleCenter);
                 Label(new Rect(x + 640f, y, 80f, rowHeight), c.Deaths.ToString(), 22, color, TextAnchor.MiddleCenter);
                 bool showMoney = me == null || me.Team == team;
@@ -1541,7 +1564,7 @@ public partial class GameUI : MonoBehaviour
         var player = gm.Player;
         if (player != null && player.Self.IsAlive)
         {
-            if (player.IsScoped) DrawScope();
+            if (player.IsScoped) DrawScope(player.Self.Current?.Data == WeaponData.Svd);
             else DrawCrosshair(player);
             DrawHitMarker();
             DrawVitals(player.Self);
@@ -1614,6 +1637,52 @@ public partial class GameUI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Voice chat in a lobby (an online room, or a LAN game before its match), as in the match: who is talking, and
+    /// how to talk (hold V; on a phone, a button to hold). One line, centred in <paramref name="w"/>.
+    /// </summary>
+    void DrawLobbyVoice(float x, float y, float w)
+    {
+        var voice = VoiceChat.Instance;
+        if (voice == null || !voice.InLobby) return;
+        if (!GameSettings.VoiceChat)
+        {
+            Label(new Rect(x, y, w, 36f), "Voice chat is off (Settings)", 17, Dim, TextAnchor.MiddleCenter);
+            return;
+        }
+        float left = x;
+        if (GameInput.Touch)
+        {
+            var rect = new Rect(x, y, 260f, 46f);
+            bool held = voice.Holding;
+            Fill(rect, held ? new Color(0.85f, 0.55f, 0.15f, 0.95f) : new Color(0.18f, 0.18f, 0.18f, 0.9f));
+            Label(rect, "HOLD TO TALK", 19, Color.white, TextAnchor.MiddleCenter);
+            if (GUI.RepeatButton(rect, GUIContent.none, GUIStyle.none)) voice.LobbyButtonUntil = Time.unscaledTime + 0.2f;
+            left += 276f;
+        }
+        var names = new List<string>();
+        if (voice.Talking) names.Add(Loc.T("You"));
+        names.AddRange(voice.Speaking());
+        bool openMic = GameSettings.Voice == VoiceMode.OpenMic;
+        string text;
+        Color color = Dim;
+        if ((voice.Holding || openMic) && voice.Problem != null)
+        {
+            text = voice.Problem;
+            color = Danger;
+        }
+        else if ((voice.Holding || openMic) && voice.State != VoiceChat.MicState.On) text = "Starting the microphone...";
+        else if (names.Count > 0)
+        {
+            text = Loc.T("Talking now: {0}").Replace("{0}", string.Join(", ", names));
+            color = MoneyGreen;
+        }
+        else text = openMic ? "Open mic: the others hear you when you speak" : $"Hold {GameInput.TalkName} to talk to the room";
+        float width = GameInput.Touch ? w - (left - x) : w;
+        Label(new Rect(left, y, width, 46f), text, 18, color, GameInput.Touch ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter);
+        if (voice.Talking && !GameInput.Touch) LevelBar(new Rect(x + w / 2f - 60f, y + 40f, 120f, 6f), voice.Level);
+    }
+
     void VoiceRow(float y, string name, Color color, float level = -1f)
     {
         Fill(new Rect(20f, y, 240f, 30f), PanelColor);
@@ -1656,7 +1725,7 @@ public partial class GameUI : MonoBehaviour
         {
             string site = gm.Map.SiteAt(me.transform.position);
             string sites = gm.Map.ClosedSite == null ? "site A or B" : gm.Map.ClosedSite == "A" ? "site B (A is closed)" : "site A (B is closed)";
-            hint = site != null ? $"Hold {GameInput.UseName} to plant the bomb on {site}" : $"You have the bomb: plant it on {sites}   ({GameInput.DropName} to drop it)";
+            hint = site != null ? $"Hold {GameInput.UseName} to plant the bomb on {site}" : $"You have the bomb: plant it on {sites}   (knife in hand + {GameInput.DropName}: drop it)";
             color = TerroristColor;
         }
         else if (bomb.State == BombState.Planted && me.Team == Team.Swat
@@ -1665,6 +1734,8 @@ public partial class GameUI : MonoBehaviour
             hint = me.HasDefuseKit ? $"Hold {GameInput.UseName} to defuse (5 s with your kit)" : $"Hold {GameInput.UseName} to defuse (10 s; a defuse kit makes it 5 s)";
             color = SwatColor;
         }
+        if (hint == null && gm.Drops.Nearest(me, WeaponDrops.SwapRadius) is WeaponDrops.Dropped gun && me.Get(gun.Data.Slot) != null)
+            hint = $"{(GameInput.Touch ? "Tap" : "Press")} {GameInput.UseName} to take the {gun.Data.Name}";
         if (hint != null) Label(new Rect(0f, RefHeight - 180f, width, 30f), hint, 20, color, TextAnchor.MiddleCenter);
     }
 
@@ -1690,7 +1761,8 @@ public partial class GameUI : MonoBehaviour
 
         Label(new Rect(x + 15f, 54f, 200f, 26f), $"{gm.AliveCount(Team.Terrorists)} alive", 18, Dim);
         Label(new Rect(x + w - 215f, 54f, 200f, 26f), $"{gm.AliveCount(Team.Swat)} alive", 18, Dim, TextAnchor.MiddleRight);
-        Label(new Rect(x, 54f, w, 26f), $"Round {gm.Round}  ·  first to {gm.RoundsToWin}", 16, Dim, TextAnchor.MiddleCenter);
+        Label(new Rect(x, 54f, w, 26f), gm.Warmup ? "WARMUP" : $"Round {gm.Round}  ·  first to {gm.RoundsToWin}", 16,
+              gm.Warmup ? Gold : Dim, TextAnchor.MiddleCenter);
     }
 
     void DrawRadar()
@@ -1803,14 +1875,24 @@ public partial class GameUI : MonoBehaviour
         foreach (var r in rects) Fill(r, color);
     }
 
-    void DrawScope()
+    void DrawScope(bool svd)
     {
         float side = RefHeight, x = (width - side) / 2f;
-        GUI.DrawTexture(new Rect(x, 0f, side, side), scopeMask);
+        GUI.DrawTexture(new Rect(x, 0f, side, side), svd ? svdScopeMask : scopeMask);
         Fill(new Rect(0f, 0f, x + 1f, RefHeight), Color.black);
         Fill(new Rect(x + side - 1f, 0f, x + 1f, RefHeight), Color.black);
-        Fill(new Rect(x, RefHeight / 2f - 0.75f, side, 1.5f), Color.black);
-        Fill(new Rect(width / 2f - 0.75f, 0f, 1.5f, RefHeight), Color.black);
+        if (!svd)
+        {
+            Fill(new Rect(x, RefHeight / 2f - 0.75f, side, 1.5f), Color.black);
+            Fill(new Rect(width / 2f - 0.75f, 0f, 1.5f, RefHeight), Color.black);
+            return;
+        }
+        // The SVD's: a thick black ring and thin lines from it towards the middle, with a small gap at the centre.
+        float cx = width / 2f, cy = RefHeight / 2f, gap = side * 0.022f, reach = side * 0.46f;
+        Fill(new Rect(cx - reach, cy - 0.75f, reach - gap, 1.5f), Color.black);
+        Fill(new Rect(cx + gap, cy - 0.75f, reach - gap, 1.5f), Color.black);
+        Fill(new Rect(cx - 0.75f, cy - reach, 1.5f, reach - gap), Color.black);
+        Fill(new Rect(cx - 0.75f, cy + gap, 1.5f, reach - gap), Color.black);
     }
 
     void DrawHitMarker()
@@ -1989,7 +2071,8 @@ public partial class GameUI : MonoBehaviour
         return GUI.Button(rect, GUIContent.none, GUIStyle.none) && interactable;
     }
 
-    static Texture2D BuildScopeMask(int size)
+    /// <param name="ring">Where a thick black ring starts inside the lens (1: no ring, just the edge).</param>
+    static Texture2D BuildScopeMask(int size, float ring = 1f)
     {
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
         var pixels = new Color32[size * size];
@@ -1998,7 +2081,8 @@ public partial class GameUI : MonoBehaviour
             for (int x = 0; x < size; x++)
             {
                 float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(radius, radius)) / radius;
-                pixels[y * size + x] = new Color32(0, 0, 0, (byte)(Mathf.Clamp01((d - 0.96f) / 0.02f) * 255f));
+                float edge = Mathf.Min(ring, 1f) * 0.96f;
+                pixels[y * size + x] = new Color32(0, 0, 0, (byte)(Mathf.Clamp01((d - edge) / 0.02f) * 255f));
             }
         texture.SetPixels32(pixels);
         texture.Apply();

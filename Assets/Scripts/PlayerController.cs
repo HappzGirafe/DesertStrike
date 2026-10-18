@@ -119,15 +119,44 @@ public class PlayerController : MonoBehaviour, ICombatantController
         UpdateViewModel();
     }
 
+    // -ds-scope: a scoped weapon stays scoped (screenshots of the scope).
+    static readonly bool ForceScope = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-ds-scope") >= 0;
+
     void HandleBomb(GameManager gm)
     {
         UseHeld = GameInput.UseHeld;
         if (UseHeld && !Self.IsMirror) gm.Bomb.HoldUse(Self);
-        if (GameInput.DropBombDown)
+        if (GameInput.UseDown && !BombJobHere(gm))
         {
-            if (Self.IsMirror) gm.Net.SendAction(NetAction.DropBomb, 0);
-            else gm.Bomb.Drop(Self);
+            // E next to a gun on the ground: take it (it swaps for the one of that kind carried).
+            var gun = gm.Drops.Nearest(Self, WeaponDrops.SwapRadius);
+            if (gun != null)
+            {
+                if (Self.IsMirror) gm.Net.SendAction(NetAction.PickUp, gun.Id);
+                else gm.Drops.PickUp(Self, gun.Id);
+            }
         }
+        if (GameInput.DropDown)
+        {
+            // G drops the gun in hand; with the knife in hand, the bomb.
+            var current = Self.Current;
+            if (current == null || current.Data.Slot == WeaponSlot.Knife)
+            {
+                if (Self.IsMirror) gm.Net.SendAction(NetAction.DropBomb, 0);
+                else gm.Bomb.Drop(Self);
+            }
+            else if (Self.IsMirror) gm.Net.SendAction(NetAction.DropWeapon, (int)current.Data.Slot);
+            else gm.Drops.Drop(Self, current.Data.Slot);
+        }
+    }
+
+    // E plants or defuses here, so it does not take a gun lying on the site at the same time.
+    bool BombJobHere(GameManager gm)
+    {
+        var bomb = gm.Bomb;
+        return (bomb.State == BombState.Carried && bomb.Carrier == Self && gm.Map.SiteAt(transform.position) != null)
+               || (bomb.State == BombState.Planted && Self.Team == Team.Swat
+                   && Vector3.Distance(transform.position, bomb.Position) < BombManager.DefuseRadius);
     }
 
     void Look()
@@ -222,6 +251,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
                 }
             }
         }
+        if (ForceScope && data.ZoomFov > 0f && !Self.IsReloading) IsScoped = true;
         Self.Scoped = IsScoped;   // the state this frame's shot is fired in (for "noscope")
         if (rescopeAt > 0f && Time.time >= rescopeAt)
         {
