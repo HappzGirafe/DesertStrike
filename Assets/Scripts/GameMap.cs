@@ -136,64 +136,397 @@ public abstract class GameMap
 
     public Bounds SiteZone(string site) => site == "A" ? SiteA : SiteB;
 
-    /// <summary>Inside the wall round the closed site (seen from above).</summary>
+    // The closed half (small matches): the map in 1 m cells, true on the closed site's side.
+    const float GridCell = 1f;
+    bool[] closedCells;
+    int gridW, gridH;
+    Vector3 gridMin;
+
+    /// <summary>On the closed side of the map (small matches), seen from above.</summary>
     public bool InClosedSite(Vector3 p)
     {
         if (ClosedSite == null) return false;
-        Bounds zone = SiteZone(ClosedSite);
-        zone.Expand(new Vector3(4f, 0f, 4f));
-        return zone.Contains(new Vector3(p.x, zone.center.y, p.z));
+        if (closedCells == null)
+        {
+            Bounds zone = SiteZone(ClosedSite);
+            zone.Expand(new Vector3(4f, 0f, 4f));
+            return zone.Contains(new Vector3(p.x, zone.center.y, p.z));
+        }
+        int x = Mathf.FloorToInt((p.x - gridMin.x) / GridCell), z = Mathf.FloorToInt((p.z - gridMin.z) / GridCell);
+        return x >= 0 && z >= 0 && x < gridW && z < gridH && closedCells[x + z * gridW];
     }
 
     /// <summary>
-    /// Walls a bombsite off (small matches play on one site), or opens both again (null). The wall runs round the
-    /// site's area a little outside it, so it closes every way in on any map; bots' paths go round it too.
+    /// Small matches play on one site: the other site's half of the map is walled off (or both open again: null).
+    /// The map's walkable ground is cut where the way to the closed site gets shorter than the way to the open one,
+    /// keeping both spawns, the open site and the ways between them open; every passage across that line gets a
+    /// wall. A map where no such cut leaves the rest connected gets a wall round the closed site instead.
     /// </summary>
     public void SetClosedSite(string site)
     {
         if (site == ClosedSite) return;
         ClosedSite = site;
-        if (barrier != null) Object.Destroy(barrier.gameObject);
-        barrier = null;
-        if (site == null || Root == null) return;
+        RemoveWalls();
+        closedCells = null;
+        if (Root == null) return;
+        if (bakedWithWalls) Rebake();   // back to the map's own NavMesh
+        if (site == null) return;
 
-        barrier = new GameObject("Closed site " + site).transform;
-        barrier.SetParent(Root, false);
-        Bounds zone = SiteZone(site);
-        // From 2 m under the site's floor (a sloping site) to 6 m over it (nobody jumps it).
-        const float grow = 1.5f, thick = 0.5f;
-        float bottom = zone.min.y - 1f, height = 8f;
-        float x0 = zone.min.x - grow, x1 = zone.max.x + grow, z0 = zone.min.z - grow, z1 = zone.max.z + grow;
-        var concrete = new Color(0.55f, 0.55f, 0.53f);
-        var hazard = new Color(0.95f, 0.75f, 0.1f);
-        void Panel(Vector3 center, Vector3 size)
+        float started = Time.realtimeSinceStartup;
+        if (WallOffHalf(site, out int share, out int panels, out int plugs))
         {
-            var wall = Effects.Shape(PrimitiveType.Cube, barrier, center, size, concrete, collider: true);
-            wall.name = "Closed site wall";
-            // Two warning bands at eye height: where the wall closes a doorway, it is plain that the way is shut.
-            foreach (float above in new[] { 1.1f, 2.3f })
-                Effects.Shape(PrimitiveType.Cube, wall.transform.parent, new Vector3(center.x, bottom + 2f + above, center.z),
-                              new Vector3(size.x + 0.04f, 0.3f, size.z + 0.04f), hazard);
-            var obstacle = wall.AddComponent<NavMeshObstacle>();
-            obstacle.carving = true;
-            obstacle.carveOnlyStationary = false;
-            obstacle.size = Vector3.one;   // the cube's own (unit) size, scaled with it
+            Debug.Log($"[Map] The {site} side is closed for a small match: {share}% of the map, {panels} wall panels" +
+                      $"{(plugs > 0 ? $" and {plugs} across ways the first walls missed" : "")} ({(Time.realtimeSinceStartup - started) * 1000f:0} ms)");
+            return;
         }
-        Panel(new Vector3((x0 + x1) / 2f, bottom + height / 2f, z0), new Vector3(x1 - x0 + thick, height, thick));
-        Panel(new Vector3((x0 + x1) / 2f, bottom + height / 2f, z1), new Vector3(x1 - x0 + thick, height, thick));
-        Panel(new Vector3(x0, bottom + height / 2f, (z0 + z1) / 2f), new Vector3(thick, height, z1 - z0 + thick));
-        Panel(new Vector3(x1, bottom + height / 2f, (z0 + z1) / 2f), new Vector3(thick, height, z1 - z0 + thick));
-        Debug.Log($"[Map] Site {site} closed (walled off for a small match)");
+        RemoveWalls();
+        closedCells = null;
+        NewBarrier(site);
+        WallRoundSite(site);
+        Rebake();
+        Debug.Log($"[Map] Site {site} closed (walled off for a small match; its whole side could not be closed here)");
     }
 
-    /// <summary>Tests (-ds-closed-site): with the wall up, does every spawn still reach the open site and the other
-    /// spawn, and is no spawn shut in?</summary>
+    // The walls go at once (not at the end of the frame): the NavMesh is baked again right after.
+    void RemoveWalls()
+    {
+        if (barrier != null) Object.DestroyImmediate(barrier.gameObject);
+        barrier = null;
+    }
+
+    void NewBarrier(string site)
+    {
+        barrier = new GameObject("Closed half " + site).transform;
+        barrier.SetParent(Root, false);
+    }
+
+    // The bots' NavMesh again, with the walls in it (they are colliders under the map's root).
+    void Rebake()
+    {
+        if (navMesh.valid) NavMesh.RemoveNavMeshData(navMesh);
+        BakeNavMesh(bakedBounds);
+        bakedWithWalls = barrier != null;
+    }
+
+    // Concrete with two warning bands at eye height: where it closes a passage, it is plain that the way is shut.
+    void Panel(Vector3 center, Vector3 size, float floor)
+    {
+        var concrete = new Color(0.55f, 0.55f, 0.53f);
+        var hazard = new Color(0.95f, 0.75f, 0.1f);
+        var wall = Effects.Shape(PrimitiveType.Cube, barrier, center, size, concrete, collider: true);
+        wall.name = "Closed side wall";
+        foreach (float above in new[] { 1.1f, 2.3f })
+            Effects.Shape(PrimitiveType.Cube, barrier, new Vector3(center.x, floor + above, center.z),
+                          new Vector3(size.x + 0.04f, 0.3f, size.z + 0.04f), hazard);
+    }
+
+    void WallRoundSite(string site)
+    {
+        Bounds zone = SiteZone(site);
+        const float grow = 1.5f, thick = 0.5f;
+        float bottom = zone.min.y - 1f, height = 8f, floor = zone.min.y + 1f;
+        float x0 = zone.min.x - grow, x1 = zone.max.x + grow, z0 = zone.min.z - grow, z1 = zone.max.z + grow;
+        Panel(new Vector3((x0 + x1) / 2f, bottom + height / 2f, z0), new Vector3(x1 - x0 + thick, height, thick), floor);
+        Panel(new Vector3((x0 + x1) / 2f, bottom + height / 2f, z1), new Vector3(x1 - x0 + thick, height, thick), floor);
+        Panel(new Vector3(x0, bottom + height / 2f, (z0 + z1) / 2f), new Vector3(thick, height, z1 - z0 + thick), floor);
+        Panel(new Vector3(x1, bottom + height / 2f, (z0 + z1) / 2f), new Vector3(thick, height, z1 - z0 + thick), floor);
+    }
+
+    /// <summary>
+    /// Walls off the closed site's side. The ground (1 m cells) is cut where the walk to the closed site gets shorter
+    /// than the walk to the open one; the cut moves towards the closed site until the spawns and the open site stay
+    /// together. Then the NavMesh is baked with the walls and checked for real: every spawn must still reach the open
+    /// site and the other spawn, and none the closed site; a way through that the cells missed (a ledge, a gap) gets a
+    /// wall across it. False when no cut works on this map.
+    /// </summary>
+    bool WallOffHalf(string site, out int share, out int panels, out int plugs)
+    {
+        share = panels = plugs = 0;
+        // 1. The walkable ground, in 1 m cells, and which neighbouring cells can be walked between.
+        var triangulation = NavMesh.CalculateTriangulation();
+        if (triangulation.vertices.Length == 0) return false;
+        Vector3 lo = triangulation.vertices[0], hi = lo;
+        foreach (var v in triangulation.vertices)
+        {
+            lo = Vector3.Min(lo, v);
+            hi = Vector3.Max(hi, v);
+        }
+        gridMin = new Vector3(lo.x - 1f, lo.y, lo.z - 1f);
+        gridW = Mathf.CeilToInt((hi.x - gridMin.x) / GridCell) + 2;
+        gridH = Mathf.CeilToInt((hi.z - gridMin.z) / GridCell) + 2;
+        int n = gridW * gridH;
+        if (n > 250000) return false;
+        var walk = new bool[n];
+        var floorY = new float[n];
+        float probe = lo.y - 0.5f, reach = Mathf.Min(hi.y - lo.y + 1.5f, 4f);
+        for (int z = 0; z < gridH; z++)
+            for (int x = 0; x < gridW; x++)
+            {
+                Vector3 c = CellCentre(x, z, probe);
+                if (!NavMesh.SamplePosition(c, out var hit, reach, NavMesh.AllAreas)) continue;
+                if (new Vector2(hit.position.x - c.x, hit.position.z - c.z).magnitude > GridCell * 0.71f) continue;
+                walk[x + z * gridW] = true;
+                floorY[x + z * gridW] = hit.position.y;
+            }
+        var right = new bool[n];
+        var up = new bool[n];
+        for (int z = 0; z < gridH; z++)
+            for (int x = 0; x < gridW; x++)
+            {
+                int i = x + z * gridW;
+                if (!walk[i]) continue;
+                if (x + 1 < gridW && walk[i + 1]) right[i] = Joined(i, i + 1, x, z, x + 1, z, floorY);
+                if (z + 1 < gridH && walk[i + gridW]) up[i] = Joined(i, i + gridW, x, z, x, z + 1, floorY);
+            }
+
+        // 2. How far each cell is, walking, from the sites and from the nearest spawn point.
+        Vector3 shutPoint = SitePoint(site == "A"), openPoint = SitePoint(site != "A");
+        int closedSite = NearestCell(shutPoint, walk), openSite = NearestCell(openPoint, walk);
+        int tSpawn = NearestCell(TerroristSpawns[0], walk), swatSpawn = NearestCell(SwatSpawns[0], walk);
+        if (closedSite < 0 || openSite < 0 || tSpawn < 0 || swatSpawn < 0) return false;
+        int[] fromClosed = Distances(new[] { closedSite }, walk, right, up, null);
+        int[] fromOpen = Distances(new[] { openSite }, walk, right, up, null);
+        var spawnCells = new List<int>();
+        foreach (var spawn in TerroristSpawns) { int c = NearestCell(spawn, walk); if (c >= 0) spawnCells.Add(c); }
+        foreach (var spawn in SwatSpawns) { int c = NearestCell(spawn, walk); if (c >= 0) spawnCells.Add(c); }
+        int[] fromSpawns = Distances(spawnCells.ToArray(), walk, right, up, null);
+
+        // 3. Cut, wall, bake and check; a cut that does not work moves towards the closed site.
+        foreach (int margin in new[] { 0, 4, 8, 14, 20, 30, 45 })
+        {
+            var closed = new bool[n];
+            for (int i = 0; i < n; i++)
+                closed[i] = walk[i] && fromClosed[i] >= 0 && (fromOpen[i] < 0 || fromClosed[i] + margin < fromOpen[i])
+                            && (fromSpawns[i] < 0 || fromSpawns[i] > 8);
+            if (!closed[closedSite]) return false;
+            int[] open = Distances(new[] { tSpawn }, walk, right, up, closed);
+            if (open[swatSpawn] < 0 || open[openSite] < 0) continue;
+
+            NewBarrier(site);
+            panels = BuildCut(closed, walk, right, up, floorY);
+            closedCells = closed;
+            Rebake();
+            plugs = 0;
+            bool works = OpenWaysKept(openPoint);
+            while (works)
+            {
+                Vector3? leak = Leak(shutPoint);
+                if (leak == null) break;   // sealed
+                if (plugs >= 12)
+                {
+                    works = false;
+                    break;
+                }
+                Plug(leak.Value, LeakDirection);
+                plugs++;
+                Rebake();
+                works = OpenWaysKept(openPoint);
+            }
+            if (works)
+            {
+                int closedCount = 0, walkCount = 0;
+                for (int i = 0; i < n; i++)
+                {
+                    if (walk[i]) walkCount++;
+                    if (closed[i]) closedCount++;
+                }
+                share = walkCount > 0 ? Mathf.RoundToInt(100f * closedCount / walkCount) : 0;
+                return true;
+            }
+            RemoveWalls();
+            closedCells = null;
+            Rebake();
+        }
+        return false;
+    }
+
+    // A wall on every cell side between the two sides, joined into long panels.
+    int BuildCut(bool[] closed, bool[] walk, bool[] right, bool[] up, float[] floorY)
+    {
+        var linesX = new Dictionary<int, List<(int, float)>>();   // walls along z, on the left side of cell column x
+        var linesZ = new Dictionary<int, List<(int, float)>>();   // walls along x, on the lower side of cell row z
+        for (int z = 0; z < gridH; z++)
+            for (int x = 0; x < gridW; x++)
+            {
+                int i = x + z * gridW;
+                if (right[i] && closed[i] != closed[i + 1])
+                    Add(linesX, x + 1, z, Mathf.Min(floorY[i], floorY[i + 1]));
+                if (up[i] && closed[i] != closed[i + gridW])
+                    Add(linesZ, z + 1, x, Mathf.Min(floorY[i], floorY[i + gridW]));
+            }
+        int count = 0;
+        const float thick = 0.4f, tall = 5f;
+        foreach (var line in linesX)
+            foreach (var (from, to, floor) in Runs(line.Value))
+            {
+                float x = gridMin.x + line.Key * GridCell;
+                float z0 = gridMin.z + from * GridCell - 0.25f, z1 = gridMin.z + (to + 1) * GridCell + 0.25f;
+                Panel(new Vector3(x, floor - 1f + tall / 2f, (z0 + z1) / 2f), new Vector3(thick, tall, z1 - z0), floor);
+                count++;
+            }
+        foreach (var line in linesZ)
+            foreach (var (from, to, floor) in Runs(line.Value))
+            {
+                float z = gridMin.z + line.Key * GridCell;
+                float x0 = gridMin.x + from * GridCell - 0.25f, x1 = gridMin.x + (to + 1) * GridCell + 0.25f;
+                Panel(new Vector3((x0 + x1) / 2f, floor - 1f + tall / 2f, z), new Vector3(x1 - x0, tall, thick), floor);
+                count++;
+            }
+        return count;
+    }
+
+    bool Reaches(Vector3 from, Vector3 to, NavMeshPath path)
+    {
+        if (!NavMesh.SamplePosition(from, out var a, 3f, NavMesh.AllAreas) || !NavMesh.SamplePosition(to, out var b, 3f, NavMesh.AllAreas))
+            return false;
+        return NavMesh.CalculatePath(a.position, b.position, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete;
+    }
+
+    // Both spawns still reach the open site and each other.
+    bool OpenWaysKept(Vector3 openPoint)
+    {
+        var path = new NavMeshPath();
+        return Reaches(TerroristSpawns[0], openPoint, path) && Reaches(SwatSpawns[0], openPoint, path)
+               && Reaches(TerroristSpawns[0], SwatSpawns[0], path);
+    }
+
+    Vector3 LeakDirection;
+
+    // Where a spawn's way to the closed site crosses onto the closed side, or null when no spawn gets there.
+    Vector3? Leak(Vector3 shutPoint)
+    {
+        var path = new NavMeshPath();
+        foreach (var spawn in new[] { TerroristSpawns[0], SwatSpawns[0] })
+        {
+            if (!Reaches(spawn, shutPoint, path)) continue;
+            var corners = path.corners;
+            for (int k = 0; k + 1 < corners.Length; k++)
+            {
+                Vector3 a = corners[k], b = corners[k + 1];
+                int steps = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(a, b) / 0.4f));
+                Vector3 previous = a;
+                for (int s = 1; s <= steps; s++)
+                {
+                    Vector3 p = Vector3.Lerp(a, b, (float)s / steps);
+                    if (InClosedSite(p) && !InClosedSite(previous))
+                    {
+                        LeakDirection = new Vector3(p.x - previous.x, 0f, p.z - previous.z).normalized;
+                        return (p + previous) / 2f;
+                    }
+                    previous = p;
+                }
+            }
+            // On the closed side all the way (should not happen): close it at the site.
+            LeakDirection = new Vector3(shutPoint.x - spawn.x, 0f, shutPoint.z - spawn.z).normalized;
+            return Vector3.MoveTowards(shutPoint, spawn, 6f);
+        }
+        return null;
+    }
+
+    // A wall across a way the cells missed: from wall to wall of that passage (12 m each side at most).
+    void Plug(Vector3 at, Vector3 along)
+    {
+        if (along.sqrMagnitude < 0.01f) along = Vector3.forward;
+        Vector3 across = new Vector3(-along.z, 0f, along.x);
+        Vector3 eye = at + Vector3.up * 1.2f;
+        float left = Physics.Raycast(eye, -across, out var hitLeft, 12f, Ballistics.EnvironmentMask, QueryTriggerInteraction.Ignore) ? hitLeft.distance : 12f;
+        float right = Physics.Raycast(eye, across, out var hitRight, 12f, Ballistics.EnvironmentMask, QueryTriggerInteraction.Ignore) ? hitRight.distance : 12f;
+        Vector3 centre = at + across * ((right - left) / 2f);
+        float width = left + right + 0.6f;
+        const float tall = 5f;
+        var size = new Vector3(width, tall, 0.4f);
+        var wall = Effects.Shape(PrimitiveType.Cube, barrier, new Vector3(centre.x, at.y - 1f + tall / 2f, centre.z), size,
+                                 new Color(0.55f, 0.55f, 0.53f), collider: true, euler: new Vector3(0f, Quaternion.LookRotation(along).eulerAngles.y, 0f));
+        wall.name = "Closed side wall";
+        foreach (float above in new[] { 1.1f, 2.3f })
+            Effects.Shape(PrimitiveType.Cube, barrier, new Vector3(centre.x, at.y + above, centre.z), new Vector3(width + 0.04f, 0.3f, 0.44f),
+                          new Color(0.95f, 0.75f, 0.1f), euler: new Vector3(0f, Quaternion.LookRotation(along).eulerAngles.y, 0f));
+    }
+
+    Vector3 CellCentre(int x, int z, float y) => new Vector3(gridMin.x + (x + 0.5f) * GridCell, y, gridMin.z + (z + 0.5f) * GridCell);
+
+    bool Joined(int a, int b, int ax, int az, int bx, int bz, float[] floorY)
+    {
+        if (Mathf.Abs(floorY[a] - floorY[b]) > 1.2f) return false;
+        return !NavMesh.Raycast(CellCentre(ax, az, floorY[a]), CellCentre(bx, bz, floorY[b]), out _, NavMesh.AllAreas);
+    }
+
+    int NearestCell(Vector3 p, bool[] walk)
+    {
+        int cx = Mathf.FloorToInt((p.x - gridMin.x) / GridCell), cz = Mathf.FloorToInt((p.z - gridMin.z) / GridCell);
+        for (int r = 0; r <= 4; r++)
+            for (int dz = -r; dz <= r; dz++)
+                for (int dx = -r; dx <= r; dx++)
+                {
+                    int x = cx + dx, z = cz + dz;
+                    if (x >= 0 && z >= 0 && x < gridW && z < gridH && walk[x + z * gridW]) return x + z * gridW;
+                }
+        return -1;
+    }
+
+    // Steps from the nearest of some cells to every other (-1: cannot get there), not entering cells marked in "avoid".
+    int[] Distances(int[] starts, bool[] walk, bool[] right, bool[] up, bool[] avoid)
+    {
+        var dist = new int[walk.Length];
+        for (int i = 0; i < dist.Length; i++) dist[i] = -1;
+        var queue = new Queue<int>();
+        foreach (int start in starts)
+        {
+            if (dist[start] >= 0) continue;
+            dist[start] = 0;
+            queue.Enqueue(start);
+        }
+        while (queue.Count > 0)
+        {
+            int i = queue.Dequeue();
+            void Visit(int j)
+            {
+                if (dist[j] >= 0 || (avoid != null && avoid[j])) return;
+                dist[j] = dist[i] + 1;
+                queue.Enqueue(j);
+            }
+            if (right[i]) Visit(i + 1);
+            if (i % gridW > 0 && right[i - 1]) Visit(i - 1);
+            if (up[i]) Visit(i + gridW);
+            if (i >= gridW && up[i - gridW]) Visit(i - gridW);
+        }
+        return dist;
+    }
+
+    static void Add(Dictionary<int, List<(int, float)>> lines, int line, int at, float floor)
+    {
+        if (!lines.TryGetValue(line, out var list)) lines[line] = list = new List<(int, float)>();
+        list.Add((at, floor));
+    }
+
+    // Neighbouring cell sides on one line, at about the same height, become one panel.
+    static IEnumerable<(int, int, float)> Runs(List<(int at, float floor)> sides)
+    {
+        sides.Sort((a, b) => a.at.CompareTo(b.at));
+        int from = sides[0].at, to = from;
+        float floor = sides[0].floor;
+        for (int k = 1; k < sides.Count; k++)
+        {
+            var (at, y) = sides[k];
+            if (at == to + 1 && Mathf.Abs(y - floor) < 0.8f)
+            {
+                to = at;
+                floor = Mathf.Min(floor, y);
+                continue;
+            }
+            yield return (from, to, floor);
+            from = to = at;
+            floor = y;
+        }
+        yield return (from, to, floor);
+    }
+
+    /// <summary>Tests (-ds-closed-site): with the walls up, do the spawns still reach the open site and each other,
+    /// and is the closed site out of reach?</summary>
     public string CheckClosedSite()
     {
         if (ClosedSite == null) return "both sites open";
-        Bounds walled = SiteZone(ClosedSite);
-        walled.Expand(new Vector3(3f, 0f, 3f));
-        Vector3 open = SitePoint(ClosedSite == "B");
+        Vector3 open = SitePoint(ClosedSite == "B"), shut = SitePoint(ClosedSite == "A");
         string Way(Vector3 from, Vector3 to)
         {
             if (!NavMesh.SamplePosition(from, out var a, 3f, NavMesh.AllAreas) || !NavMesh.SamplePosition(to, out var b, 3f, NavMesh.AllAreas))
@@ -203,12 +536,12 @@ public abstract class GameMap
             return path.status == NavMeshPathStatus.PathComplete ? "ok" : path.status.ToString();
         }
         int shutIn = 0;
-        foreach (var spawn in TerroristSpawns) if (walled.Contains(new Vector3(spawn.x, walled.center.y, spawn.z))) shutIn++;
-        foreach (var spawn in SwatSpawns) if (walled.Contains(new Vector3(spawn.x, walled.center.y, spawn.z))) shutIn++;
-        return $"{Name}, site {ClosedSite} closed (wall {walled.size.x:0}x{walled.size.z:0} m round {walled.center.x:0},{walled.center.y:0},{walled.center.z:0}): " +
-               $"T spawn to site {Way(TerroristSpawns[0], open)}, " +
-               $"SWAT spawn to site {Way(SwatSpawns[0], open)}, T spawn to SWAT spawn {Way(TerroristSpawns[0], SwatSpawns[0])}, " +
-               $"spawns inside the wall {shutIn}";
+        foreach (var spawn in TerroristSpawns) if (InClosedSite(spawn)) shutIn++;
+        foreach (var spawn in SwatSpawns) if (InClosedSite(spawn)) shutIn++;
+        return $"{Name}, the {ClosedSite} side closed: T spawn to the open site {Way(TerroristSpawns[0], open)}, " +
+               $"SWAT spawn to the open site {Way(SwatSpawns[0], open)}, T spawn to SWAT spawn {Way(TerroristSpawns[0], SwatSpawns[0])}, " +
+               $"T spawn to the closed site {Way(TerroristSpawns[0], shut)}, SWAT spawn to the closed site {Way(SwatSpawns[0], shut)}, " +
+               $"spawns on the closed side {shutIn}";
     }
 
     /// <summary>World position to 0..1 radar coordinates (y up = north, +Z).</summary>
@@ -232,9 +565,13 @@ public abstract class GameMap
         if (Radar != null) Object.Destroy(Radar);
     }
 
+    Bounds bakedBounds;
+    bool bakedWithWalls;   // the NavMesh has the closed side's walls in it
+
     /// <summary>Bakes the bots' NavMesh from every collider of the map.</summary>
     protected void BakeNavMesh(Bounds bounds)
     {
+        bakedBounds = bounds;
         var sources = new List<NavMeshBuildSource>();
         NavMeshBuilder.CollectSources(Root, ~0, NavMeshCollectGeometry.PhysicsColliders, 0, new List<NavMeshBuildMarkup>(), sources);
         var settings = NavMesh.GetSettingsByID(0);

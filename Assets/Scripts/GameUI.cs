@@ -359,18 +359,22 @@ public partial class GameUI : MonoBehaviour
         return ClosedSiteRow(x + half + 20f, y, half, gm.TeamSize, gm.ClosedSite, gm.SetClosedSite);
     }
 
-    /// <summary>"Closed site": A or B. It only counts in 1v1, 2v2 and 3v3, so with bigger teams it shows dimmed.</summary>
+    /// <summary>
+    /// "Site in play": A or B. Small matches (1v1, 2v2, 3v3) play on that site, and the other site's half of the
+    /// map is walled off; with bigger teams it shows dimmed. The setting keeps the closed site.
+    /// </summary>
     float ClosedSiteRow(float x, float y, float rowWidth, int teamSize, string closedSite, Action<string> onSelect)
     {
         bool counts = teamSize <= 3;
-        Label(new Rect(x + 40f, y, rowWidth, 34f), counts ? "Closed site" : "Closed site (1v1-3v3)", 22, counts ? Color.white : Dim);
+        Label(new Rect(x + 40f, y, rowWidth, 34f), counts ? "Site in play" : "Site in play (1v1-3v3)", 22, counts ? Color.white : Dim);
         float buttonWidth = (rowWidth - 10f) / 2f;
         string[] sites = { "A", "B" };
+        string inPlay = closedSite == "A" ? "B" : "A";
         for (int i = 0; i < 2; i++)
         {
             var rect = new Rect(x + 40f + i * (buttonWidth + 10f), y + 38f, buttonWidth, 48f);
-            bool selected = closedSite == sites[i];
-            if (Button(rect, "Site " + sites[i], selected && counts, true)) onSelect(sites[i]);
+            bool selected = inPlay == sites[i];
+            if (Button(rect, "Site " + sites[i], selected && counts, true)) onSelect(sites[i] == "A" ? "B" : "A");
             if (selected && !counts) Fill(new Rect(rect.x, rect.yMax - 4f, rect.width, 4f), Dim);
         }
         return y + 105f;
@@ -1836,6 +1840,7 @@ public partial class GameUI : MonoBehaviour
 
     void DrawCrosshair(PlayerController player)
     {
+        if (player.Self.Current.Data.ZoomFov > 0f) return;   // sniper rifles (AWP, SVD): no crosshair, only the scope
         var center = new Vector2(width / 2f, RefHeight / 2f);
         if (player.Self.Current.Data.IsMelee)
         {

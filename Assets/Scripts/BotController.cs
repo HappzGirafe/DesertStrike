@@ -202,7 +202,9 @@ public class BotController : MonoBehaviour, ICombatantController
             // Without a plan to plant they still push, by the routes to the open site(s), and hunt from there.
             bool towardsA = target != null ? target == "A" : map.ClosedSite != null ? map.ClosedSite == "B" : i % 2 == 0;
             var routes = towardsA ? routesA : routesB;
-            terrorists[i].Plan(routes[i % routes.Count], map.TerroristWatch(towardsA), Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
+            // Small matches: no waypoint on the closed side (its walls are in the way).
+            var route = routes[i % routes.Count].FindAll(p => !map.InClosedSite(p));
+            terrorists[i].Plan(route, map.TerroristWatch(towardsA), Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
             terrorists[i].goingFor = target;
             terrorists[i].plantThisRound = target != null;
         }
@@ -213,10 +215,8 @@ public class BotController : MonoBehaviour, ICombatantController
         var knowledge = Learned ? BotKnowledge.Instance : null;
         if (map.ClosedSite != null)
         {
-            // Posts that end at the closed site are no use; keep the rest (all of them if none is left).
-            Bounds closed = map.SiteZone(map.ClosedSite);
-            closed.Expand(new Vector3(16f, 0f, 16f));
-            var open = posts.FindAll(p => p.Route.Count == 0 || !closed.Contains(new Vector3(p.Route[p.Route.Count - 1].x, closed.center.y, p.Route[p.Route.Count - 1].z)));
+            // Posts on the closed side are no use; keep the rest (all of them if none is left).
+            var open = posts.FindAll(p => p.Route.Count == 0 || !map.InClosedSite(p.Route[p.Route.Count - 1]));
             if (open.Count > 0) posts = open;
         }
         for (int i = 0; i < swat.Count; i++)
@@ -230,7 +230,7 @@ public class BotController : MonoBehaviour, ICombatantController
                 continue;
             }
             var post = posts[i % posts.Count];
-            swat[i].Plan(post.Route, post.LookAt, Random.Range(35f, 60f), startTime + Random.Range(0f, 0.5f));
+            swat[i].Plan(post.Route.FindAll(p => !map.InClosedSite(p)), post.LookAt, Random.Range(35f, 60f), startTime + Random.Range(0f, 0.5f));
         }
     }
 
@@ -596,7 +596,9 @@ public class BotController : MonoBehaviour, ICombatantController
                 return;
             }
         }
-        var points = GameManager.Instance.Map.KeyPoints;
+        var map = GameManager.Instance.Map;
+        var points = map.KeyPoints.FindAll(p => !map.InClosedSite(p));
+        if (points.Count == 0) points = map.KeyPoints;
         route.Clear();
         route.Add(Jitter(points[Random.Range(0, points.Count)]));
         routeIndex = 0;
