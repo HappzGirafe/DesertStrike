@@ -235,6 +235,38 @@
   .online-status[data-state="offline"] { color: #ff7a6b; }
   .online-status[data-state="soon"] { color: var(--sand); }
 
+  /* reviews */
+  .rv-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin: 0 0 16px; font: 700 15px/1.3 var(--font-mono); color: var(--muted); }
+  .stars { color: var(--gold); letter-spacing: 0.08em; white-space: nowrap; }
+  .reviews { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+  .review { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; min-width: 0; }
+  .rv-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-bottom: 8px; }
+  .rv-nick { font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+  .rv-head time { margin-left: auto; font: 500 12.5px/1 var(--font-mono); color: var(--muted); }
+  .review p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+  .rv-empty { color: var(--muted); margin: 0; }
+  #rv-more { margin-top: 14px; cursor: pointer; }
+  .rv-summary[hidden], #rv-more[hidden] { display: none; }
+  .rv-form { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; display: grid; gap: 14px; max-width: 760px; }
+  .rv-form h3 { margin: 0; font: 800 26px/1 var(--font-display); font-stretch: 80%; color: var(--gold); }
+  .rv-form label.field { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+  .rv-form input[type="text"], .rv-form input[type="password"], .rv-form textarea {
+    font: 400 16px/1.4 var(--font-body); color: var(--text); background: var(--night); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 10px 12px; width: 100%; min-width: 0;
+  }
+  .rv-form textarea { resize: vertical; min-height: 96px; }
+  .rv-account { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+  .rv-rating { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  .rv-rate { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 2px; border: 0; padding: 0; margin: 0; }
+  .rv-rate input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .rv-rate label { font-size: 32px; line-height: 1; color: var(--line); cursor: pointer; padding: 2px; }
+  .rv-rate input:checked ~ label, .rv-rate label:hover, .rv-rate label:hover ~ label { color: var(--gold); }
+  .rv-rate input:focus-visible + label { outline: 2px solid var(--gold); outline-offset: 1px; }
+  .rv-hint { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .rv-message { margin: 0; min-height: 1.4em; color: var(--sand); }
+  .rv-form button { cursor: pointer; justify-self: start; }
+  .rv-form button:disabled { opacity: 0.6; cursor: wait; }
+
   footer { border-top: 1px solid var(--line); padding-block: 28px 36px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
   footer .brand { font-size: 18px; }
@@ -264,6 +296,7 @@
       <a href="#shop" data-i18n="nav_shop">Price list</a>
       <a href="#screenshots" data-i18n="nav_screens">Screenshots</a>
       <a href="#download" data-i18n="nav_download">Download</a>
+      <a href="#reviews" data-i18n="nav_reviews">Reviews</a>
     </nav>
     <div class="langs" role="group" aria-label="Language" data-i18n-aria="lang_label">
       <button type="button" id="lang-ua" data-lang="ua" title="Українська" aria-pressed="false">UA</button>
@@ -503,6 +536,150 @@
       <p class="all"><a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener" data-i18n="dl_all">All versions on GitHub</a></p>
     </div>
   </section>
+
+  <section id="reviews">
+    <div class="wrap">
+      <h2 data-i18n="rv_title">Reviews</h2>
+      <p class="intro" data-i18n="rv_intro">What players say about Low Strike. To write one, use your online account: the nickname and password you play online with.</p>
+      <p class="rv-summary" id="rv-summary" hidden><span class="stars" id="rv-avg-stars"></span><span id="rv-avg"></span><span>·</span><span data-i18n="rv_title">Reviews</span><span id="rv-count"></span></p>
+      <div class="reviews" id="rv-list"></div>
+      <p class="rv-empty" id="rv-empty" hidden data-i18n="rv_empty">No reviews yet. Be the first!</p>
+      <button type="button" class="buy" id="rv-more" hidden data-i18n="rv_more">More reviews</button>
+      <form class="rv-form" id="rv-form" novalidate>
+        <h3 data-i18n="rv_write">Write a review</h3>
+        <div class="rv-rating">
+          <span id="rv-rating-label" data-i18n="rv_rating">Rating</span>
+          <fieldset class="rv-rate" aria-labelledby="rv-rating-label">
+            <input type="radio" name="rv-rating" id="rv-r5" value="5" aria-label="5 / 5"><label for="rv-r5" title="5">★</label>
+            <input type="radio" name="rv-rating" id="rv-r4" value="4" aria-label="4 / 5"><label for="rv-r4" title="4">★</label>
+            <input type="radio" name="rv-rating" id="rv-r3" value="3" aria-label="3 / 5"><label for="rv-r3" title="3">★</label>
+            <input type="radio" name="rv-rating" id="rv-r2" value="2" aria-label="2 / 5"><label for="rv-r2" title="2">★</label>
+            <input type="radio" name="rv-rating" id="rv-r1" value="1" aria-label="1 / 5"><label for="rv-r1" title="1">★</label>
+          </fieldset>
+        </div>
+        <label class="field"><span data-i18n="rv_text">Your review</span><textarea name="rv-text" id="rv-text" maxlength="600" rows="4"></textarea></label>
+        <div class="rv-account">
+          <label class="field"><span data-i18n="rv_nick">Nickname</span><input type="text" name="rv-nick" id="rv-nick" maxlength="16" autocomplete="username" spellcheck="false"></label>
+          <label class="field"><span data-i18n="rv_password">Password</span><input type="password" name="rv-password" id="rv-password" maxlength="128" autocomplete="current-password"></label>
+        </div>
+        <p class="rv-hint" data-i18n="rv_hint">The password only proves the account is yours; it is not kept with the review. One review per account: writing again replaces it.</p>
+        <p class="rv-hint" data-i18n="rv_no_account">No account yet? In the game click PLAY ONLINE and sign up.</p>
+        <button type="submit" class="buy primary" id="rv-send" data-i18n="rv_send">Send review</button>
+        <p class="rv-message" id="rv-message" role="status"></p>
+      </form>
+      <span hidden id="rv-m-sending" data-i18n="rv_sending">Sending…</span>
+      <span hidden id="rv-m-ok" data-i18n="rv_ok">Thank you! Your review is up.</span>
+      <span hidden id="rv-m-replaced" data-i18n="rv_replaced">Thank you! Your review was updated.</span>
+      <span hidden id="rv-m-offline" data-i18n="rv_offline">Reviews are not available right now: the server is offline.</span>
+      <span hidden id="rv-m-stars" data-i18n="rv_stars">Choose 1 to 5 stars.</span>
+      <span hidden id="rv-m-short" data-i18n="rv_short">Write a few words (10 characters at least).</span>
+      <span hidden id="rv-m-links" data-i18n="rv_links">Links are not allowed in reviews.</span>
+      <span hidden id="rv-m-wrong" data-i18n="rv_wrong">Wrong nickname or password.</span>
+      <span hidden id="rv-m-limit" data-i18n="rv_limit">Too many tries. Wait a few minutes and try again.</span>
+      <span hidden id="rv-m-error" data-i18n="rv_error">Could not send the review. Try again later.</span>
+      <script data-reviews>
+      // Reviews: read from the online API (its address is in online.json, as for Play Online), written with the online
+      // account's nickname and password (checked by the API, never kept). All shown as text, never as HTML. The texts
+      // come from the hidden elements above, so they are in the page's language.
+      (function () {
+        const list = document.getElementById("rv-list"), form = document.getElementById("rv-form");
+        const message = document.getElementById("rv-message");
+        if (!list || !form) return;
+        const say = key => document.getElementById("rv-m-" + key).textContent;
+        const stars = n => "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, 5 - n);
+        const PAGE = 12;
+        let api = null, oldest = null;
+        const sources = ["/online.json", "https://happzgirafe.github.io/DesertStrike/online.json"];
+        const loadConfig = i => i >= sources.length ? Promise.reject("no online.json")
+          : fetch(sources[i], { cache: "no-store" }).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => loadConfig(i + 1));
+        function show(review) {
+          const card = document.createElement("article");
+          card.className = "review";
+          const head = document.createElement("div");
+          head.className = "rv-head";
+          const rating = document.createElement("span");
+          rating.className = "stars";
+          rating.textContent = stars(review.rating);
+          rating.setAttribute("aria-label", review.rating + " / 5");
+          const nick = document.createElement("span");
+          nick.className = "rv-nick";
+          nick.textContent = review.nick;
+          const date = document.createElement("time");
+          date.dateTime = review.date;
+          date.textContent = review.date;
+          head.append(rating, nick, date);
+          const text = document.createElement("p");
+          text.textContent = review.text;
+          card.append(head, text);
+          list.append(card);
+        }
+        function load(more) {
+          if (!api) return;
+          fetch(api + "/reviews?limit=" + PAGE + (more && oldest ? "&before=" + oldest : ""), { cache: "no-store" })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+              if (!more) list.textContent = "";
+              data.reviews.forEach(show);
+              if (data.reviews.length) oldest = data.reviews[data.reviews.length - 1].at;
+              document.getElementById("rv-more").hidden = data.reviews.length < PAGE;
+              document.getElementById("rv-empty").hidden = data.count > 0;
+              document.getElementById("rv-summary").hidden = !data.count;
+              if (data.count) {
+                document.getElementById("rv-avg-stars").textContent = stars(Math.round(data.average));
+                document.getElementById("rv-avg").textContent = data.average.toFixed(1) + " / 5";
+                document.getElementById("rv-count").textContent = data.count;
+              }
+            })
+            .catch(() => { message.textContent = say("offline"); });
+        }
+        loadConfig(0).then(config => {
+          let url = String(config.api || "");
+          while (url.endsWith("/")) url = url.slice(0, -1);
+          if (!/^https:\/\//.test(url) && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(url)) { message.textContent = say("offline"); return; }
+          api = url;
+          load(false);
+        }).catch(() => { message.textContent = say("offline"); });
+        document.getElementById("rv-more").addEventListener("click", () => load(true));
+        const known = {
+          "Wrong nickname or password.": "wrong", "Links are not allowed in reviews.": "links",
+          "Write a few words (10 characters at least).": "short", "Choose 1 to 5 stars.": "stars",
+        };
+        form.addEventListener("submit", e => {
+          e.preventDefault();
+          if (!api) { message.textContent = say("offline"); return; }
+          const picked = form.querySelector("input[name='rv-rating']:checked");
+          if (!picked) { message.textContent = say("stars"); return; }
+          if (form.elements["rv-text"].value.trim().length < 10) { message.textContent = say("short"); return; }
+          const lang = { "en-GB": "en", uk: "ua", de: "de", fr: "fr", it: "it", es: "es" }[document.documentElement.lang] || "en";
+          const button = document.getElementById("rv-send");
+          button.disabled = true;
+          message.textContent = say("sending");
+          fetch(api + "/reviews", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              nick: form.elements["rv-nick"].value.trim(), password: form.elements["rv-password"].value,
+              rating: Number(picked.value), text: form.elements["rv-text"].value, lang,
+            }),
+          })
+            .then(r => r.json().catch(() => ({})).then(body => ({ ok: r.ok, status: r.status, body })))
+            .then(({ ok, status, body }) => {
+              if (ok) {
+                message.textContent = say(body.replaced ? "replaced" : "ok");
+                form.elements["rv-password"].value = "";
+                form.elements["rv-text"].value = "";
+                picked.checked = false;
+                load(false);
+                return;
+              }
+              message.textContent = known[body.detail] ? say(known[body.detail]) : status === 429 ? say("limit") : say("error");
+            })
+            .catch(() => { message.textContent = say("error"); })
+            .finally(() => { button.disabled = false; });
+        });
+      })();
+      </script>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -553,6 +730,7 @@
       cap_inventory: "Inventory with the RPG's Web skin equipped", cap_lan: "LAN game: host or join on your network",
       cap_village: "The Village map: watching a Terrorist in a match", cap_login: "Log in, sign up or play as a guest",
       lb_close: "Close", lb_prev: "Previous", lb_next: "Next",
+      nav_reviews: "Reviews", rv_title: "Reviews", rv_intro: "What players say about Low Strike. To write one, use your online account: the nickname and password you play online with.", rv_empty: "No reviews yet. Be the first!", rv_more: "More reviews", rv_write: "Write a review", rv_rating: "Rating", rv_text: "Your review", rv_nick: "Nickname", rv_password: "Password", rv_hint: "The password only proves the account is yours; it is not kept with the review. One review per account: writing again replaces it.", rv_no_account: "No account yet? In the game click PLAY ONLINE and sign up.", rv_send: "Send review", rv_sending: "Sending…", rv_ok: "Thank you! Your review is up.", rv_replaced: "Thank you! Your review was updated.", rv_offline: "Reviews are not available right now: the server is offline.", rv_stars: "Choose 1 to 5 stars.", rv_short: "Write a few words (10 characters at least).", rv_links: "Links are not allowed in reviews.", rv_wrong: "Wrong nickname or password.", rv_limit: "Too many tries. Wait a few minutes and try again.", rv_error: "Could not send the review. Try again later.",
       controls_title: "Controls", controls_text: "Keyboard and mouse, the classic way.", key_mouse: "Mouse", key_space: "Space",
       k_move: "Move", k_aim: "Aim and shoot", k_reload: "Reload", k_weapons: "Switch weapons", k_jump: "Jump", k_crouch: "Crouch",
       k_walk: "Walk quietly", k_buy: "Buy menu", k_plant: "Plant or defuse (hold)", k_drop: "Drop the bomb", k_scores: "Scoreboard", k_menu: "Menu and settings",
@@ -591,6 +769,7 @@
       cap_inventory: "Інвентар із вибраним скіном Web для RPG", cap_lan: "Гра по мережі: створи гру або приєднайся",
       cap_village: "Карта Village: спостереження за терористом у матчі", cap_login: "Увійди, зареєструйся або грай як гість",
       lb_close: "Закрити", lb_prev: "Попередній", lb_next: "Наступний",
+      nav_reviews: "Відгуки", rv_title: "Відгуки", rv_intro: "Що гравці кажуть про Low Strike. Щоб написати відгук, потрібен онлайн-акаунт: нік і пароль, з якими ви граєте онлайн.", rv_empty: "Відгуків ще немає. Будьте першими!", rv_more: "Більше відгуків", rv_write: "Написати відгук", rv_rating: "Оцінка", rv_text: "Ваш відгук", rv_nick: "Нік", rv_password: "Пароль", rv_hint: "Пароль лише підтверджує, що акаунт ваш; з відгуком він не зберігається. Один відгук на акаунт: новий замінює попередній.", rv_no_account: "Ще немає акаунта? У грі натисніть ГРА ОНЛАЙН і зареєструйтеся.", rv_send: "Надіслати відгук", rv_sending: "Надсилаємо…", rv_ok: "Дякуємо! Ваш відгук опубліковано.", rv_replaced: "Дякуємо! Ваш відгук оновлено.", rv_offline: "Відгуки зараз недоступні: сервер офлайн.", rv_stars: "Оберіть від 1 до 5 зірок.", rv_short: "Напишіть кілька слів (щонайменше 10 символів).", rv_links: "Посилання у відгуках заборонені.", rv_wrong: "Неправильний нік або пароль.", rv_limit: "Забагато спроб. Зачекайте кілька хвилин і спробуйте знову.", rv_error: "Не вдалося надіслати відгук. Спробуйте пізніше.",
       controls_title: "Керування", controls_text: "Клавіатура й миша, як завжди.", key_mouse: "Миша", key_space: "Пробіл",
       k_move: "Рух", k_aim: "Приціл і постріл", k_reload: "Перезарядка", k_weapons: "Зміна зброї", k_jump: "Стрибок", k_crouch: "Присісти",
       k_walk: "Тиха хода", k_buy: "Магазин", k_plant: "Закласти чи знешкодити (утримуй)", k_drop: "Викинути бомбу", k_scores: "Таблиця рахунку", k_menu: "Меню й налаштування",
@@ -629,6 +808,7 @@
       cap_inventory: "Inventar mit dem Web-Skin für das RPG", cap_lan: "LAN-Spiel: im Netzwerk hosten oder beitreten",
       cap_village: "Die Karte Village: ein Terrorist im Match", cap_login: "Anmelden, registrieren oder als Gast spielen",
       lb_close: "Schließen", lb_prev: "Zurück", lb_next: "Weiter",
+      nav_reviews: "Bewertungen", rv_title: "Bewertungen", rv_intro: "Was Spieler über Low Strike sagen. Zum Schreiben brauchst du dein Online-Konto: den Nickname und das Passwort, mit denen du online spielst.", rv_empty: "Noch keine Bewertungen. Schreib die erste!", rv_more: "Weitere Bewertungen", rv_write: "Bewertung schreiben", rv_rating: "Sterne", rv_text: "Deine Bewertung", rv_nick: "Nickname", rv_password: "Passwort", rv_hint: "Das Passwort zeigt nur, dass das Konto dir gehört; es wird nicht mit der Bewertung gespeichert. Eine Bewertung pro Konto: eine neue ersetzt die alte.", rv_no_account: "Noch kein Konto? Klicke im Spiel auf ONLINE SPIELEN und registriere dich.", rv_send: "Bewertung senden", rv_sending: "Wird gesendet…", rv_ok: "Danke! Deine Bewertung ist online.", rv_replaced: "Danke! Deine Bewertung wurde aktualisiert.", rv_offline: "Bewertungen sind gerade nicht verfügbar: Der Server ist offline.", rv_stars: "Wähle 1 bis 5 Sterne.", rv_short: "Schreib ein paar Worte (mindestens 10 Zeichen).", rv_links: "Links sind in Bewertungen nicht erlaubt.", rv_wrong: "Falscher Nickname oder falsches Passwort.", rv_limit: "Zu viele Versuche. Warte ein paar Minuten und versuch es nochmal.", rv_error: "Die Bewertung konnte nicht gesendet werden. Versuch es später.",
       controls_title: "Steuerung", controls_text: "Tastatur und Maus, ganz klassisch.", key_mouse: "Maus", key_space: "Leertaste",
       k_move: "Bewegen", k_aim: "Zielen und schießen", k_reload: "Nachladen", k_weapons: "Waffe wechseln", k_jump: "Springen", k_crouch: "Ducken",
       k_walk: "Leise gehen", k_buy: "Kaufmenü", k_plant: "Bombe legen oder entschärfen (halten)", k_drop: "Bombe fallen lassen", k_scores: "Punktestand", k_menu: "Menü und Einstellungen",
@@ -667,6 +847,7 @@
       cap_inventory: "Inventaire avec le skin Web du RPG équipé", cap_lan: "Partie LAN : héberger ou rejoindre sur ton réseau",
       cap_village: "La carte Village : un terroriste en pleine partie", cap_login: "Se connecter, s’inscrire ou jouer en invité",
       lb_close: "Fermer", lb_prev: "Précédente", lb_next: "Suivante",
+      nav_reviews: "Avis", rv_title: "Avis", rv_intro: "Ce que les joueurs disent de Low Strike. Pour écrire un avis, utilise ton compte en ligne : le pseudo et le mot de passe avec lesquels tu joues en ligne.", rv_empty: "Pas encore d'avis. Écris le premier !", rv_more: "Plus d'avis", rv_write: "Écrire un avis", rv_rating: "Note", rv_text: "Ton avis", rv_nick: "Pseudo", rv_password: "Mot de passe", rv_hint: "Le mot de passe prouve seulement que le compte est à toi ; il n'est pas gardé avec l'avis. Un avis par compte : en écrire un nouveau remplace l'ancien.", rv_no_account: "Pas encore de compte ? Dans le jeu, clique sur JOUER EN LIGNE et inscris-toi.", rv_send: "Envoyer l'avis", rv_sending: "Envoi…", rv_ok: "Merci ! Ton avis est en ligne.", rv_replaced: "Merci ! Ton avis a été mis à jour.", rv_offline: "Les avis ne sont pas disponibles : le serveur est hors ligne.", rv_stars: "Choisis de 1 à 5 étoiles.", rv_short: "Écris quelques mots (10 caractères au moins).", rv_links: "Les liens ne sont pas autorisés dans les avis.", rv_wrong: "Pseudo ou mot de passe incorrect.", rv_limit: "Trop d'essais. Attends quelques minutes et réessaie.", rv_error: "Impossible d'envoyer l'avis. Réessaie plus tard.",
       controls_title: "Commandes", controls_text: "Clavier et souris, comme d’habitude.", key_mouse: "Souris", key_space: "Espace",
       k_move: "Se déplacer", k_aim: "Viser et tirer", k_reload: "Recharger", k_weapons: "Changer d’arme", k_jump: "Sauter", k_crouch: "S’accroupir",
       k_walk: "Marcher sans bruit", k_buy: "Menu d’achat", k_plant: "Poser ou désamorcer (maintenir)", k_drop: "Lâcher la bombe", k_scores: "Tableau des scores", k_menu: "Menu et réglages",
@@ -705,6 +886,7 @@
       cap_inventory: "Inventario con la skin Web dell’RPG equipaggiata", cap_lan: "Partita LAN: crea o unisciti nella tua rete",
       cap_village: "La mappa Village: un terrorista durante una partita", cap_login: "Accedi, registrati o gioca come ospite",
       lb_close: "Chiudi", lb_prev: "Precedente", lb_next: "Successiva",
+      nav_reviews: "Recensioni", rv_title: "Recensioni", rv_intro: "Cosa dicono i giocatori di Low Strike. Per scrivere una recensione usa il tuo account online: il nickname e la password con cui giochi online.", rv_empty: "Ancora nessuna recensione. Scrivi la prima!", rv_more: "Altre recensioni", rv_write: "Scrivi una recensione", rv_rating: "Voto", rv_text: "La tua recensione", rv_nick: "Nickname", rv_password: "Password", rv_hint: "La password serve solo a dimostrare che l'account è tuo; non viene salvata con la recensione. Una recensione per account: una nuova sostituisce la precedente.", rv_no_account: "Non hai un account? Nel gioco clicca GIOCA ONLINE e registrati.", rv_send: "Invia recensione", rv_sending: "Invio…", rv_ok: "Grazie! La tua recensione è online.", rv_replaced: "Grazie! La tua recensione è stata aggiornata.", rv_offline: "Le recensioni non sono disponibili ora: il server è offline.", rv_stars: "Scegli da 1 a 5 stelle.", rv_short: "Scrivi qualche parola (almeno 10 caratteri).", rv_links: "I link non sono ammessi nelle recensioni.", rv_wrong: "Nickname o password errati.", rv_limit: "Troppi tentativi. Aspetta qualche minuto e riprova.", rv_error: "Impossibile inviare la recensione. Riprova più tardi.",
       controls_title: "Comandi", controls_text: "Tastiera e mouse, come una volta.", key_mouse: "Mouse", key_space: "Spazio",
       k_move: "Muoversi", k_aim: "Mirare e sparare", k_reload: "Ricaricare", k_weapons: "Cambiare arma", k_jump: "Saltare", k_crouch: "Accovacciarsi",
       k_walk: "Camminare in silenzio", k_buy: "Menu acquisti", k_plant: "Piantare o disinnescare (tieni premuto)", k_drop: "Lasciare la bomba", k_scores: "Punteggi", k_menu: "Menu e impostazioni",
@@ -743,6 +925,7 @@
       cap_inventory: "Inventario con el skin Web del RPG equipado", cap_lan: "Partida LAN: crea o únete en tu red",
       cap_village: "El mapa Village: un terrorista en plena partida", cap_login: "Inicia sesión, regístrate o juega como invitado",
       lb_close: "Cerrar", lb_prev: "Anterior", lb_next: "Siguiente",
+      nav_reviews: "Reseñas", rv_title: "Reseñas", rv_intro: "Lo que dicen los jugadores de Low Strike. Para escribir una reseña usa tu cuenta online: el apodo y la contraseña con los que juegas online.", rv_empty: "Aún no hay reseñas. ¡Escribe la primera!", rv_more: "Más reseñas", rv_write: "Escribir una reseña", rv_rating: "Puntuación", rv_text: "Tu reseña", rv_nick: "Apodo", rv_password: "Contraseña", rv_hint: "La contraseña solo demuestra que la cuenta es tuya; no se guarda con la reseña. Una reseña por cuenta: una nueva sustituye a la anterior.", rv_no_account: "¿Aún no tienes cuenta? En el juego pulsa JUGAR ONLINE y regístrate.", rv_send: "Enviar reseña", rv_sending: "Enviando…", rv_ok: "¡Gracias! Tu reseña ya está publicada.", rv_replaced: "¡Gracias! Tu reseña se actualizó.", rv_offline: "Las reseñas no están disponibles ahora: el servidor está desconectado.", rv_stars: "Elige de 1 a 5 estrellas.", rv_short: "Escribe unas palabras (10 caracteres como mínimo).", rv_links: "No se permiten enlaces en las reseñas.", rv_wrong: "Apodo o contraseña incorrectos.", rv_limit: "Demasiados intentos. Espera unos minutos y vuelve a intentarlo.", rv_error: "No se pudo enviar la reseña. Inténtalo más tarde.",
       controls_title: "Controles", controls_text: "Teclado y ratón, como siempre.", key_mouse: "Ratón", key_space: "Espacio",
       k_move: "Moverse", k_aim: "Apuntar y disparar", k_reload: "Recargar", k_weapons: "Cambiar de arma", k_jump: "Saltar", k_crouch: "Agacharse",
       k_walk: "Caminar en silencio", k_buy: "Menú de compra", k_plant: "Plantar o desactivar (mantener)", k_drop: "Soltar la bomba", k_scores: "Marcador", k_menu: "Menú y ajustes",

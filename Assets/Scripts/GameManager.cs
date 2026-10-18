@@ -55,6 +55,10 @@ public class GameManager : MonoBehaviour
     public BotDifficulty Difficulty = BotDifficulty.Normal;
     public int RoundsToWin = 8;
     public bool FriendlyFire;
+    /// <summary>The bombsite walled off when a team has 3 players or fewer ("A" or "B"; Settings choose).</summary>
+    public string ClosedSite = "B";
+    public string ActiveClosedSite => TeamSize <= 3 ? ClosedSite : null;
+    const string ClosedSiteKey = "DesertStrike.closedSite";
     /// <summary>The map chosen in the menu (saved); in a LAN game the client plays the host's map instead.</summary>
     public string MapId { get; private set; } = MapCatalog.DefaultId;
 
@@ -152,7 +156,11 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<TouchControls>();
         gameObject.AddComponent<VoiceChat>();
         Bomb = gameObject.AddComponent<BombManager>();
+        gameObject.AddComponent<BotKnowledge>();
+        string savedSite = PlayerPrefs.GetString(ClosedSiteKey, "B");
+        ClosedSite = savedSite == "A" ? "A" : "B";
         ReadCommandLine();
+        if (siteCheck && views != null) Map.SetClosedSite(ClosedSite);   // -ds-closed-site with -ds-view: pictures of the wall
         if (ServerMode) gameObject.AddComponent<OnlineHost>();
         else
         {
@@ -174,6 +182,8 @@ public class GameManager : MonoBehaviour
     {
         if (Net.IsClient) return;
         ClearMatch();
+        Map.SetClosedSite(ActiveClosedSite);
+        if (siteCheck && Map.ClosedSite != null) Invoke(nameof(LogSiteCheck), 1.5f);
         Round = 0;
         TerroristWins = SwatWins = 0;
         terroristLossStreak = swatLossStreak = 0;
@@ -206,6 +216,7 @@ public class GameManager : MonoBehaviour
     public void ReturnToMenu()
     {
         ClearMatch();
+        Map.SetClosedSite(null);
         Net.Stop();
         clientMatch = false;
         State = MatchState.Menu;
@@ -217,6 +228,7 @@ public class GameManager : MonoBehaviour
     public void BackToLobby()
     {
         ClearMatch();
+        Map.SetClosedSite(null);
         foreach (var peer in Net.Peers) peer.Player = null;
         Net.ForgetAwayPlayers();
         State = MatchState.Menu;
@@ -235,8 +247,9 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>Online game host: the room's settings, from the online API (in the lobby only).</summary>
-    public void ApplyRoomSettings(string mapId, int teamSize, BotDifficulty difficulty, int roundsToWin, bool friendlyFire)
+    public void ApplyRoomSettings(string mapId, int teamSize, BotDifficulty difficulty, int roundsToWin, bool friendlyFire, string closedSite)
     {
+        if (closedSite == "A" || closedSite == "B") ClosedSite = closedSite;
         if (State != MatchState.Menu) return;
         if (MapCatalog.Find(mapId) != null && mapId != MapId)
         {
@@ -363,7 +376,19 @@ public class GameManager : MonoBehaviour
     }
 
     public string MatchDescription() =>
-        $"{Map.Name}  ·  {TeamSize}v{TeamSize}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}";
+        $"{Map.Name}  ·  {TeamSize}v{TeamSize}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}"
+        + (ActiveClosedSite != null ? $"  ·  site {ActiveClosedSite} closed" : "");
+
+    /// <summary>Which bombsite small matches wall off; saved.</summary>
+    public void SetClosedSite(string site)
+    {
+        if (site != "A" && site != "B") return;
+        ClosedSite = site;
+        PlayerPrefs.SetString(ClosedSiteKey, site);
+    }
+
+    bool siteCheck;   // -ds-closed-site: log whether the walled-off map still plays (tests)
+    void LogSiteCheck() => Debug.Log("[Map] Closed site check: " + Map.CheckClosedSite());
 
     void StartRound()
     {
@@ -595,6 +620,7 @@ public class GameManager : MonoBehaviour
         });
         if (KillFeed.Count > 6) KillFeed.RemoveAt(0);
 
+        BotKnowledge.Instance.OnKill(victim, killer);
         if (killer != null && killer != victim && killer.Team != victim.Team)
         {
             killer.Kills++;
@@ -782,6 +808,7 @@ public class GameManager : MonoBehaviour
         Banner = string.IsNullOrEmpty(match.Banner) ? null : match.Banner;
         LastWinner = match.LastWinner;
         FriendlyFire = match.FriendlyFire;
+        Map.SetClosedSite(match.ClosedSite);
         Message = string.IsNullOrEmpty(match.Message) ? null : match.Message;
         MessageUntil = Time.time + match.MessageLeft;
         PlayerAmmoResupply = string.IsNullOrEmpty(resupply) ? null : resupply;
@@ -1081,9 +1108,18 @@ public class GameManager : MonoBehaviour
                 case "-ds-difficulty" when hasValue:
                     if (Enum.TryParse(args[++i], true, out BotDifficulty difficulty)) Difficulty = difficulty;
                     break;
+                case "-ds-rounds" when hasValue:
+                    // -ds-rounds <1-16>: rounds to win (tests)
+                    RoundsToWin = Mathf.Clamp(int.Parse(args[++i], CultureInfo.InvariantCulture), 1, 16);
+                    break;
                 case "-ds-players" when hasValue:
                     // -ds-players <1-5>: players per team (tests)
                     TeamSize = Mathf.Clamp(int.Parse(args[++i], CultureInfo.InvariantCulture), 1, 5);
+                    break;
+                case "-ds-closed-site" when hasValue:
+                    // -ds-closed-site <a|b>: the site small matches wall off, this run (tests)
+                    ClosedSite = args[++i].ToUpperInvariant() == "A" ? "A" : "B";
+                    siteCheck = true;
                     break;
                 case "-ds-attack" when hasValue:
                     // -ds-attack <a|b>: the Terrorist bots always go for that bombsite (tests)

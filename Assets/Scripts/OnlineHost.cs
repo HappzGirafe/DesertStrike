@@ -20,6 +20,8 @@ public class OnlineHost : MonoBehaviour
     public static int Port = NetSession.GamePort;
     public static string SlotId = "room-1";
     public static string ControlUrl = "http://127.0.0.1:8001";
+    /// <summary>The key for the internal API (BotKnowledge sends with it too).</summary>
+    public static string InternalKey { get; private set; }
 
     const float MatchOverPause = 12f;   // the result stays on the players' screens this long
     const float EmptyMatchEnd = 30f;    // a match nobody is connected to ends after this long
@@ -39,7 +41,7 @@ public class OnlineHost : MonoBehaviour
     [Serializable]
     class Room
     {
-        public string id, name, map, difficulty, owner_id;
+        public string id, name, map, difficulty, owner_id, closed_site;
         public int team_size, rounds;
         public bool friendly_fire, start;
         public List<Member> members = new List<Member>();
@@ -66,6 +68,7 @@ public class OnlineHost : MonoBehaviour
             return;
         }
         key = JoinTicket.InternalKey(secret);
+        InternalKey = key;
         Application.targetFrameRate = 60;   // without a screen nothing else holds it back
         QualitySettings.vSyncCount = 0;
         AudioListener.volume = 0f;
@@ -190,7 +193,7 @@ public class OnlineHost : MonoBehaviour
 
         if (gm.State != MatchState.Menu) return;
         Enum.TryParse(room.difficulty, out BotDifficulty difficulty);
-        gm.ApplyRoomSettings(room.map, room.team_size, difficulty, room.rounds, room.friendly_fire);
+        gm.ApplyRoomSettings(room.map, room.team_size, difficulty, room.rounds, room.friendly_fire, room.closed_site);
         if (room.start && net.Peers.Exists(p => !p.Away))
         {
             matchNumber++;

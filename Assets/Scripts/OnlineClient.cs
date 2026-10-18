@@ -33,7 +33,7 @@ public class OnlineUser
 [Serializable]
 public class RoomInfo
 {
-    public string id, name, map, status, owner, owner_id, difficulty, code;
+    public string id, name, map, status, owner, owner_id, difficulty, code, closed_site;
     public int team_size, max_players, players, spectators, rounds;
     public bool @private, friendly_fire, is_member, is_owner, server_online;
     public List<MemberInfo> members = new List<MemberInfo>();
@@ -46,7 +46,7 @@ public class RoomInfo
 [Serializable]
 public class RoomSettingsBody
 {
-    public string name = "", map = "dune", difficulty = "Normal", team = "t";
+    public string name = "", map = "dune", difficulty = "Normal", team = "t", closed_site = "B";
     public int team_size = 5, rounds = 8;
     public bool friendly_fire, @private;
 }
@@ -68,7 +68,7 @@ public class OnlineClient : MonoBehaviour
     public const string ConfigUrl = "https://happzgirafe.github.io/DesertStrike/online.json";
     const string ApiKey = "DesertStrike.online.api", TokenKey = "DesertStrike.online.token";
 
-    [Serializable] class Config { public string api; }
+    [Serializable] class Config { public string api, latest_version, download; }
     [Serializable] class Credentials { public string nick, password; }
     [Serializable] class AuthAnswer { public string token; public OnlineUser user; }
     [Serializable] class Error { public string detail; }
@@ -124,6 +124,11 @@ public class OnlineClient : MonoBehaviour
     bool leaving;
     bool testApi;   // -ds-api: a test run, whose login is not saved (it would replace the player's own)
 
+    /// <summary>A newer Low Strike than this one on the website (its online.json says which), or null.</summary>
+    public string NewVersion { get; private set; }
+    /// <summary>Where to get it: the website's download section.</summary>
+    public string DownloadUrl { get; private set; } = "https://lowstrike.lokvetia.com/#download";
+
     // -ds-online <nickname> <password> <create|join> [t|swat|spectator] and -ds-online-start <players>: tests.
     string testNick, testPassword, testAction, testTeam = "t";
     string testScreen;   // -ds-online-screen <name> (GameUI opens it); "link" keeps the link question up for a screenshot
@@ -150,6 +155,8 @@ public class OnlineClient : MonoBehaviour
             }
             if (args[i] == "-ds-online-start" && i + 1 < args.Length) int.TryParse(args[i + 1], out testStartAt);
             if (args[i] == "-ds-online-screen" && i + 1 < args.Length) testScreen = args[i + 1];
+            // -ds-fake-latest <version>: as if the website had that version (tests the update question)
+            if (args[i] == "-ds-fake-latest" && i + 1 < args.Length) NoteLatest(args[i + 1], null);
         }
         if (ApiUrl == null)
         {
@@ -185,6 +192,7 @@ public class OnlineClient : MonoBehaviour
             catch (Exception)
             {
             }
+            if (config != null && NewVersion == null) NoteLatest(config.latest_version, config.download);
             if (config == null || string.IsNullOrEmpty(config.api))
             {
                 // The owner has not set up the online server (yet), or switched it off.
@@ -197,6 +205,28 @@ public class OnlineClient : MonoBehaviour
             }
             UseApi(config.api, remember: true);
         }
+    }
+
+    void NoteLatest(string latest, string download)
+    {
+        if (!string.IsNullOrEmpty(download) && download.StartsWith("https://")) DownloadUrl = download;
+        if (!IsNewer(latest, Application.version)) return;
+        NewVersion = latest.Trim();
+        Debug.Log($"[Online] Low Strike {NewVersion} is out (this is {Application.version})");
+    }
+
+    /// <summary>"1.20" is newer than "1.19" (numbers between the dots, not text).</summary>
+    public static bool IsNewer(string version, string than)
+    {
+        if (string.IsNullOrEmpty(version)) return false;
+        int[] Parts(string v) => Array.ConvertAll((v ?? "").Trim().Split('.'), p => int.TryParse(p, out int n) ? n : 0);
+        int[] a = Parts(version), b = Parts(than);
+        for (int i = 0; i < Math.Max(a.Length, b.Length); i++)
+        {
+            int x = i < a.Length ? a[i] : 0, y = i < b.Length ? b[i] : 0;
+            if (x != y) return x > y;
+        }
+        return false;
     }
 
     void UseApi(string url, bool remember)
@@ -645,7 +675,7 @@ public class OnlineClient : MonoBehaviour
     public RoomSettingsBody SettingsOf(RoomInfo room) => new RoomSettingsBody
     {
         name = room.name, map = room.map, difficulty = room.difficulty, team_size = room.team_size, rounds = room.rounds,
-        friendly_fire = room.friendly_fire, @private = room.@private,
+        friendly_fire = room.friendly_fire, @private = room.@private, closed_site = string.IsNullOrEmpty(room.closed_site) ? "B" : room.closed_site,
     };
 
     public void InviteFriend(string userId, Action<string> done)
@@ -666,6 +696,15 @@ public class OnlineClient : MonoBehaviour
         busy++;
         Ask("join", "POST", $"/invites/{invite.id}/accept", new JoinBody(), text => { busy--; JoinWith(text); done?.Invoke(null); },
             (code, message) => { busy--; done?.Invoke(message); });
+    }
+
+    /// <summary>What people did in a match this game ran, for every game's bots (BotKnowledge). Needs the login.</summary>
+    public void SendKnowledge(string json)
+    {
+        if (ApiUrl == null || !LoggedIn || !asking.Add("knowledge")) return;
+        StartCoroutine(Send("knowledge", "POST", "/bot-knowledge", json, token,
+                            _ => Debug.Log("[Bots] Sent what people did this match to the online server"),
+                            (code, message) => Debug.LogWarning($"[Bots] Could not send what people did: {message}")));
     }
 
     // ----------------------------------------------------------------- talking to the API
@@ -804,7 +843,7 @@ public class OnlineClient : MonoBehaviour
                 CreateRoom(new RoomSettingsBody
                 {
                     name = testNick + " room", map = gm.Map.Id, team_size = gm.TeamSize, difficulty = gm.Difficulty.ToString(),
-                    rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, team = testTeam,
+                    rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, team = testTeam, closed_site = gm.ClosedSite,
                 }, problem => Debug.Log(problem == null ? "[Online] Test: room created" : "[Online] Test: could not create a room: " + problem));
             }
             else if (testAction == "join" && Rooms.Count > 0)

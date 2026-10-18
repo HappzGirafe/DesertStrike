@@ -47,6 +47,7 @@ public partial class GameUI : MonoBehaviour
     bool settingsOpen;
     bool crosshairOpen;
     bool touchLayoutOpen;   // Settings > TOUCH CONTROLS: moving the phone's buttons
+    bool languagesOpen;     // Settings > LANGUAGES
     TouchControls touch;
 
     // Friends screen
@@ -89,6 +90,8 @@ public partial class GameUI : MonoBehaviour
         crosshairOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-crosshair") >= 0;   // screenshots
         if (crosshairOpen) settingsOpen = true;
         touchLayoutOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-touch-layout") >= 0;   // screenshots
+        languagesOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-languages") >= 0;   // screenshots
+        if (languagesOpen) settingsOpen = true;
         int demo = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-keyboard-demo");
         if (demo >= 0 && demo + 2 < Environment.GetCommandLineArgs().Length)
         {
@@ -156,7 +159,9 @@ public partial class GameUI : MonoBehaviour
             if (searching) gm.Net.StartDiscovery();
             else gm.Net.StopDiscovery();
 
-            if (accountOpen) DrawAccount();
+            bool updateQuestion = Online.NewVersion != null && updateStep < 2;
+            if (updateQuestion) DrawUpdateQuestion();
+            else if (accountOpen) DrawAccount();
             else if (onlineAccountOpen) DrawOnlineAccount();
             else if (inventoryOpen) DrawInventory();
             else if (gm.Net.IsHost) DrawHostLobby();
@@ -166,11 +171,12 @@ public partial class GameUI : MonoBehaviour
             else if (lanOpen) DrawLanMenu();
             else if (friendsOpen && Accounts.IsOnline && !friendsLan) DrawOnlineFriends();
             else if (friendsOpen) DrawFriends();
+            else if (settingsOpen && languagesOpen) DrawLanguages();
             else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
             else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
             else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
-            if (Online.AskLink && !accountOpen) DrawLinkQuestion();
+            if (Online.AskLink && !accountOpen && !updateQuestion) DrawLinkQuestion();
             DrawGameKeyboard();
             DrawFps(20f, 20f);
             return;
@@ -183,7 +189,8 @@ public partial class GameUI : MonoBehaviour
         if (gm.State == MatchState.MatchOver) DrawMatchOver();
         else if (GameInput.ScoresHeld) DrawScoreboard(170f);
         if (!gm.IsPaused && gm.State != MatchState.MatchOver && touch != null) touch.Draw();
-        if (!gm.IsPaused) settingsOpen = crosshairOpen = touchLayoutOpen = false;
+        if (!gm.IsPaused) settingsOpen = crosshairOpen = touchLayoutOpen = languagesOpen = false;
+        else if (settingsOpen && languagesOpen) DrawLanguages();
         else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
         else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
         else if (settingsOpen) DrawSettings();
@@ -203,6 +210,12 @@ public partial class GameUI : MonoBehaviour
         Label(new Rect(x, top + 20f, w, 80f), "LOW STRIKE", 66, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, top + 95f, w, 30f), $"Terrorists vs SWAT on {gm.Map.Description}", 22, Dim, TextAnchor.MiddleCenter);
         DrawAccountBox(x + 24f, top + 22f);
+        // iPhones close apps from the app switcher only (Apple's rules); everywhere else the game can quit itself.
+        if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + w - 164f, top + 22f, 140f, 46f), "EXIT", false, true, 20))
+        {
+            Debug.Log("[DesertStrike] Exit from the main menu");
+            Application.Quit();
+        }
 
         float y = top + 150f;
         float leftEnd = TeamRow(x, y, allowSpectate: true, column);
@@ -210,7 +223,7 @@ public partial class GameUI : MonoBehaviour
         leftEnd = DifficultyRow(x, leftEnd, column);
         float rightEnd = MapRow(right, y, column);
         rightEnd = RoundsRow(right, rightEnd, column);
-        rightEnd = FriendlyFireRow(right, rightEnd, column);
+        rightEnd = FriendlyFireAndSiteRow(right, rightEnd, column);
         y = Mathf.Max(leftEnd, rightEnd) + 6f;
 
         const float small = 188f, gap = 12f;
@@ -244,6 +257,43 @@ public partial class GameUI : MonoBehaviour
             y += 22f;
         }
         Label(new Rect(x + 20f, y, w - 40f, 100f), GameInput.Touch ? TouchHelp : ControlsHelp, 16, Dim, TextAnchor.UpperCenter);
+    }
+
+    // A newer Low Strike is on the website: asked at every start. YES, NOW opens the download page; LATER warns that
+    // online play may not work, and only I AGREE closes it (NO goes back to the question).
+    int updateStep;   // 0 the question, 1 the warning, 2 answered (this run)
+
+    void DrawUpdateQuestion()
+    {
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.6f));
+        float w = Mathf.Min(900f, width - 40f), h = 400f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        Fill(new Rect(x, y, w, h), new Color(0.05f, 0.05f, 0.06f, 0.96f));
+        float half = (w - 120f) / 2f, by = y + h - 110f;
+        if (updateStep == 0)
+        {
+            Label(new Rect(x, y + 24f, w, 50f), "NEW UPDATE", 38, Gold, TextAnchor.MiddleCenter);
+            Label(new Rect(x + 40f, y + 110f, w - 80f, 40f), $"Low Strike {Online.NewVersion}", 26, Color.white, TextAnchor.MiddleCenter);
+            Label(new Rect(x + 40f, y + 160f, w - 80f, 60f), "A new update is out. Do you want to update now?", 24, Color.white, TextAnchor.MiddleCenter);
+            if (Button(new Rect(x + 50f, by, half, 64f), "YES, NOW", true, true, 24))
+            {
+                Debug.Log("[DesertStrike] Update: opening " + Online.DownloadUrl);
+                Application.OpenURL(Online.DownloadUrl);
+                updateStep = 2;
+            }
+            if (Button(new Rect(x + 70f + half, by, half, 64f), "LATER", false, true, 24)) updateStep = 1;
+        }
+        else
+        {
+            Label(new Rect(x, y + 24f, w, 50f), "OUTDATED VERSION", 38, Danger, TextAnchor.MiddleCenter);
+            Label(new Rect(x + 40f, y + 120f, w - 80f, 90f), "You will not be able to play online properly on an outdated version.", 24, Color.white,
+                  TextAnchor.MiddleCenter);
+            if (Button(new Rect(x + 50f, by, half, 64f), "I AGREE", false, true, 24))
+            {
+                Debug.Log("[DesertStrike] Update: later (the player agreed)");
+                updateStep = 2;
+            }
+            if (Button(new Rect(x + 70f + half, by, half, 64f), "NO, I DON'T AGREE", true, true, 22)) updateStep = 0;
+        }
     }
 
     float TeamRow(float x, float y, bool allowSpectate, float rowWidth = 700f)
@@ -285,8 +335,30 @@ public partial class GameUI : MonoBehaviour
         return OptionRow(x, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, gm.RoundsToWin), i => gm.RoundsToWin = rounds[i], rowWidth);
     }
 
-    float FriendlyFireRow(float x, float y, float rowWidth) =>
-        OptionRow(x, y, "Friendly fire (teammates can hurt each other)", new[] { "Off", "On" }, gm.FriendlyFire ? 1 : 0, i => gm.FriendlyFire = i == 1, rowWidth);
+    /// <summary>Friendly fire, and next to it the bombsite a small match (1v1 to 3v3) walls off.</summary>
+    float FriendlyFireAndSiteRow(float x, float y, float rowWidth)
+    {
+        float half = (rowWidth - 20f) / 2f;
+        OptionRow(x, y, "Friendly fire", new[] { "Off", "On" }, gm.FriendlyFire ? 1 : 0, i => gm.FriendlyFire = i == 1, half);
+        return ClosedSiteRow(x + half + 20f, y, half, gm.TeamSize, gm.ClosedSite, gm.SetClosedSite);
+    }
+
+    /// <summary>"Closed site": A or B. It only counts in 1v1, 2v2 and 3v3, so with bigger teams it shows dimmed.</summary>
+    float ClosedSiteRow(float x, float y, float rowWidth, int teamSize, string closedSite, Action<string> onSelect)
+    {
+        bool counts = teamSize <= 3;
+        Label(new Rect(x + 40f, y, rowWidth, 34f), counts ? "Closed site" : "Closed site (1v1-3v3)", 22, counts ? Color.white : Dim);
+        float buttonWidth = (rowWidth - 10f) / 2f;
+        string[] sites = { "A", "B" };
+        for (int i = 0; i < 2; i++)
+        {
+            var rect = new Rect(x + 40f + i * (buttonWidth + 10f), y + 38f, buttonWidth, 48f);
+            bool selected = closedSite == sites[i];
+            if (Button(rect, "Site " + sites[i], selected && counts, true)) onSelect(sites[i]);
+            if (selected && !counts) Fill(new Rect(rect.x, rect.yMax - 4f, rect.width, 4f), Dim);
+        }
+        return y + 105f;
+    }
 
     void OpenLan()
     {
@@ -552,7 +624,7 @@ public partial class GameUI : MonoBehaviour
         rightEnd = PlayersRow(right, rightEnd, column);
         rightEnd = DifficultyRow(right, rightEnd, column);
         rightEnd = RoundsRow(right, rightEnd, column);
-        rightEnd = FriendlyFireRow(right, rightEnd, column);
+        rightEnd = FriendlyFireAndSiteRow(right, rightEnd, column);
 
         y = Mathf.Max(leftEnd, rightEnd) + 6f;
         if (Button(new Rect(x + (w - 640f) / 2f, y, 640f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
@@ -1123,9 +1195,42 @@ public partial class GameUI : MonoBehaviour
                   : Accounts.HideStatus ? "Hidden: nobody sees when you are online, and you can't see when your friends are online either."
                   : "Visible: your friends see when you are online.", 16, Dim);
 
-        if (Button(new Rect(x + w / 2f - 470f, top + height - 80f, 300f, 56f), "CROSSHAIR")) crosshairOpen = true;
-        if (Button(new Rect(x + w / 2f - 150f, top + height - 80f, 300f, 56f), "BACK")) settingsOpen = false;
-        if (GameInput.Touch && Button(new Rect(x + w / 2f + 170f, top + height - 80f, 300f, 56f), "TOUCH CONTROLS")) touchLayoutOpen = true;
+        int count = GameInput.Touch ? 4 : 3;
+        float bw = Mathf.Min(300f, (w - 80f - (count - 1) * 20f) / count), bx = x + (w - count * bw - (count - 1) * 20f) / 2f, by = top + height - 80f;
+        if (Button(new Rect(bx, by, bw, 56f), "CROSSHAIR")) crosshairOpen = true;
+        bx += bw + 20f;
+        if (Button(new Rect(bx, by, bw, 56f), "LANGUAGES")) languagesOpen = true;
+        bx += bw + 20f;
+        if (GameInput.Touch)
+        {
+            if (Button(new Rect(bx, by, bw, 56f), "TOUCH CONTROLS")) touchLayoutOpen = true;
+            bx += bw + 20f;
+        }
+        if (Button(new Rect(bx, by, bw, 56f), "BACK")) settingsOpen = false;
+    }
+
+    /// <summary>Settings > LANGUAGES: the website's six; a click switches at once (and is saved).</summary>
+    void DrawLanguages()
+    {
+        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
+        {
+            languagesOpen = false;
+            Event.current.Use();
+            return;
+        }
+        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
+        float w = Mathf.Min(900f, width - 40f), h = 600f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        Fill(new Rect(x, y, w, h), PanelColor);
+        Label(new Rect(x, y + 20f, w, 60f), "LANGUAGES", 50, Gold, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 84f, w, 30f), "Choose the game's language", 20, Dim, TextAnchor.MiddleCenter);
+        float bw = (w - 120f) / 2f;
+        for (int i = 0; i < Loc.Languages.Length; i++)
+        {
+            var (code, name) = Loc.Languages[i];
+            var rect = new Rect(x + 40f + (i % 2) * (bw + 40f), y + 136f + (i / 2) * 92f, bw, 72f);
+            if (Button(rect, name, code == Loc.Language, true, 28)) Loc.Set(code);
+        }
+        if (Button(new Rect(x + w / 2f - 150f, y + h - 84f, 300f, 56f), "BACK")) languagesOpen = false;
     }
 
     // ----------------------------------------------------------------- moving the phone's buttons (Settings > TOUCH CONTROLS)
@@ -1550,7 +1655,8 @@ public partial class GameUI : MonoBehaviour
         if (bomb.State == BombState.Carried && bomb.Carrier == me)
         {
             string site = gm.Map.SiteAt(me.transform.position);
-            hint = site != null ? $"Hold {GameInput.UseName} to plant the bomb on {site}" : $"You have the bomb: plant it on site A or B   ({GameInput.DropName} to drop it)";
+            string sites = gm.Map.ClosedSite == null ? "site A or B" : gm.Map.ClosedSite == "A" ? "site B (A is closed)" : "site A (B is closed)";
+            hint = site != null ? $"Hold {GameInput.UseName} to plant the bomb on {site}" : $"You have the bomb: plant it on {sites}   ({GameInput.DropName} to drop it)";
             color = TerroristColor;
         }
         else if (bomb.State == BombState.Planted && me.Team == Team.Swat
@@ -1797,6 +1903,8 @@ public partial class GameUI : MonoBehaviour
 
     void Label(Rect rect, string text, int size, Color color, TextAnchor anchor = TextAnchor.MiddleLeft)
     {
+        text = Loc.T(text);
+        if (!Loc.English) size = FitSize(text, size, rect.width);
         var style = Style(size, anchor);
         GUI.color = new Color(0f, 0f, 0f, 0.8f * color.a);
         GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
@@ -1805,7 +1913,34 @@ public partial class GameUI : MonoBehaviour
         GUI.color = Color.white;
     }
 
+    // A translation can be longer than the English the layout was made for: its font shrinks (to 70% at most) to fit.
+    readonly Dictionary<string, int> fitted = new Dictionary<string, int>();
+
+    int FitSize(string text, int size, float width)
+    {
+        if (string.IsNullOrEmpty(text) || width <= 0f) return size;
+        string key = size + "|" + (int)width + "|" + text;
+        if (fitted.TryGetValue(key, out int fit)) return fit;
+        fit = size;
+        int smallest = Mathf.Max(10, Mathf.RoundToInt(size * 0.7f));
+        var content = new GUIContent(text);
+        while (fit > smallest && Style(fit, TextAnchor.MiddleLeft).CalcSize(content).x > width) fit--;
+        if (fitted.Count > 3000) fitted.Clear();
+        fitted[key] = fit;
+        return fit;
+    }
+
     void WrapLabel(Rect rect, string text, int size, Color color)
+    {
+        text = Loc.T(text);
+        if (!Loc.English) (size, rect.height) = FitWrapped(text, size, rect);
+        var style = WrapStyle(size);
+        GUI.color = color;
+        GUI.Label(rect, text, style);
+        GUI.color = Color.white;
+    }
+
+    GUIStyle WrapStyle(int size)
     {
         int key = 1000000 + size;
         if (!styles.TryGetValue(key, out var style))
@@ -1813,9 +1948,26 @@ public partial class GameUI : MonoBehaviour
             style = new GUIStyle(Style(size, TextAnchor.UpperLeft)) { wordWrap = true, clipping = TextClipping.Clip };
             styles[key] = style;
         }
-        GUI.color = color;
-        GUI.Label(rect, text, style);
-        GUI.color = Color.white;
+        return style;
+    }
+
+    // The same for wrapped text: smaller until its lines fit the box (to 70% at most). A box made for one line of
+    // English may take two lines of the translation, a little taller than the box.
+    readonly Dictionary<string, (int, float)> fittedWrap = new Dictionary<string, (int, float)>();
+
+    (int, float) FitWrapped(string text, int size, Rect rect)
+    {
+        if (string.IsNullOrEmpty(text) || rect.width <= 0f || rect.height <= 0f) return (size, rect.height);
+        string key = size + "|" + (int)rect.width + "|" + (int)rect.height + "|" + text;
+        if (fittedWrap.TryGetValue(key, out var fit)) return fit;
+        int smallest = Mathf.Max(10, Mathf.RoundToInt(size * 0.7f)), font = size;
+        var content = new GUIContent(text);
+        float room = Mathf.Max(rect.height, smallest * 2.6f);
+        while (font > smallest && WrapStyle(font).CalcHeight(content, rect.width) > room) font--;
+        fit = (font, Mathf.Max(rect.height, Mathf.Min(room, WrapStyle(font).CalcHeight(content, rect.width))));
+        if (fittedWrap.Count > 3000) fittedWrap.Clear();
+        fittedWrap[key] = fit;
+        return fit;
     }
 
     static void Fill(Rect rect, Color color)

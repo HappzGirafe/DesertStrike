@@ -228,7 +228,7 @@ public partial class GameUI
         leftEnd = OptionRow(x, leftEnd, "Who can join", new[] { "Everyone", "With the code" }, onlinePrivate ? 1 : 0, i => onlinePrivate = i == 1, column);
         float rightEnd = MapRow(right, y, column);
         rightEnd = RoundsRow(right, rightEnd, column);
-        rightEnd = FriendlyFireRow(right, rightEnd, column);
+        rightEnd = FriendlyFireAndSiteRow(right, rightEnd, column);
         rightEnd = OptionRow(right, rightEnd, "Your team", new[] { "Terrorists", "SWAT", "Watch" }, onlineTeam, i => onlineTeam = i, column);
         float by = Mathf.Max(leftEnd, rightEnd) + 4f;
 
@@ -242,6 +242,7 @@ public partial class GameUI
             {
                 name = onlineRoomName.Trim(), map = gm.Map.Id, team_size = gm.TeamSize, difficulty = gm.Difficulty.ToString(),
                 rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, @private = onlinePrivate, team = OnlineTeamKey,
+                closed_site = gm.ClosedSite,
             }, problem =>
             {
                 ShowOnlineResult(problem);
@@ -341,7 +342,8 @@ public partial class GameUI
             ry += 40f;
             WrapLabel(new Rect(right, ry, column, 90f),
                       $"{MapName(room.map)}  ·  {room.team_size}v{room.team_size}  ·  {room.difficulty} bots  ·  first to {room.rounds}  ·  " +
-                      $"friendly fire {(room.friendly_fire ? "on" : "off")}", 19, Dim);
+                      $"friendly fire {(room.friendly_fire ? "on" : "off")}" +
+                      (room.team_size <= 3 && !string.IsNullOrEmpty(room.closed_site) ? $"  ·  site {room.closed_site} closed" : ""), 19, Dim);
             ry += 70f;
             ry = DrawInviteList(right, ry, column, bottom - 120f);
         }
@@ -383,7 +385,9 @@ public partial class GameUI
         y = OptionRow(x - 40f, y, "Bot difficulty", difficulties, Array.IndexOf(difficulties, room.difficulty), i => Change(s => s.difficulty = difficulties[i]), column);
         int[] rounds = { 3, 5, 8, 16 };
         y = OptionRow(x - 40f, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, room.rounds), i => Change(s => s.rounds = rounds[i]), column);
-        y = OptionRow(x - 40f, y, "Friendly fire", new[] { "Off", "On" }, room.friendly_fire ? 1 : 0, i => Change(s => s.friendly_fire = i == 1), column);
+        float half = (column - 20f) / 2f;
+        OptionRow(x - 40f, y, "Friendly fire", new[] { "Off", "On" }, room.friendly_fire ? 1 : 0, i => Change(s => s.friendly_fire = i == 1), half);
+        y = ClosedSiteRow(x - 20f + half, y, half, room.team_size, room.closed_site, site => Change(s => s.closed_site = site));
         y = OptionRow(x - 40f, y, "Who can join", new[] { "Everyone", "With the code" }, room.@private ? 1 : 0, i => Change(s => s.@private = i == 1), column);
         if (Button(new Rect(x, y, 200f, 42f), "DONE", true, true, 18)) roomEditing = false;
         return y + 56f;

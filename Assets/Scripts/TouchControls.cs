@@ -330,7 +330,11 @@ public class TouchControls : MonoBehaviour
 
     void PadLabel(Vector2 center, float radius, string label)
     {
+        label = Loc.T(label);
         labelStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(radius * 0.36f, 14f, 30f));
+        // A longer word in another language: smaller, to stay inside the button.
+        var content = new GUIContent(label);
+        while (labelStyle.fontSize > 11 && labelStyle.CalcSize(content).x > radius * 1.9f) labelStyle.fontSize--;
         labelStyle.normal.textColor = new Color(1f, 1f, 1f, 0.9f);
         GUI.Label(new Rect(center.x - radius, center.y - radius, radius * 2f, radius * 2f), label, labelStyle);
     }

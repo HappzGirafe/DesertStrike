@@ -118,10 +118,98 @@ public abstract class GameMap
     protected float radarSize = 128f;
     NavMeshDataInstance navMesh;
 
+    /// <summary>The bombsite walled off for small matches (1v1 to 3v3), or null when both are open.</summary>
+    public string ClosedSite { get; private set; }
+    Transform barrier;
+
     public abstract void Build(Transform parent);
 
-    /// <summary>"A" or "B" when the position is on a bombsite, otherwise null.</summary>
-    public virtual string SiteAt(Vector3 position) => SiteA.Contains(position) ? "A" : SiteB.Contains(position) ? "B" : null;
+    /// <summary>"A" or "B" when the position is on a bombsite that is open, otherwise null.</summary>
+    public string SiteAt(Vector3 position)
+    {
+        string site = SiteUnder(position);
+        return site == ClosedSite ? null : site;
+    }
+
+    /// <summary>The bombsite under a position, open or not.</summary>
+    protected virtual string SiteUnder(Vector3 position) => SiteA.Contains(position) ? "A" : SiteB.Contains(position) ? "B" : null;
+
+    public Bounds SiteZone(string site) => site == "A" ? SiteA : SiteB;
+
+    /// <summary>Inside the wall round the closed site (seen from above).</summary>
+    public bool InClosedSite(Vector3 p)
+    {
+        if (ClosedSite == null) return false;
+        Bounds zone = SiteZone(ClosedSite);
+        zone.Expand(new Vector3(4f, 0f, 4f));
+        return zone.Contains(new Vector3(p.x, zone.center.y, p.z));
+    }
+
+    /// <summary>
+    /// Walls a bombsite off (small matches play on one site), or opens both again (null). The wall runs round the
+    /// site's area a little outside it, so it closes every way in on any map; bots' paths go round it too.
+    /// </summary>
+    public void SetClosedSite(string site)
+    {
+        if (site == ClosedSite) return;
+        ClosedSite = site;
+        if (barrier != null) Object.Destroy(barrier.gameObject);
+        barrier = null;
+        if (site == null || Root == null) return;
+
+        barrier = new GameObject("Closed site " + site).transform;
+        barrier.SetParent(Root, false);
+        Bounds zone = SiteZone(site);
+        // From 2 m under the site's floor (a sloping site) to 6 m over it (nobody jumps it).
+        const float grow = 1.5f, thick = 0.5f;
+        float bottom = zone.min.y - 1f, height = 8f;
+        float x0 = zone.min.x - grow, x1 = zone.max.x + grow, z0 = zone.min.z - grow, z1 = zone.max.z + grow;
+        var concrete = new Color(0.55f, 0.55f, 0.53f);
+        var hazard = new Color(0.95f, 0.75f, 0.1f);
+        void Panel(Vector3 center, Vector3 size)
+        {
+            var wall = Effects.Shape(PrimitiveType.Cube, barrier, center, size, concrete, collider: true);
+            wall.name = "Closed site wall";
+            // Two warning bands at eye height: where the wall closes a doorway, it is plain that the way is shut.
+            foreach (float above in new[] { 1.1f, 2.3f })
+                Effects.Shape(PrimitiveType.Cube, wall.transform.parent, new Vector3(center.x, bottom + 2f + above, center.z),
+                              new Vector3(size.x + 0.04f, 0.3f, size.z + 0.04f), hazard);
+            var obstacle = wall.AddComponent<NavMeshObstacle>();
+            obstacle.carving = true;
+            obstacle.carveOnlyStationary = false;
+            obstacle.size = Vector3.one;   // the cube's own (unit) size, scaled with it
+        }
+        Panel(new Vector3((x0 + x1) / 2f, bottom + height / 2f, z0), new Vector3(x1 - x0 + thick, height, thick));
+        Panel(new Vector3((x0 + x1) / 2f, bottom + height / 2f, z1), new Vector3(x1 - x0 + thick, height, thick));
+        Panel(new Vector3(x0, bottom + height / 2f, (z0 + z1) / 2f), new Vector3(thick, height, z1 - z0 + thick));
+        Panel(new Vector3(x1, bottom + height / 2f, (z0 + z1) / 2f), new Vector3(thick, height, z1 - z0 + thick));
+        Debug.Log($"[Map] Site {site} closed (walled off for a small match)");
+    }
+
+    /// <summary>Tests (-ds-closed-site): with the wall up, does every spawn still reach the open site and the other
+    /// spawn, and is no spawn shut in?</summary>
+    public string CheckClosedSite()
+    {
+        if (ClosedSite == null) return "both sites open";
+        Bounds walled = SiteZone(ClosedSite);
+        walled.Expand(new Vector3(3f, 0f, 3f));
+        Vector3 open = SitePoint(ClosedSite == "B");
+        string Way(Vector3 from, Vector3 to)
+        {
+            if (!NavMesh.SamplePosition(from, out var a, 3f, NavMesh.AllAreas) || !NavMesh.SamplePosition(to, out var b, 3f, NavMesh.AllAreas))
+                return "off the navmesh";
+            var path = new NavMeshPath();
+            NavMesh.CalculatePath(a.position, b.position, NavMesh.AllAreas, path);
+            return path.status == NavMeshPathStatus.PathComplete ? "ok" : path.status.ToString();
+        }
+        int shutIn = 0;
+        foreach (var spawn in TerroristSpawns) if (walled.Contains(new Vector3(spawn.x, walled.center.y, spawn.z))) shutIn++;
+        foreach (var spawn in SwatSpawns) if (walled.Contains(new Vector3(spawn.x, walled.center.y, spawn.z))) shutIn++;
+        return $"{Name}, site {ClosedSite} closed (wall {walled.size.x:0}x{walled.size.z:0} m round {walled.center.x:0},{walled.center.y:0},{walled.center.z:0}): " +
+               $"T spawn to site {Way(TerroristSpawns[0], open)}, " +
+               $"SWAT spawn to site {Way(SwatSpawns[0], open)}, T spawn to SWAT spawn {Way(TerroristSpawns[0], SwatSpawns[0])}, " +
+               $"spawns inside the wall {shutIn}";
+    }
 
     /// <summary>World position to 0..1 radar coordinates (y up = north, +Z).</summary>
     public Vector2 ToRadar(Vector3 world) =>

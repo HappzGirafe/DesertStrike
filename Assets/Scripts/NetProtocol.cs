@@ -30,6 +30,7 @@ public struct NetMatchState
     public Team? LastWinner;
     public bool FriendlyFire;
     public string MapId;
+    public string ClosedSite;   // null, "A" or "B" (small matches)
 }
 
 static class NetIO

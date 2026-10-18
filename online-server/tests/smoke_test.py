@@ -1,5 +1,5 @@
 """Starts the online server with a throw-away database and checks the whole API over HTTP: accounts, friends,
-presence, rooms, tickets, invites, the game hosts' reports, limits and account deletion.
+presence, rooms, tickets, invites, the game hosts' reports, the bots' knowledge, reviews, limits and account deletion.
 
 Run:  python tests/smoke_test.py      (from online-server/, with the requirements installed)
 """
@@ -41,6 +41,18 @@ def call(method, path, body=None, token=None, base=API, headers=None, raw=None):
         return e.code, json.loads(e.read() or b"{}")
 
 
+def headers_of(method, path, headers):
+    """The answer's headers (CORS)."""
+    request = urllib.request.Request(API + path, method=method)
+    for key, value in headers.items():
+        request.add_header(key, value)
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return response.status, {k.lower(): v for k, v in response.headers.items()}
+    except urllib.error.HTTPError as e:
+        return e.code, {k.lower(): v for k, v in e.headers.items()}
+
+
 def check(name, condition, detail=""):
     global failures
     print(("  ok    " if condition else "  FAIL  ") + name + ("" if condition else f"   {detail}"))
@@ -55,6 +67,7 @@ def main():
     env_file.write_text("\n".join([
         "API_HOST=127.0.0.1", f"API_PORT={PORT}", f"INTERNAL_PORT={INTERNAL}", f"DATABASE_PATH={work / 'test.sqlite3'}",
         f"AUTH_SECRET={secrets.token_urlsafe(48)}", f"GAME_JOIN_SECRET={join_secret}", "GAME_BUILD_VERSION=1.19",
+        "REVIEW_ORIGINS=https://lowstrike.lokvetia.com",
         'ROOM_SLOTS_JSON=[{"id":"room-1","local_udp_port":27015,"public_udp_host":"test.example","public_udp_port":40000}]',
     ]), encoding="utf-8")
     env = dict(os.environ, LOWSTRIKE_ENV=str(env_file))
@@ -136,7 +149,7 @@ def run(join_secret):
 
     print("rooms")
     settings = {"name": "Alice's room", "map": "dune", "team_size": 2, "difficulty": "Hard", "rounds": 5, "friendly_fire": False,
-                "private": True, "team": "t"}
+                "private": True, "team": "t", "closed_site": "a"}
     status, body = call("POST", "/rooms", settings, a)
     check("no game host running: refused", status == 503 and "offline" in body["detail"], body)
     check("wrong internal key refused", beat(key="0" * 64)[0] == 403)
@@ -156,6 +169,10 @@ def run(join_secret):
     status, answer = beat()
     check("host gets the room's settings", answer["has_room"] and answer["room"]["team_size"] == 2 and answer["room"]["difficulty"] == "Hard"
           and answer["room"]["members"] == [{"user_id": a_id, "nick": "Alice", "team": "t"}], answer)
+    check("host gets the closed site", answer["room"]["closed_site"] == "A", answer)
+    check("only site A or B can be closed", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "C"}, a)[0] == 422)
+    check("the owner closes site B instead", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "B"}, a)[0] == 200)
+    check("the room shows site B closed", call("GET", f"/rooms/{room['id']}", token=a)[1]["closed_site"] == "B")
     status, rooms = call("GET", "/rooms", token=b)
     check("private room hidden from others", status == 200 and rooms["rooms"] == [], rooms)
     status, body = call("POST", "/rooms", dict(settings, name="Bob room"), b)
@@ -221,6 +238,68 @@ def run(join_secret):
     status, health = call("GET", "/health")
     check("slot free again", health["rooms_free"] == 1 and health["servers"] == 1, health)
 
+    print("the bots' knowledge")
+    flat = lambda *cells: [v for cell in cells for v in cell]
+    status, known = call("GET", "/bot-knowledge/dune")
+    check("knowledge starts empty", status == 200 and known["stand"] == [] and known["kill"] == [] and known["matches"] == 0, known)
+    check("unknown map: 404", call("GET", "/bot-knowledge/nowhere")[0] == 404)
+    check("a player's upload needs a login", call("POST", "/bot-knowledge", {"map": "dune", "cells": flat([0, 1, 3, 0, 4, 2, 2, 0])})[0] == 401)
+    check("bad cells refused", call("POST", "/bot-knowledge", {"map": "dune", "cells": [0, 1, 3]}, c)[0] == 422)
+    check("too heavy a cell refused", call("POST", "/bot-knowledge", {"map": "dune", "cells": flat([0, 1, 3, 0, 4, 99, 0, 0])}, c)[0] == 422)
+    status, sent = call("POST", "/bot-knowledge", {"map": "dune", "mode": "solo",
+                                                   "cells": flat([0, 1, 3, 0, 4, 2, 2, 0], [1, 0, -5, 0, 7, 10, 0, 0])}, c)
+    check("a player's game sends what people did", status == 200 and sent["cells"] == 2, sent)
+    check("one upload a minute per player", call("POST", "/bot-knowledge", {"map": "dune", "cells": flat([0, 0, 1, 0, 1, 1, 0, 0])}, c)[0] == 429)
+    internal_key = hmac.new(JOIN_SECRET.encode(), b"lowstrike-internal", hashlib.sha256).hexdigest()
+    status, sent = call("POST", "/internal/bot-knowledge", {"map": "dune", "mode": "online",
+                                                            "cells": flat([0, 1, 3, 0, 4, 4, 0, 4], [0, 1, 9, 0, 9, 1, 1, 0])},
+                        base=CONTROL, headers={"X-Internal-Key": internal_key})
+    check("a game host sends what people did", status == 200 and sent["cells"] == 2, sent)
+    check("game hosts need the key", call("POST", "/internal/bot-knowledge", {"map": "dune", "cells": []}, base=CONTROL,
+                                          headers={"X-Internal-Key": "0" * 64})[0] == 403)
+    status, known = call("GET", "/bot-knowledge/dune")
+    kills = sorted([known["kill"][i:i + 7] for i in range(0, len(known["kill"]), 7)], key=lambda k: -k[4])
+    stands = [known["stand"][i:i + 5] for i in range(0, len(known["stand"]), 5)]
+    # cell 3,0,4: the player's 2 kills count half (1, shot east) + the host's 4 (shot north) = 5, mostly north
+    check("both games add up (a player's counts half)", known["matches"] == 2 and len(kills) == 2 and kills[0][:5] == [0, 3, 0, 4, 1.0]
+          and kills[1][4] == 0.2 and abs(kills[0][5] - 0.243) < 0.01 and abs(kills[0][6] - 0.97) < 0.01, known)
+    check("where people stood", stands == [[1, -5, 0, 7, 1.0]], known)
+    status, same = call("GET", "/internal/bot-knowledge/dune", base=CONTROL, headers={"X-Internal-Key": internal_key})
+    check("game hosts read the same knowledge", status == 200 and same["kill"] == known["kill"], same)
+
+    print("reviews")
+    site = {"Origin": "https://lowstrike.lokvetia.com"}
+    review = {"nick": "carol", "password": "carol-pass", "rating": 5, "text": "Great game,   really fun!\n\n\n\nThe bots are tough.", "lang": "en"}
+    status, listed = call("GET", "/reviews")
+    check("no reviews yet", status == 200 and listed["count"] == 0 and listed["reviews"] == [] and listed["average"] is None, listed)
+    check("wrong password: no review", call("POST", "/reviews", dict(review, password="nope-nope"), headers=site)[0] == 401)
+    check("an unknown nickname: no review", call("POST", "/reviews", dict(review, nick="nobody"), headers=site)[0] == 401)
+    check("other websites cannot write", call("POST", "/reviews", review, headers={"Origin": "https://evil.example"})[0] == 403)
+    check("links refused", call("POST", "/reviews", dict(review, text="Cheap skins at www.spam-site.com"), headers=site)[0] == 422)
+    check("1 to 5 stars", call("POST", "/reviews", dict(review, rating=6), headers=site)[0] == 422)
+    check("a few words at least", call("POST", "/reviews", dict(review, text="ok"), headers=site)[0] == 422)
+    status, posted = call("POST", "/reviews", review, headers=site)
+    check("carol writes a review", status == 200 and posted["replaced"] is False and posted["nick"] == "carol", posted)
+    status, posted = call("POST", "/reviews", dict(review, nick="CAROL", rating=4, text="Changed my mind: <b>4 stars</b>"), headers=site)
+    check("a second review replaces the first", status == 200 and posted["replaced"] is True, posted)
+    status, posted = call("POST", "/reviews", {"nick": "bob_2", "password": "Hunter2hunter", "rating": 3, "text": "Nice maps, more please."},
+                          headers=site)
+    check("bob_2 writes one too", status == 200, posted)
+    status, listed = call("GET", "/reviews")
+    check("reviews: newest first, count and average", listed["count"] == 2 and listed["average"] == 3.5
+          and [r["nick"] for r in listed["reviews"]] == ["bob_2", "carol"], listed)
+    check("the text stays plain text", listed["reviews"][1]["text"] == "Changed my mind: <b>4 stars</b>", listed)
+    status, posted = call("POST", "/reviews", dict(review, rating=5), headers=site)
+    status, listed = call("GET", "/reviews")
+    check("spaces and blank lines tidied", listed["reviews"][0]["text"] == "Great game, really fun!\n\nThe bots are tough.", listed)
+    status, headers = headers_of("GET", "/reviews", {"Origin": "https://anyone.example"})
+    check("anyone may read (CORS)", headers.get("access-control-allow-origin") == "*", headers)
+    status, headers = headers_of("OPTIONS", "/reviews", {"Origin": "https://lowstrike.lokvetia.com", "Access-Control-Request-Method": "POST"})
+    check("the website may write (CORS)", status == 204 and headers.get("access-control-allow-origin") == "https://lowstrike.lokvetia.com"
+          and "POST" in headers.get("access-control-allow-methods", ""), headers)
+    status, headers = headers_of("OPTIONS", "/reviews", {"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"})
+    check("other websites may not (CORS)", "access-control-allow-origin" not in headers, headers)
+
     print("passwords, logout, deletion, limits")
     check("change password needs the old one", call("POST", "/me/password", {"old_password": "x", "new_password": "new-secret-pass"}, a)[0] == 401)
     check("change password", call("POST", "/me/password", {"old_password": "secret-pass", "new_password": "new-secret-pass"}, a)[0] == 200)
@@ -233,6 +312,8 @@ def run(join_secret):
     check("bob_2 can no longer log in", call("POST", "/auth/login", {"nick": "bob_2", "password": "Hunter2hunter"})[0] == 401)
     status, found = call("GET", "/players?search=bob", token=c)
     check("bob_2 is gone from search", found["players"] == [], found)
+    status, listed = call("GET", "/reviews")
+    check("bob_2's review went with the account", [r["nick"] for r in listed["reviews"]] == ["carol"], listed)
     codes = [call("POST", "/auth/login", {"nick": "carol", "password": f"wrong-{i}"})[0] for i in range(9)]
     check("wrong passwords get limited", codes[-1] == 429, codes)
 

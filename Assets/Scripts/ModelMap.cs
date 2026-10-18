@@ -263,7 +263,7 @@ public class ModelMap : GameMap
     /// The site under a position: only on its painted floor (with a metre to spare round the edges), not anywhere in
     /// the box round it, which on an odd-shaped site reaches far past the tiles.
     /// </summary>
-    public override string SiteAt(Vector3 position) =>
+    protected override string SiteUnder(Vector3 position) =>
         OnTiles(siteTilesA, SiteA, position) ? "A" : OnTiles(siteTilesB, SiteB, position) ? "B" : null;
 
     static bool OnTiles(List<Vector3> tiles, Bounds zone, Vector3 p)

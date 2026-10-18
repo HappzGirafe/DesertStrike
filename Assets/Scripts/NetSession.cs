@@ -27,8 +27,8 @@ public class NetSession : MonoBehaviour
     public const int GamePort = 27015;
     public const int DiscoveryPort = 27016;
     // 2: the map is part of the lobby and of every snapshot; 3: selling guns; 4: the Uzi; 5: online rooms (a ticket in
-    // Hello, spectators, Reject)
-    const int ProtocolVersion = 5;
+    // Hello, spectators, Reject); 6: a walled-off bombsite in small matches
+    const int ProtocolVersion = 6;
     public static int Protocol => ProtocolVersion;
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
@@ -786,6 +786,7 @@ public class NetSession : MonoBehaviour
         w.Write(gm.Message ?? "");
         w.Write(gm.MessageUntil - Time.time);
         w.Write(gm.Map.Id);
+        w.Write(gm.Map.ClosedSite ?? "");
     }
 
     void WriteBomb(BinaryWriter w)
@@ -1000,6 +1001,8 @@ public class NetSession : MonoBehaviour
         match.Message = r.ReadString();
         match.MessageLeft = r.ReadSingle();
         match.MapId = r.ReadString();
+        string closed = r.ReadString();
+        match.ClosedSite = closed == "A" || closed == "B" ? closed : null;
 
         var bombState = (BombState)r.ReadByte();
         int carrierId = r.ReadUInt16();

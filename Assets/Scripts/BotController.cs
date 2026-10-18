@@ -38,6 +38,7 @@ public class BotController : MonoBehaviour, ICombatantController
     float startMovingAt;
     bool hunting;
     string goingFor;   // a Terrorist's site this round ("A" or "B"): the bomb goes there
+    bool plantThisRound = true;   // false: this round the Terrorists play for kills and do not plant
     bool crouchHolding;   // crouches while holding the angle at the end of its route
 
     // Combat and awareness
@@ -54,7 +55,13 @@ public class BotController : MonoBehaviour, ICombatantController
     Vector3 strafeDirection;
     float strafeChangeAt;
 
+    // What real players do (BotKnowledge): the spot to have the aim on, and whether a target came out right there.
+    Vector3? preAim;
+    float nextPreAim;
+    bool preAimedSighting;
+
     bool HoldingAngle => routeIndex >= route.Count && !hunting;
+    static bool Learned => BotKnowledge.Instance != null && BotKnowledge.Instance.Active;
 
     static Skill SkillFor(BotDifficulty difficulty)
     {
@@ -115,6 +122,8 @@ public class BotController : MonoBehaviour, ICombatantController
         targetVisible = false;
         lastSeenTime = -99f;
         alertUntil = -1f;
+        preAim = null;
+        preAimedSighting = false;
         route.Clear();
         routeIndex = 0;
         hunting = false;
@@ -164,31 +173,61 @@ public class BotController : MonoBehaviour, ICombatantController
         me.Equip(me.BestSlot(), instant: true);
     }
 
-    /// <summary>-ds-attack a|b: the Terrorists always go for that site (tests); null = each bot picks one every round.</summary>
+    /// <summary>-ds-attack a|b: the Terrorists always go for that site (tests); null = decided every round.</summary>
     public static bool? ForcedSiteA;
 
-    /// <summary>Every Terrorist bot goes for site A or B, each with a 50% chance (by one of the map's routes there;
-    /// the bomb goes with its carrier); SWAT spread over the defensive posts (the map knows where).</summary>
+    /// <summary>
+    /// Once a round the Terrorist bots decide together: plant on A (45%), plant on B (45%), or not plant at all and
+    /// play for kills (10%). With one site walled off (small matches): plant on the open one (95%) or not (5%).
+    /// Each bot takes one of the map's routes towards the target (the bomb goes with its carrier); SWAT spread over
+    /// the defensive posts, leaving out those at a closed site.
+    /// </summary>
     public static void PlanRound(List<BotController> terrorists, List<BotController> swat, GameMap map, float startTime)
     {
+        string target;
+        if (ForcedSiteA.HasValue) target = ForcedSiteA.Value ? "A" : "B";
+        else if (map.ClosedSite != null) target = Random.value < 0.95f ? (map.ClosedSite == "A" ? "B" : "A") : null;
+        else
+        {
+            float roll = Random.value;
+            target = roll < 0.45f ? "A" : roll < 0.9f ? "B" : null;
+        }
+        if (target == map.ClosedSite) target = null;
+
         var routesA = map.TerroristRoutes(true);
         var routesB = map.TerroristRoutes(false);
-        int countA = 0, countB = 0;
-        var picks = new List<string>();
         for (int i = 0; i < terrorists.Count; i++)
         {
-            bool attackA = ForcedSiteA ?? Random.value < 0.5f;
-            var routes = attackA ? routesA : routesB;
-            int index = attackA ? countA++ : countB++;
-            terrorists[i].Plan(routes[index % routes.Count], map.TerroristWatch(attackA), Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
-            terrorists[i].goingFor = attackA ? "A" : "B";
-            picks.Add($"{terrorists[i].Self.DisplayName} {terrorists[i].goingFor}");
+            // Without a plan to plant they still push, by the routes to the open site(s), and hunt from there.
+            bool towardsA = target != null ? target == "A" : map.ClosedSite != null ? map.ClosedSite == "B" : i % 2 == 0;
+            var routes = towardsA ? routesA : routesB;
+            terrorists[i].Plan(routes[i % routes.Count], map.TerroristWatch(towardsA), Random.Range(6f, 14f), startTime + Random.Range(0f, 2f));
+            terrorists[i].goingFor = target;
+            terrorists[i].plantThisRound = target != null;
         }
-        if (picks.Count > 0) Debug.Log($"[Bots] Terrorists go for: {string.Join(", ", picks)}");
+        if (terrorists.Count > 0)
+            Debug.Log(target != null ? $"[Bots] This round the Terrorists go for site {target}" : "[Bots] This round the Terrorists do not plant");
 
         var posts = map.SwatPosts();
+        var knowledge = Learned ? BotKnowledge.Instance : null;
+        if (map.ClosedSite != null)
+        {
+            // Posts that end at the closed site are no use; keep the rest (all of them if none is left).
+            Bounds closed = map.SiteZone(map.ClosedSite);
+            closed.Expand(new Vector3(16f, 0f, 16f));
+            var open = posts.FindAll(p => p.Route.Count == 0 || !closed.Contains(new Vector3(p.Route[p.Route.Count - 1].x, closed.center.y, p.Route[p.Route.Count - 1].z)));
+            if (open.Count > 0) posts = open;
+        }
         for (int i = 0; i < swat.Count; i++)
         {
+            // Learned: some take a spot SWAT players like to hold, instead of the map's own post.
+            if (knowledge != null && Random.value < 0.35f
+                && knowledge.FavouredSpot(Team.Swat, swat[i].transform.position, out var spot) && !map.InClosedSite(spot.Position))
+            {
+                swat[i].Plan(new List<Vector3> { spot.Position }, spot.Position + spot.Direction * 12f, Random.Range(35f, 60f),
+                             startTime + Random.Range(0f, 0.5f));
+                continue;
+            }
             var post = posts[i % posts.Count];
             swat[i].Plan(post.Route, post.LookAt, Random.Range(35f, 60f), startTime + Random.Range(0f, 0.5f));
         }
@@ -260,7 +299,7 @@ public class BotController : MonoBehaviour, ICombatantController
 
         switch (bomb.State)
         {
-            case BombState.Carried when bomb.Carrier == Self:
+            case BombState.Carried when bomb.Carrier == Self && plantThisRound:
                 // Plant as soon as we stand on the team's site (walking over the other one on the way does not
                 // count); the round plan walks us there, and after it we head for that site.
                 string site = gm.Map.SiteAt(transform.position);
@@ -354,6 +393,10 @@ public class BotController : MonoBehaviour, ICombatantController
         {
             sightingStarted = Time.time;
             aimForHead = Random.value < skill.HeadChance;
+            // Out right where it was already aiming (a spot players shoot from): it reacts sooner.
+            Vector3 toTarget = best.transform.position - transform.position;
+            toTarget.y = 0f;
+            preAimedSighting = preAim.HasValue && Vector3.Angle(transform.forward, toTarget) < 15f;
         }
         target = best;
         headVisible = bestHead;
@@ -383,8 +426,9 @@ public class BotController : MonoBehaviour, ICombatantController
         else if (skill.Strafe && Time.time < holdFireUntil) Strafe();
         else Halt();
 
-        // Holding an angle means already being aimed at it, so the first shot comes sooner.
-        float reaction = HoldingAngle ? skill.Reaction * 0.6f : skill.Reaction;
+        // Holding an angle (or pre-aiming the spot it came out of) means already being aimed at it: the first shot
+        // comes sooner.
+        float reaction = HoldingAngle || preAimedSighting ? skill.Reaction * 0.6f : skill.Reaction;
         if (Time.time - sightingStarted < reaction) return;
         Vector3 flat = aimPoint - transform.position;
         flat.y = 0f;
@@ -460,18 +504,31 @@ public class BotController : MonoBehaviour, ICombatantController
         }
         if (routeIndex < route.Count)
         {
-            agent.updateRotation = true;
             MoveTo(route[routeIndex]);
+            // Learned: on the way, the gun is on the spot enemy players shoot from, as a player clears an angle.
+            Vector3 heading = agent.velocity.sqrMagnitude > 0.5f ? agent.velocity : route[routeIndex] - transform.position;
+            UpdatePreAim(heading, 100f);
+            if (preAim.HasValue) TurnTowards(preAim.Value, skill.TurnSpeed * 0.5f);
+            else agent.updateRotation = true;
             if (FlatDistance(transform.position, route[routeIndex]) < 1.6f || Time.time > waypointDeadline)
                 AdvanceWaypoint();
             return;
         }
 
-        // Holding: watch the chosen angle with a slow sweep, then go hunting.
+        // Holding: watch the chosen angle with a slow sweep (learned: the spot enemy players come from), then go hunting.
         Halt();
         float sweep = Mathf.Sin(Time.time * 0.7f + GetInstanceID() * 0.37f) * 25f;
-        TurnTowards(holdLook, 160f, sweep);
+        UpdatePreAim(holdLook - transform.position, 70f);
+        if (preAim.HasValue) TurnTowards(preAim.Value, 160f, sweep * 0.3f);
+        else TurnTowards(holdLook, 160f, sweep);
         if (Time.time >= holdUntil) StartHunting();
+    }
+
+    void UpdatePreAim(Vector3 facing, float maxAngle)
+    {
+        if (Time.time < nextPreAim) return;
+        nextPreAim = Time.time + 0.5f;
+        preAim = Learned ? BotKnowledge.Instance.PreAim(Self.Team, Self.EyePosition, facing, maxAngle) : null;
     }
 
     void AdvanceWaypoint()
@@ -487,6 +544,23 @@ public class BotController : MonoBehaviour, ICombatantController
 
     void StartHunting()
     {
+        // Learned: hold a spot players of this team like, or check a place where enemy players often are.
+        if (Learned && Random.value < 0.6f)
+        {
+            var knowledge = BotKnowledge.Instance;
+            bool hold = Random.value < 0.5f;
+            if (hold ? knowledge.FavouredSpot(Self.Team, transform.position, out var spot) : knowledge.EnemyHaunt(Self.Team, transform.position, out spot))
+            {
+                route.Clear();
+                route.Add(spot.Position);
+                routeIndex = 0;
+                waypointDeadline = Time.time + 30f;
+                holdLook = hold ? spot.Position + spot.Direction * 12f : spot.Position + (spot.Position - transform.position).normalized * 8f;
+                holdDuration = hold ? Random.Range(5f, 10f) : Random.Range(2f, 5f);
+                hunting = true;
+                return;
+            }
+        }
         var points = GameManager.Instance.Map.KeyPoints;
         route.Clear();
         route.Add(Jitter(points[Random.Range(0, points.Count)]));

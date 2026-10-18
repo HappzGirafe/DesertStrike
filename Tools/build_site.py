@@ -316,8 +316,16 @@ def build():
         if re.fullmatch(r"google[0-9a-f]+\.html", name):
             shutil.copy(os.path.join(ROOT, "Website", name), OUT)
     shutil.copy(os.path.join(ROOT, "Website", "favicon.png"), OUT)
-    # Where the game and the Play Online block find the online server (see online-server/README.md).
-    shutil.copy(os.path.join(ROOT, "Website", "online.json"), OUT)
+    # Where the game and the Play Online block find the online server (see online-server/README.md), and the
+    # version the site offers: a game older than that asks at start whether to update.
+    with open(os.path.join(ROOT, "Website", "online.json"), encoding="utf-8") as file:
+        online = json.load(file)
+    offered = re.search(r'hero_note: "Version (\d+(?:\.\d+)+)', source)
+    if offered:
+        online["latest_version"] = offered.group(1)
+        online["download"] = SITE + "#download"
+    with open(os.path.join(OUT, "online.json"), "w", encoding="utf-8", newline="\n") as file:
+        json.dump(online, file)
     with open(os.path.join(OUT, "CNAME"), "w", encoding="utf-8", newline="\n") as file:
         file.write(DOMAIN + "\n")
     with open(os.path.join(OUT, "robots.txt"), "w", encoding="utf-8", newline="\n") as file:

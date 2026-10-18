@@ -43,3 +43,4 @@ __pycache__/
 /online-server/.env
 /online-server/data/
 /online-server/logs/
+/online-server/backups/

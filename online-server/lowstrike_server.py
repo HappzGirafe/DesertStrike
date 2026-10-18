@@ -7,8 +7,14 @@ One process, two HTTP apps:
 * internal 127.0.0.1:INTERNAL_PORT (8001). Only for the Unity game hosts on this PC: they report their state every
            second and get their room's settings back. Never route the tunnel to this port.
 
-When UNITY_SERVER_EXECUTABLE is set, it also starts one Unity game host per room slot (ROOM_SLOTS_JSON) and restarts
-any that stops or hangs.
+When UNITY_SERVER_EXECUTABLE is set, it also starts one Unity game host per room slot (ROOM_SLOTS_JSON), and the
+LIVING WORLD host (WORLD_SLOT_JSON), and restarts any that stops or hangs. The world's memory is living_world.py.
+
+Commands (scripts/world-*.ps1 use them):
+      python lowstrike_server.py --backup                 consistent copy of the database (works while running)
+      python lowstrike_server.py --restore <file> --yes   puts a backup back (the server must be stopped)
+      python lowstrike_server.py --request-shutdown       asks the running world to say goodbye and save
+      python lowstrike_server.py --package <folder>       the world to move to another PC (database, no secrets)
 
 Run:  python lowstrike_server.py                     (reads .env next to this file; logs to the console)
       pythonw lowstrike_server.py --log logs/api.log  (no window; what scripts/start.ps1 does)
@@ -23,6 +29,7 @@ import os
 import re
 import secrets
 import shlex
+import shutil
 import socket
 import sqlite3
 import subprocess
@@ -37,6 +44,9 @@ from pathlib import Path
 from typing import Optional
 
 import uvicorn
+import bot_knowledge
+import living_world
+import reviews
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -45,7 +55,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 HERE = Path(__file__).resolve().parent
-PROTOCOL_VERSION = 5          # NetSession.ProtocolVersion of the game build these hosts run
+PROTOCOL_VERSION = 6          # NetSession.ProtocolVersion of the game build these hosts run
 MAX_BODY = 16 * 1024          # bytes in one request
 MAX_PROFILE = 8 * 1024        # bytes of saved skins and settings per account
 MAX_FRIENDS = 100
@@ -83,8 +93,9 @@ def read_env_file(path: Path) -> dict:
 class Config:
     def __init__(self):
         env = read_env_file(Path(os.environ.get("LOWSTRIKE_ENV", HERE / ".env")))
-        env.update({k: v for k, v in os.environ.items() if k in env or k.startswith(("API_", "LOWSTRIKE_", "GAME_", "ROOM_", "UNITY_"))
-                    or k in ("PUBLIC_API_URL", "DATABASE_PATH", "AUTH_SECRET", "INTERNAL_PORT", "SESSION_IDLE_DAYS", "SESSION_MAX_DAYS")})
+        env.update({k: v for k, v in os.environ.items() if k in env or k.startswith(("API_", "LOWSTRIKE_", "GAME_", "ROOM_", "UNITY_", "WORLD_"))
+                    or k in ("PUBLIC_API_URL", "DATABASE_PATH", "AUTH_SECRET", "INTERNAL_PORT", "SESSION_IDLE_DAYS", "SESSION_MAX_DAYS",
+                             "REVIEW_ORIGINS")})
         self.domain = env.get("LOWSTRIKE_DOMAIN", "")
         self.public_api_url = env.get("PUBLIC_API_URL", "")
         self.api_host = env.get("API_HOST", "127.0.0.1")
@@ -104,6 +115,27 @@ class Config:
             self.unity_exe = ""
         self.unity_args = env.get("UNITY_SERVER_ARGS", "-batchmode -nographics")
         self.slots = self.parse_slots(env.get("ROOM_SLOTS_JSON", "[]"))
+        # LIVING WORLD
+        self.world_id = env.get("WORLD_ID", "living-world-1")
+        self.world_name = env.get("WORLD_NAME", "The Low Strike World")
+        world_slot = env.get("WORLD_SLOT_JSON", "")
+        self.world_slot = None
+        if world_slot and "YOUR_" not in world_slot.upper():
+            try:
+                w = json.loads(world_slot)
+                self.world_slot = {"id": "world", "local_udp_port": int(w["local_udp_port"]),
+                                   "public_udp_host": str(w["public_udp_host"]), "public_udp_port": int(w["public_udp_port"])}
+            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+                sys.exit("WORLD_SLOT_JSON needs local_udp_port, public_udp_host and public_udp_port")
+        self.world_sleep_after = int(env.get("WORLD_SLEEP_AFTER_EMPTY_SECONDS", "120"))
+        self.world_backup_hours = float(env.get("WORLD_BACKUP_INTERVAL_HOURS", "6"))
+        self.world_backup_keep = int(env.get("WORLD_BACKUP_KEEP_COUNT", "10"))
+        backups = env.get("WORLD_BACKUP_DIR", "./backups")
+        self.world_backup_dir = Path(backups) if os.path.isabs(backups) else (HERE / backups).resolve()
+        self.world_secondary_backup_dir = env.get("WORLD_SECONDARY_BACKUP_DIR", "")
+        self.world_history_limit = int(env.get("WORLD_HISTORY_PAGE_LIMIT", "30"))
+        # Reviews: the website addresses that may send one (comma-separated; empty = the website's own).
+        self.review_origins = env.get("REVIEW_ORIGINS", "")
 
     @staticmethod
     def parse_slots(text: str) -> list:
@@ -146,6 +178,10 @@ class Config:
         for slot in self.slots:
             if "YOUR_" in slot["public_udp_host"].upper() or "REPLACE" in slot["public_udp_host"].upper():
                 print(f"[config] Slot {slot['id']}: public_udp_host is still the example; players cannot reach it")
+        if self.world_slot and self.world_slot["local_udp_port"] in [s["local_udp_port"] for s in self.slots]:
+            problems.append("WORLD_SLOT_JSON uses the same local UDP port as a room slot")
+        if not self.world_secondary_backup_dir:
+            print("[config] WORLD_SECONDARY_BACKUP_DIR is empty: the world's backups are only on this disk (a disk failure loses them)")
         if problems:
             sys.exit("\n".join(["Fix online-server/.env:"] + ["  - " + p for p in problems]))
 
@@ -251,6 +287,13 @@ MIGRATIONS = [
         UNIQUE(room_id, match_number)
     );
     """,
+    living_world.SCHEMA,    # 2: LIVING WORLD (added, nothing else changes)
+    # 3: the bombsite a small room (1v1 to 3v3) walls off
+    """
+    ALTER TABLE rooms ADD COLUMN closed_site TEXT NOT NULL DEFAULT 'B';
+    """,
+    bot_knowledge.SCHEMA,   # 4: what real players do on each map, for the bots of every game
+    reviews.SCHEMA,         # 5: the website's reviews
 ]
 
 
@@ -392,6 +435,10 @@ def check_version(request: Request):
         return
     theirs = request.headers.get("x-game-version", "")
     if theirs != CONFIG.game_version:
+        newer = [int(p) if p.isdigit() else 0 for p in theirs.split(".")] > [int(p) if p.isdigit() else 0 for p in CONFIG.game_version.split(".")]
+        if theirs and newer:   # a test version, newer than the server's
+            raise HTTPException(426, f"The online server still runs Low Strike {CONFIG.game_version}; this game is {theirs}. "
+                                     "Online play needs the same version.")
         raise HTTPException(426, f"Update Low Strike to version {CONFIG.game_version} to play online "
                                  f"(this game is {theirs or 'older'}). Download it from the website.")
 
@@ -503,6 +550,7 @@ def room_view(con, room, me_id: str, details: bool = False) -> dict:
         "spectators": sum(1 for m in members if m["team"] == "spectator"), "status": room["status"],
         "private": bool(room["private"]), "owner": owner, "owner_id": room["owner_id"] or "",
         "difficulty": room["difficulty"], "rounds": room["rounds"], "friendly_fire": bool(room["friendly_fire"]),
+        "closed_site": room["closed_site"],
         "is_member": is_member, "is_owner": room["owner_id"] == me_id, "server_online": slot_alive(room["slot_id"]),
         "code": room["code"] if is_member else "", "members": [],
     }
@@ -583,6 +631,7 @@ class RoomSettings(BaseModel):
     friendly_fire: Optional[bool] = None
     private: Optional[bool] = None
     team: Optional[str] = None
+    closed_site: Optional[str] = None
 
 
 class JoinRequest(BaseModel):
@@ -627,6 +676,11 @@ def check_settings(s: RoomSettings, partial: bool) -> dict:
         values["friendly_fire"] = 1 if s.friendly_fire else 0
     if s.private is not None or not partial:
         values["private"] = 1 if s.private else 0
+    if s.closed_site is not None or not partial:
+        site = (s.closed_site or "B").upper()
+        if site not in ("A", "B"):
+            raise HTTPException(422, "Closed site: A or B.")
+        values["closed_site"] = site
     return values
 
 
@@ -778,6 +832,7 @@ def delete_me(body: PasswordOnly, request: Request, user=Depends(current_user)):
     with Transaction() as con:
         for row in con.execute("SELECT room_id FROM room_members WHERE user_id = ?", (user["id"],)).fetchall():
             leave_room(con, row["room_id"], user["id"])
+        WORLD["forget_player"](con, user["id"])   # the world keeps what was done, not who did it
         con.execute("DELETE FROM users WHERE id = ?", (user["id"],))   # sessions, profile, friends, requests and invites go with it
     print("[auth] an account was deleted")
     return {"ok": True}
@@ -907,9 +962,9 @@ def create_room(body: RoomSettings, request: Request, user=Depends(current_user)
         room_id = str(uuid.uuid4())
         t = now()
         con.execute("INSERT INTO rooms (id, slot_id, name, owner_id, map, team_size, difficulty, rounds, friendly_fire, private, code, "
-                    "status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?)",
+                    "status, created_at, updated_at, closed_site) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?, ?)",
                     (room_id, free[0]["id"], values["name"], user["id"], values["map"], values["team_size"], values["difficulty"],
-                     values["rounds"], values["friendly_fire"], values["private"], new_code(con), t, t))
+                     values["rounds"], values["friendly_fire"], values["private"], new_code(con), t, t, values["closed_site"]))
         room = open_room(con, room_id)
         team = pick_team(con, room, body.team or "t", user["id"])
         con.execute("INSERT INTO room_members (room_id, user_id, team, joined_at) VALUES (?, ?, ?, ?)", (room_id, user["id"], team, t))
@@ -1145,7 +1200,7 @@ def heartbeat(slot_id: str, body: Heartbeat, request: Request):
         return {"has_room": True, "room": {
             "id": room["id"], "name": room["name"], "map": room["map"], "team_size": room["team_size"], "difficulty": room["difficulty"],
             "rounds": room["rounds"], "friendly_fire": bool(room["friendly_fire"]), "start": bool(room["start_requested"]),
-            "owner_id": room["owner_id"] or "",
+            "owner_id": room["owner_id"] or "", "closed_site": room["closed_site"],
             "members": [{"user_id": m["user_id"], "nick": m["nick"], "team": m["team"]} for m in members]}}
 
 
@@ -1172,12 +1227,31 @@ def upkeep():
         con.execute("DELETE FROM invites WHERE expires_at < ?", (t,))
         con.execute("DELETE FROM sessions WHERE expires_at < ? OR last_used < ?", (t, t - CONFIG.session_idle))
         con.execute("DELETE FROM rooms WHERE status = 'closed' AND closed_at < ?", (t - 7 * 86400,))
+        if "forget_faded" in KNOWLEDGE:
+            KNOWLEDGE["forget_faded"](con)
+
+
+def backup_now(reason: str) -> Path:
+    """A consistent backup of the whole database (accounts and the world), with a snapshot of the world's state."""
+    with Transaction() as con:
+        revision, checksum = WORLD["snapshot"](con)
+    with DB_LOCK:
+        info = {"world_id": WORLD["world_id"], "world_revision": revision, "world_checksum": checksum,
+                "schema_version": len(MIGRATIONS), "game_content_version": CONFIG.game_version, "reason": reason}
+        path = living_world.backup_database(DB, CONFIG.database_path, [CONFIG.world_backup_dir, CONFIG.world_secondary_backup_dir],
+                                            CONFIG.world_backup_keep, info)
+    print(f"[backup] {reason}: {path} (world revision {revision})")
+    return path
 
 
 async def maintenance_loop():
+    next_backup = time.monotonic() + 60
     while True:
         try:
             await asyncio.to_thread(upkeep)
+            if CONFIG.world_backup_hours > 0 and time.monotonic() >= next_backup:
+                next_backup = time.monotonic() + CONFIG.world_backup_hours * 3600
+                await asyncio.to_thread(backup_now, "scheduled")
         except Exception as e:
             print(f"[upkeep] {type(e).__name__}: {e}")
         await asyncio.sleep(5)
@@ -1195,9 +1269,12 @@ class HostSupervisor:
     def command(self, slot) -> list:
         logs = HERE / "logs"
         logs.mkdir(exist_ok=True)
-        return [CONFIG.unity_exe, *shlex.split(CONFIG.unity_args, posix=os.name != "nt"), "-ds-server",
-                "-ds-port", str(slot["local_udp_port"]), "-ds-room-id", slot["id"],
-                "-ds-control", f"http://127.0.0.1:{CONFIG.internal_port}", "-logFile", str(logs / f"unity-{slot['id']}.log")]
+        command = [CONFIG.unity_exe, *shlex.split(CONFIG.unity_args, posix=os.name != "nt"), "-ds-server",
+                   "-ds-port", str(slot["local_udp_port"]), "-ds-room-id", slot["id"],
+                   "-ds-control", f"http://127.0.0.1:{CONFIG.internal_port}", "-logFile", str(logs / f"unity-{slot['id']}.log")]
+        if slot["id"] == "world":
+            command += ["-ds-world", CONFIG.world_id, "-ds-world-sleep", str(CONFIG.world_sleep_after)]
+        return command
 
     def launch(self, slot):
         env = dict(os.environ)
@@ -1213,8 +1290,9 @@ class HostSupervisor:
         if not os.path.isfile(CONFIG.unity_exe):
             print(f"[hosts] UNITY_SERVER_EXECUTABLE {CONFIG.unity_exe!r} does not exist: game hosts are not started")
             return
+        slots = CONFIG.slots + ([CONFIG.world_slot] if CONFIG.world_slot else [])
         while not self.stopping:
-            for slot in CONFIG.slots:
+            for slot in slots:
                 process = self.processes.get(slot["id"])
                 up = time.monotonic()
                 if process is None:
@@ -1228,6 +1306,8 @@ class HostSupervisor:
                         self.launch(slot)
                     continue
                 state = SLOTS.get(slot["id"])
+                if slot["id"] == "world":
+                    state = {"at": time.monotonic()} if WORLD["host_alive"]() else None
                 last = state["at"] if state else self.started[slot["id"]]
                 if up - max(last, self.started[slot["id"]]) > 120:
                     print(f"[hosts] game host {slot['id']} has not reported for 2 minutes; restarting it")
@@ -1286,6 +1366,90 @@ async def serve():
     await asyncio.gather(public.serve(), private.serve())
 
 
+WORLD = {}
+KNOWLEDGE = {}
+REVIEWS = {}
+
+
+def command_line() -> bool:
+    """The one-off commands (backup, restore, shutdown request, package). True when one ran."""
+    args = sys.argv[1:]
+    if "--request-shutdown" in args:
+        import urllib.request
+        request = urllib.request.Request(f"http://127.0.0.1:{CONFIG.internal_port}/internal/world/request-shutdown", data=b"{}",
+                                         method="POST", headers={"X-Internal-Key": CONFIG.internal_key(), "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(request, timeout=10) as response:
+                print("[world] shutdown requested:", response.read().decode())
+        except OSError as e:
+            print(f"[world] the server does not answer ({e}); nothing to say goodbye to")
+        return True
+    if "--backup" in args or "--package" in args:
+        global DB
+        DB = open_database()
+        world = living_world.install(FastAPI(), FastAPI(), sys.modules[__name__], record_start=False)
+        WORLD.update(world)
+        path = backup_now("manual" if "--backup" in args else "package")
+        if "--package" in args:
+            target = Path(args[args.index("--package") + 1]).resolve()
+            target.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target / "lowstrike.sqlite3")
+            shutil.copy2(path.with_suffix(".json"), target / "manifest.json")
+            shutil.copy2(HERE / "world_rules.json", target / "world_rules.json")
+            settings = []
+            for line in (HERE / ".env").read_text(encoding="utf-8").splitlines():
+                key = line.split("=", 1)[0].strip()
+                settings.append(f"{key}=" if key in ("AUTH_SECRET", "GAME_JOIN_SECRET", "CLOUDFLARED_TUNNEL_TOKEN") else line)
+            (target / "settings-without-secrets.env").write_text("\n".join(settings) + "\n", encoding="utf-8")
+            print(f"[package] {target}: database, manifest, rules and settings (secrets left out: set new ones, or copy .env by hand)")
+        return True
+    if "--hide-review" in args or "--show-review" in args:
+        DB = open_database()
+        hiding = "--hide-review" in args
+        nick = args[args.index("--hide-review" if hiding else "--show-review") + 1]
+        done = reviews.install(FastAPI(), sys.modules[__name__])["hide"](nick, hiding)
+        print(f"[reviews] {nick}'s review is {'hidden' if hiding else 'shown again'}" if done else f"[reviews] {nick} has no review")
+        return True
+    if "--restore" in args:
+        source = Path(args[args.index("--restore") + 1]).resolve()
+        if "--yes" not in args:
+            sys.exit("Restoring replaces the current database. Run again with --yes to do it.")
+        for port in (CONFIG.api_port, CONFIG.internal_port):
+            with socket.socket() as probe:
+                try:
+                    probe.bind(("127.0.0.1", port))
+                except OSError:
+                    sys.exit("The server is running: stop it first (scripts/world-stop.ps1).")
+        manifest = source.with_suffix(".json")
+        if manifest.exists():
+            expected = json.loads(manifest.read_text(encoding="utf-8")).get("sha256")
+            if expected and hashlib.sha256(source.read_bytes()).hexdigest() != expected:
+                sys.exit("The backup does not match its manifest (damaged?); not restored.")
+        check = sqlite3.connect(source)
+        ok = check.execute("PRAGMA integrity_check").fetchone()[0]
+        check.close()
+        if ok != "ok":
+            sys.exit(f"The backup's database is damaged ({ok}); not restored.")
+        if CONFIG.database_path.exists():
+            keep = CONFIG.database_path.with_name(f"before-restore-{int(time.time())}.sqlite3")
+            current = sqlite3.connect(CONFIG.database_path)
+            target = sqlite3.connect(keep)
+            with target:
+                current.backup(target)
+            current.close()
+            target.close()
+            print(f"[restore] the current database was kept as {keep}")
+        restored = sqlite3.connect(source)
+        target = sqlite3.connect(CONFIG.database_path)
+        with target:
+            restored.backup(target)
+        restored.close()
+        target.close()
+        print(f"[restore] {source} restored. Start the server again (scripts/world-start.ps1).")
+        return True
+    return False
+
+
 def main():
     global DB
     if "--log" in sys.argv[1:-1]:
@@ -1300,6 +1464,8 @@ def main():
     else:
         sys.stdout.reconfigure(line_buffering=True)   # log lines appear at once (also when written to a file)
     CONFIG.check()
+    if command_line():
+        return
     # One copy only (on Windows a second one could share the port, and its game hosts would fight over theirs).
     for port in (CONFIG.api_port, CONFIG.internal_port):
         with socket.socket() as probe:
@@ -1309,6 +1475,9 @@ def main():
                 print(f"[api] port {port} is in use: the server runs already (or another program uses that port)")
                 return
     DB = open_database()
+    WORLD.update(living_world.install(app, internal, sys.modules[__name__]))
+    KNOWLEDGE.update(bot_knowledge.install(app, internal, sys.modules[__name__]))
+    REVIEWS.update(reviews.install(app, sys.modules[__name__]))
     print(f"[api] database {CONFIG.database_path}")
     print(f"[api] public API on http://{CONFIG.api_host}:{CONFIG.api_port} (the tunnel's target), "
           f"game hosts report to http://127.0.0.1:{CONFIG.internal_port}")

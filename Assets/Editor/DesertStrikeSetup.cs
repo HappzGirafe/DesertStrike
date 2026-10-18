@@ -111,8 +111,8 @@ public static class DesertStrikeSetup
 
     const string BundleId = "com.happzgirafe.lowstrike";
     // The game's version (Application.version): shown by the systems, and online rooms need the one the server has.
-    const string GameVersion = "1.19";
-    const int MobileVersionCode = 119;
+    const string GameVersion = "1.20";
+    const int MobileVersionCode = 120;
 
     // Phones: always landscape (either way round).
     static void SetMobileSettings()
