@@ -100,6 +100,9 @@ public abstract class GameMap
     public string Description { get; set; }
     public MapLighting Lighting { get; set; }
 
+    /// <summary>Leaves the map's parts unmerged (static batching merges them for drawing): -ds-export-closed reads them.</summary>
+    public static bool KeepMeshesApart;
+
     public Transform Root { get; protected set; }
     public Texture2D Radar { get; protected set; }
     public Bounds SiteA { get; protected set; }

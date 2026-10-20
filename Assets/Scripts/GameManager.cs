@@ -129,6 +129,7 @@ public class GameManager : MonoBehaviour
     bool fireTest;          // -ds-fire-test: the player fires straight ahead every 3 s, with a screenshot just after
     string radarFile;       // -ds-radar-png <file>: saves the map's radar picture (checking the map's orientation)
     string navMeshFile;     // -ds-navmesh-obj <file>: saves where bots can walk, as an .obj (finding cut-off places)
+    string exportClosed;    // -ds-export-closed <folder>: writes the map and its closing walls for Blender, and quits (see MapExport)
     string hideParts;       // -ds-hide <text>: map parts whose names contain it are not drawn (finding what costs time)
     bool poseGallery;       // -ds-pose-gallery: figures in every pose in a row above the map, seen from the side
     int sellTestStep = -1;  // -ds-sell-test: in round 1 the player buys, sells and opens the shop by itself (logged)
@@ -159,6 +160,7 @@ public class GameManager : MonoBehaviour
         // The saved map, unless it needs an account: nobody is logged in yet (OnAccountChanged loads it then).
         var saved = MapCatalog.Find(PlayerPrefs.GetString(MapKey, MapCatalog.DefaultId));
         MapId = saved != null && (!saved.AccountOnly || Accounts.LoggedIn) ? saved.Id : MapCatalog.DefaultId;
+        GameMap.KeepMeshesApart = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-export-closed") >= 0;
         LoadMap(MapId);
         Accounts.Changed += OnAccountChanged;
         gameObject.AddComponent<VisibilityCuller>();
@@ -175,6 +177,11 @@ public class GameManager : MonoBehaviour
         ClosedSite = savedSite == "A" ? "A" : "B";
         ReadCommandLine();
         if (siteCheck && views != null) Map.SetClosedSite(ClosedSite);   // -ds-closed-site with -ds-view: pictures of the wall
+        if (exportClosed != null)
+        {
+            MapExport.ClosedHalves(Map, exportClosed);
+            Application.Quit();
+        }
         if (ServerMode) gameObject.AddComponent<OnlineHost>();
         else
         {
@@ -1187,6 +1194,9 @@ public class GameManager : MonoBehaviour
                     // to come from another player's game (tests skin sharing)
                     if (WeaponData.Find(args[++i]) is WeaponData forgetWeapon) WeaponSkins.Forget(forgetWeapon, args[++i]);
                     else i++;
+                    break;
+                case "-ds-export-closed" when hasValue:
+                    exportClosed = args[++i];
                     break;
                 case "-ds-skin-roundtrip" when i + 2 < args.Length:
                     // -ds-skin-roundtrip <weapon> <skin>: forgets the skin and reads its pack back, as if it had come

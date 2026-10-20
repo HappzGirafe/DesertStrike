@@ -69,7 +69,7 @@ public class ModelMap : GameMap
         PlaceSpawns(swatTiles, SwatSpawns);
         PlanRounds();
         BuildRadar();
-        StaticBatchingUtility.Combine(Root.gameObject);
+        if (!KeepMeshesApart) StaticBatchingUtility.Combine(Root.gameObject);
         Debug.Log($"[Map] {Name}: {bounds.size.x:0} x {bounds.size.z:0} m, spawns {TerroristSpawns.Count} T / {SwatSpawns.Count} SWAT");
     }
 
