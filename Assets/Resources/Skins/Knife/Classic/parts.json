@@ -1,0 +1,26 @@
+{
+  "parts": [
+    {
+      "name": "Blade",
+      "texture": "teg92",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.48,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Grip",
+      "texture": "",
+      "color": "#2B2B30",
+      "metallic": 0.5,
+      "smoothness": 0.48,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    }
+  ]
+}

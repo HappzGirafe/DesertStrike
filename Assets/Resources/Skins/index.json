@@ -86,6 +86,27 @@
         },
         {
             "weapon": "ak47",
+            "id": "Halloween",
+            "folder": "Skins/AK-47/Halloween",
+            "hasModel": true,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Halloween",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "ak47",
             "id": "Jungle",
             "folder": "Skins/AK-47/Jungle",
             "hasModel": false,
@@ -674,6 +695,48 @@
         },
         {
             "weapon": "knife",
+            "id": "Classic",
+            "folder": "Skins/Knife/Classic",
+            "hasModel": true,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Classic",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "knife",
+            "id": "Classic Halloween",
+            "folder": "Skins/Knife/Classic Halloween",
+            "hasModel": true,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Classic Halloween",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "knife",
             "id": "Desert Camo",
             "folder": "Skins/Knife/Desert Camo",
             "hasModel": false,
@@ -1049,6 +1112,27 @@
                 "detail": "#8A6E22",
                 "smoothness": 0.75,
                 "metallic": 0.8999999761581421,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": false
+            }
+        },
+        {
+            "weapon": "m4a1",
+            "id": "Halloween",
+            "folder": "Skins/M4A1/Halloween",
+            "hasModel": true,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "Halloween",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
                 "rotation": [],
                 "projectileRotation": [],
                 "locked": false
