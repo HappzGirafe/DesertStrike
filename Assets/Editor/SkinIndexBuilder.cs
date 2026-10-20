@@ -5,8 +5,9 @@ using UnityEngine;
 
 /// <summary>
 /// Writes Assets/Resources/Skins/index.json from the skin folders (Skins/&lt;weapon name&gt;/&lt;skin name&gt;/) and the
-/// default model folders (Models/&lt;weapon name&gt;/model.fbx), so the game knows what exists. It runs by itself
-/// whenever something in those folders changes, and before every build.
+/// default model folders (Models/&lt;weapon name&gt;/model.fbx), so the game knows what exists, and packs each skin to
+/// send to games that do not have it (SkinPackBuilder). It runs by itself whenever something in those folders
+/// changes, and before every build.
 /// </summary>
 public class SkinIndexBuilder : AssetPostprocessor
 {
@@ -16,6 +17,18 @@ public class SkinIndexBuilder : AssetPostprocessor
 
     [MenuItem("Low Strike/Rebuild Skin Index")]
     public static void Build()
+    {
+        var index = MakeIndex();
+        SkinPackBuilder.Build(index);
+
+        string text = JsonUtility.ToJson(index, true);
+        if (File.Exists(IndexPath) && File.ReadAllText(IndexPath) == text) return;
+        File.WriteAllText(IndexPath, text);
+        AssetDatabase.ImportAsset(IndexPath);
+        Debug.Log($"[Skins] Skin index updated: {index.skins.Count} skins, {index.models.Count} default models.");
+    }
+
+    public static SkinIndex MakeIndex()
     {
         var index = new SkinIndex();
         if (Directory.Exists(ModelsFolder))
@@ -71,12 +84,7 @@ public class SkinIndexBuilder : AssetPostprocessor
                 }
             }
         }
-
-        string text = JsonUtility.ToJson(index, true);
-        if (File.Exists(IndexPath) && File.ReadAllText(IndexPath) == text) return;
-        File.WriteAllText(IndexPath, text);
-        AssetDatabase.ImportAsset(IndexPath);
-        Debug.Log($"[Skins] Skin index updated: {index.skins.Count} skins, {index.models.Count} default models.");
+        return index;
     }
 
     static bool HasFile(string folder, string name, params string[] extensions) =>

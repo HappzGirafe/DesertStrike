@@ -55,7 +55,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 HERE = Path(__file__).resolve().parent
-PROTOCOL_VERSION = 7          # NetSession.ProtocolVersion of the game build these hosts run
+PROTOCOL_VERSION = 8          # NetSession.ProtocolVersion of the game build these hosts run
 MAX_BODY = 16 * 1024          # bytes in one request
 MAX_PROFILE = 8 * 1024        # bytes of saved skins and settings per account
 MAX_FRIENDS = 100

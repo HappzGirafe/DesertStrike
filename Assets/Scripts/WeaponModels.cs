@@ -53,6 +53,7 @@ public static class WeaponModels
         // Parts are named by Tools/export_gun_fbx.py: Main (also Slide, Blade), Grip, and Detail (anything else).
         // Each part gets the skin's material, else its own look from Blender (parts.json), else a plain metal colour.
         var model = Object.Instantiate(prefab, root, false).transform;
+        model.gameObject.SetActive(true);   // a skin from another game keeps its model switched off (see SkinPack)
         var mains = new List<MeshFilter>();
         var grips = new List<MeshFilter>();
         var all = new List<MeshFilter>();
@@ -178,6 +179,7 @@ public static class WeaponModels
         var prefab = WeaponSkins.LoadProjectile(skin);
         if (prefab == null) return null;
         var model = Object.Instantiate(prefab, parent, false).transform;
+        model.gameObject.SetActive(true);
         var filters = new List<MeshFilter>(model.GetComponentsInChildren<MeshFilter>());
         foreach (var filter in filters)
         {

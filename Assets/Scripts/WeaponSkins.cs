@@ -62,12 +62,15 @@ public class PartLook
 
     /// <summary>A material with this look (textures from the Resources folder next to the model), or null when the
     /// part has neither texture nor colour.</summary>
-    public Material CreateMaterial(string folder)
+    public Material CreateMaterial(string folder) => CreateMaterial(name => Resources.Load<Texture2D>(folder + "/" + name));
+
+    /// <summary>The same, with the textures found by <paramref name="picture"/> (by name).</summary>
+    public Material CreateMaterial(Func<string, Texture2D> picture)
     {
-        var map = string.IsNullOrEmpty(texture) ? null : Resources.Load<Texture2D>(folder + "/" + texture);
+        var map = string.IsNullOrEmpty(texture) ? null : picture(texture);
         Color? tint = map != null ? Color.white : WeaponSkins.ParseColor(color);
         if (tint == null) return null;
-        var glowMap = string.IsNullOrEmpty(emissionTexture) ? null : Resources.Load<Texture2D>(folder + "/" + emissionTexture);
+        var glowMap = string.IsNullOrEmpty(emissionTexture) ? null : picture(emissionTexture);
         return Effects.SurfaceMaterial(tint.Value, map, smoothness, metallic, WeaponSkins.ParseColor(emission), glowMap, alpha, cutoff);
     }
 }
@@ -105,6 +108,13 @@ public class WeaponSkin
     public string Projectile;                              // Resources path of the skin's own projectile model, or null
     public Vector3 ProjectileRotation;
     public bool Locked;                                    // only with an account (skin.json "locked": true)
+    public string Folder;                                  // Resources path of the skin folder ("Skins/AK-47/Jungle")
+
+    // A skin another player's game sent (see SkinPack): its pictures and models, made at runtime. It only shows on
+    // their guns; it is not in this game's skin menu.
+    public bool Shared;
+    public Texture2D[] SharedTextures;                     // per SkinPart, or null
+    public GameObject SharedModel, SharedProjectile;
 }
 
 /// <summary>
@@ -175,6 +185,13 @@ public static class WeaponSkins
         return choices;
     }
 
+    /// <summary>This run acts as if the game did not have the skin (the -ds-forget-skin test option).</summary>
+    public static void Forget(WeaponData weapon, string skinId)
+    {
+        For(weapon).RemoveAll(skin => string.Equals(skin.Id, skinId, StringComparison.OrdinalIgnoreCase));
+        skinnable = null;
+    }
+
     /// <summary>Uses this skin for this run only, without saving (the -ds-equip test option).</summary>
     public static void EquipThisRun(WeaponData weapon, string skinId) => runChoices[weapon.Id] = skinId;
 
@@ -196,8 +213,101 @@ public static class WeaponSkins
     {
         foreach (var skin in For(weapon))
             if (string.Equals(skin.Id, id, StringComparison.OrdinalIgnoreCase)) return skin;
+        if (shared.TryGetValue(weapon.Id, out var fromOthers))
+            foreach (var skin in fromOthers)
+                if (string.Equals(skin.Id, id, StringComparison.OrdinalIgnoreCase)) return skin;
         return null;
     }
+
+    // ----------------------------------------------------------------- skins from other players' games
+
+    static readonly Dictionary<string, List<WeaponSkin>> shared = new Dictionary<string, List<WeaponSkin>>();
+
+    /// <summary>Skins (weapon id, skin id) someone in the game has and this game does not: NetSession asks the other
+    /// games for them (see SkinPack). The weapon's default shows until one arrives.</summary>
+    public static readonly HashSet<(string Weapon, string Skin)> Wanted = new HashSet<(string, string)>();
+
+    /// <summary>Goes up whenever a skin arrives from another game, so the guns already built can show it.</summary>
+    public static int Version { get; private set; }
+
+    /// <summary>Adds a skin another player's game sent (built by <see cref="SkinPack"/>); the materials of its
+    /// model's and projectile's parts come ready, by part name. False when this game has that skin already.</summary>
+    public static bool AddShared(WeaponSkin skin, Dictionary<string, Material> modelLooks, Dictionary<string, Material> projectileLooks)
+    {
+        if (byWeapon == null) LoadIndex();
+        var weapon = WeaponData.Find(skin.WeaponId);
+        if (weapon == null || Find(weapon, skin.Id) != null) return false;
+        skin.Shared = true;
+        if (skin.SharedModel != null)
+        {
+            skin.Model = $"shared/{skin.WeaponId}/{skin.Id}/model";
+            models[skin.Model] = skin.SharedModel;
+            AddLooks(skin.Model.Substring(0, skin.Model.Length - "/model".Length) + "/parts", modelLooks);
+        }
+        if (skin.SharedProjectile != null)
+        {
+            skin.Projectile = $"shared/{skin.WeaponId}/{skin.Id}/projectile";
+            models[skin.Projectile] = skin.SharedProjectile;
+            AddLooks(skin.Projectile + "_parts", projectileLooks);
+        }
+        for (int part = 0; part < 3; part++)
+        {
+            var texture = skin.SharedTextures?[part];
+            Color? color = skin.Colors[part];
+            materials[$"{skin.WeaponId}/{skin.Id}/{(SkinPart)part}"] = texture == null && color == null
+                ? null
+                : Effects.SkinMaterial(color ?? Color.white, texture, skin.Smoothness, skin.Metallic);
+        }
+        if (!shared.TryGetValue(skin.WeaponId, out var list)) shared[skin.WeaponId] = list = new List<WeaponSkin>();
+        list.Add(skin);
+        Wanted.Remove((skin.WeaponId, skin.Id));
+        Version++;
+        Debug.Log($"[Skins] Got {weapon.Name} skin '{skin.Name}' from another player's game");
+        return true;
+    }
+
+    // OwnLook finds these parts' materials by the model's path, as if parts.json were there.
+    static void AddLooks(string partsPath, Dictionary<string, Material> looks)
+    {
+        var parts = new Dictionary<string, PartLook>();
+        if (looks != null)
+            foreach (var pair in looks)
+            {
+                parts[pair.Key] = new PartLook { name = pair.Key };
+                materials[partsPath + "/" + pair.Key] = pair.Value;
+            }
+        partLooks[partsPath] = parts;
+    }
+
+    /// <summary>The skin with this id, else (while this game does not have it, and asks the others for it) the
+    /// weapon's default. "" or null: the default.</summary>
+    public static WeaponSkin Shown(WeaponData weapon, string id)
+    {
+        if (weapon == null) return null;
+        if (string.IsNullOrEmpty(id)) return DefaultFor(weapon);
+        var skin = Find(weapon, id);
+        if (skin != null) return skin;
+        Wanted.Add((weapon.Id, id));
+        return DefaultFor(weapon);
+    }
+
+    /// <summary>
+    /// The id of the skin a carried gun shows ("" for the plain look), whether or not this game has that skin: the
+    /// one it came with when it was picked up, else its owner's choice (a bot's is picked by its seed).
+    /// </summary>
+    public static string IdOf(Combatant combatant, WeaponInstance weapon) =>
+        weapon == null ? "" : weapon.Skin ?? ChoiceOf(combatant, weapon.Data);
+
+    static string ChoiceOf(Combatant combatant, WeaponData weapon)
+    {
+        if (combatant == null || weapon == null) return "";
+        if (combatant.SkinChoices != null && combatant.SkinChoices.TryGetValue(weapon.Id, out var id) && !string.IsNullOrEmpty(id)) return id;
+        return combatant.IsHuman ? "" : Pick(weapon, combatant.SkinSeed)?.Id ?? "";
+    }
+
+    /// <summary>The skin a carried gun shows (see <see cref="IdOf"/>).</summary>
+    public static WeaponSkin SkinOf(Combatant combatant, WeaponInstance weapon) =>
+        weapon == null ? null : Shown(weapon.Data, IdOf(combatant, weapon));
 
     /// <summary>The skin the player has equipped on every weapon: weapon id -> skin id.</summary>
     public static Dictionary<string, string> EquippedChoices()
@@ -230,14 +340,13 @@ public static class WeaponSkins
         return choices;
     }
 
-    /// <summary>The skin this combatant shows on the weapon: a person's chosen one, else a bot's random one.</summary>
+    /// <summary>The skin this combatant shows on the weapon: the carried gun's (see <see cref="IdOf"/>), else a
+    /// person's chosen one or a bot's random one.</summary>
     public static WeaponSkin SkinOf(Combatant combatant, WeaponData weapon)
     {
-        if (combatant == null || weapon == null) return null;
-        WeaponSkin skin = null;
-        if (combatant.SkinChoices != null && combatant.SkinChoices.TryGetValue(weapon.Id, out var id)) skin = Find(weapon, id);
-        if (skin == null && !combatant.IsHuman) skin = Pick(weapon, combatant.SkinSeed);
-        return skin;
+        if (weapon == null) return null;
+        var carried = combatant != null ? combatant.Get(weapon.Slot) : null;
+        return carried != null && carried.Data == weapon ? SkinOf(combatant, carried) : Shown(weapon, ChoiceOf(combatant, weapon));
     }
 
     /// <summary>The skin's own projectile model (like the Web RPG's net), or null for the normal rocket.</summary>
@@ -347,6 +456,7 @@ public static class WeaponSkins
                 Id = entry.id,
                 Name = string.IsNullOrEmpty(info.name) ? entry.id : info.name,
                 WeaponId = entry.weapon,
+                Folder = entry.folder,
                 Model = entry.hasModel ? entry.folder + "/model" : null,
                 Smoothness = info.smoothness,
                 Metallic = info.metallic,

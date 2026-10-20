@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -13,11 +14,44 @@ public struct NetCombatantState
     public bool IsHuman, Helmet, HasKit, Scoped, AutoMode;
     public Vector3 Position;
     public float Yaw, Height, Reload;
-    public int Health, Armor, Money, Kills, Deaths, Mag, Reserve, SpawnCount, SkinSeed;
+    public int Health, Armor, Money, Kills, Deaths, Mag, Reserve, SpawnCount;
     public int PrimarySell, SecondarySell;   // what selling each gun back would give
     public WeaponData Primary, Secondary;
     public WeaponSlot Slot;
-    public string Skin;   // skin id of the weapon in hand ("" = none / bot)
+    public string PrimarySkin, SecondarySkin, KnifeSkin;   // skin ids ("" = the plain look)
+}
+
+/// <summary>The skin ids in one snapshot, written once: the guns name theirs by number (0: the plain look).</summary>
+public class SkinTable
+{
+    readonly List<string> ids = new List<string> { "" };
+    readonly Dictionary<string, int> numbers = new Dictionary<string, int> { [""] = 0 };
+
+    public int Add(string id)
+    {
+        id ??= "";
+        if (numbers.TryGetValue(id, out int number)) return number;
+        if (ids.Count >= 255) return 0;
+        numbers[id] = ids.Count;
+        ids.Add(id);
+        return ids.Count - 1;
+    }
+
+    public string this[int number] => number >= 0 && number < ids.Count ? ids[number] : "";
+
+    public void Write(BinaryWriter writer)
+    {
+        writer.Write((byte)(ids.Count - 1));
+        for (int i = 1; i < ids.Count; i++) writer.Write(ids[i]);
+    }
+
+    public static SkinTable Read(BinaryReader reader)
+    {
+        var table = new SkinTable();
+        int count = reader.ReadByte();
+        for (int i = 0; i < count; i++) table.ids.Add(reader.ReadString());
+        return table;
+    }
 }
 
 /// <summary>The round and score as the host describes them in a snapshot.</summary>

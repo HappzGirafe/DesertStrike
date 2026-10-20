@@ -938,14 +938,9 @@ public class GameManager : MonoBehaviour
         {
             c.Height = s.Height;
             c.Scoped = s.Scoped;
-            var weapon = s.Slot == WeaponSlot.Primary ? s.Primary : s.Slot == WeaponSlot.Secondary ? s.Secondary : WeaponData.Knife;
-            if (weapon != null && !string.IsNullOrEmpty(s.Skin))
-            {
-                if (c.SkinChoices == null) c.SkinChoices = new Dictionary<string, string>();
-                c.SkinChoices[weapon.Id] = s.Skin;
-            }
         }
-        c.ApplyNetLoadout(s.Primary, s.Secondary, s.Slot, s.Mag, s.Reserve, s.Reload, s.AutoMode, s.PrimarySell, s.SecondarySell);
+        c.ApplyNetLoadout(s.Primary, s.Secondary, s.Slot, s.Mag, s.Reserve, s.Reload, s.AutoMode, s.PrimarySell, s.SecondarySell,
+                          s.PrimarySkin, s.SecondarySkin, s.KnifeSkin);
         if (!created) c.ApplyNetHealth(s.Health);
 
         if (me)
@@ -971,7 +966,6 @@ public class GameManager : MonoBehaviour
         combatant.IsHuman = s.IsHuman;
         combatant.IsMirror = true;
         combatant.NetId = s.NetId;
-        combatant.SkinSeed = s.SkinSeed;
         combatant.Health = s.Health;
         go.AddComponent<PuppetController>().Setup();
         Combatants.Add(combatant);
@@ -1187,6 +1181,25 @@ public class GameManager : MonoBehaviour
                     equipWeapon = WeaponData.Find(args[++i]);
                     equipSkin = args[++i];
                     if (equipWeapon != null) WeaponSkins.EquipThisRun(equipWeapon, equipSkin);
+                    break;
+                case "-ds-forget-skin" when i + 2 < args.Length:
+                    // -ds-forget-skin <weapon> <skin>: this run acts as if the game did not have that skin, so it has
+                    // to come from another player's game (tests skin sharing)
+                    if (WeaponData.Find(args[++i]) is WeaponData forgetWeapon) WeaponSkins.Forget(forgetWeapon, args[++i]);
+                    else i++;
+                    break;
+                case "-ds-skin-roundtrip" when i + 2 < args.Length:
+                    // -ds-skin-roundtrip <weapon> <skin>: forgets the skin and reads its pack back, as if it had come
+                    // from another player's game (tests SkinPack; use -ds-equip to see it)
+                    if (WeaponData.Find(args[++i]) is WeaponData packWeapon)
+                    {
+                        string packSkin = args[++i];
+                        byte[] pack = SkinPack.Local(packWeapon, packSkin);
+                        WeaponSkins.Forget(packWeapon, packSkin);
+                        bool readBack = pack != null && SkinPack.Load(pack, packWeapon.Id, packSkin);
+                        Debug.Log($"[Skins] Round trip of {packWeapon.Name}/{packSkin} ({pack?.Length / 1024} KB): {(readBack ? "read back" : "FAILED")}");
+                    }
+                    else i++;
                     break;
                 case "-ds-rotate" when i + 3 < args.Length:
                     // -ds-rotate <x> <y> <z>: turns the skin chosen with -ds-equip in the hand, for this run (trying angles)

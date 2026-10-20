@@ -149,6 +149,7 @@ public class CharacterBody : MonoBehaviour
     void Update()
     {
         float dt = Time.deltaTime;
+        if (shownSkins != WeaponSkins.Version && Self.Current != null) RefreshGun();   // a skin arrived from another game
         if (shownPose != null) return;
         if (diedAt >= 0f)
         {
@@ -344,17 +345,19 @@ public class CharacterBody : MonoBehaviour
         return mesh;
     }
 
+    int shownSkins;
+
     void RefreshGun()
     {
         renderersDirty = true;
+        shownSkins = WeaponSkins.Version;
         for (int i = gunMount.childCount - 1; i >= 0; i--) Destroy(gunMount.GetChild(i).gameObject);
         if (Self.Current == null) return;
-        var weapon = Self.Current.Data;
 
-        // People show their own equipped skin; bots pick one by their seed.
-        var skin = WeaponSkins.SkinOf(Self, weapon);
+        // The gun's own skin (one picked up keeps its owner's), else the person's equipped one, or a bot's by its seed.
+        var skin = WeaponSkins.SkinOf(Self, Self.Current);
 
-        WeaponModels.Build(weapon, gunMount, true, out var muzzle, skin);
+        WeaponModels.Build(Self.Current.Data, gunMount, true, out var muzzle, skin);
         Self.Muzzle = muzzle;
     }
 }

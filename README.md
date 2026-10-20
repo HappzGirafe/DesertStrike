@@ -277,6 +277,15 @@ keep their normal look. The weapon folder must be named like the weapon in the s
 To add a skin, create a new folder: Unity updates `Skins/index.json` by itself, and the skin shows up in the inventory.
 (If it does not, use the menu **Low Strike > Rebuild Skin Index**.)
 
+Players whose games have different skins still see each other's. Unity also packs every skin (pictures at most
+512 px, model and parts) into `Assets/Resources/SkinPacks/<weapon name>/<skin name>.bytes`, made again whenever its
+folder changes (**Low Strike > Rebuild Skin Packs** makes them all). In a LAN or online game, a game that meets a
+skin it does not have asks for its pack (the host sends it, getting it first from the player whose game has it); the
+default look shows until it arrives, usually within a few seconds. A skin from another game only shows on the guns
+that carry it; it does not go into the inventory.
+
+Each gun keeps its own skin: a gun picked up from the ground looks the way it did in its owner's hands.
+
 ### Blender models
 
 - Sources: `Art/Blender/*.blend`, with their textures in `Art/Textures`

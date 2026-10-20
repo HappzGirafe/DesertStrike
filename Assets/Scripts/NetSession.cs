@@ -21,14 +21,18 @@ using UnityEngine;
 /// (<see cref="JoinTicket"/>), which sets the player's account and nickname; the host checks every move and shot
 /// (see <see cref="RemotePlayerController"/>), limits how many packets each player sends, and keeps a dropped
 /// player's place for a minute so they can come back.
+///
+/// Skins travel too: every gun's skin is in the snapshot, and a game that does not have a skin someone shows gets it
+/// from the others' games (see NetSession.Skins.cs).
 /// </summary>
-public class NetSession : MonoBehaviour
+public partial class NetSession : MonoBehaviour
 {
     public const int GamePort = 27015;
     public const int DiscoveryPort = 27016;
     // 2: the map is part of the lobby and of every snapshot; 3: selling guns; 4: the Uzi; 5: online rooms (a ticket in
-    // Hello, spectators, Reject); 6: a walled-off bombsite in small matches; 7: guns on the ground
-    const int ProtocolVersion = 7;
+    // Hello, spectators, Reject); 6: a walled-off bombsite in small matches; 7: guns on the ground; 8: every gun's
+    // skin, and skins sent to the games that do not have them
+    const int ProtocolVersion = 8;
     public static int Protocol => ProtocolVersion;
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
@@ -40,7 +44,8 @@ public class NetSession : MonoBehaviour
     const float PacketBurst = 120f;
     const int MaxPeers = 14;             // 5v5 and four watching
 
-    enum Msg : byte { Hello = 1, Input, Fire, Action, Bye, Voice, Welcome = 101, Lobby, Snapshot, Events, Ended, VoiceRelay, Reject }
+    // SkinWant and SkinChunk go both ways (a client asks the host for a skin; the host asks a client for one).
+    enum Msg : byte { Hello = 1, Input, Fire, Action, Bye, Voice, SkinWant, SkinChunk, Welcome = 101, Lobby, Snapshot, Events, Ended, VoiceRelay, Reject }
     enum Ev : byte { Fire = 1, Tracer, Impact, Blood, Rocket, HitMarker }
 
     public enum Mode { Off, Host, Client }
@@ -58,6 +63,7 @@ public class NetSession : MonoBehaviour
         public float AwaySince = -1f;   // online: when its connection dropped (its player waits for it)
         public RemotePlayerController Player;
         internal float Tokens = PacketBurst, TokensAt;
+        internal float SkinTokens = SkinChunkBurst, SkinTokensAt;   // skin pieces the host may send it
         public bool Away => AwaySince >= 0f;
     }
 
@@ -307,6 +313,7 @@ public class NetSession : MonoBehaviour
         MyNetId = 0;
         events.SetLength(0);
         eventCount = 0;
+        StopSkinSharing();
     }
 
     public void StartDiscovery()
@@ -519,6 +526,12 @@ public class NetSession : MonoBehaviour
                         if (other != peer && !other.Away) Send(relay, other.EndPoint);
                 }
                 break;
+            case Msg.SkinWant:
+                HostSkinWant(reader, peer);
+                break;
+            case Msg.SkinChunk:
+                ReceiveSkinChunk(reader, peer);
+                break;
             case Msg.Bye:
                 RemovePeer(peer, "left");
                 break;
@@ -726,6 +739,7 @@ public class NetSession : MonoBehaviour
             SendSnapshots();
         }
         FlushEvents();
+        UpdateSkinSharing();
     }
 
     void SendLobby()
@@ -750,12 +764,18 @@ public class NetSession : MonoBehaviour
     void SendSnapshots()
     {
         if (Peers.Count == 0) return;
+        var skins = new SkinTable();
+        foreach (var d in gm.Drops.Items) skins.Add(d.Skin);
+        foreach (var c in gm.Combatants)
+            foreach (var weapon in new[] { c.Primary, c.Secondary, c.Knife })
+                if (weapon != null) skins.Add(WeaponSkins.IdOf(c, weapon));
         byte[] body = Packet(w =>
         {
             WriteMatch(w);
             WriteBomb(w);
-            gm.Drops.Write(w);
-            WriteCombatants(w);
+            skins.Write(w);
+            gm.Drops.Write(w, skins);
+            WriteCombatants(w, skins);
             WriteKillFeed(w);
         });
         foreach (var peer in Peers)
@@ -803,7 +823,7 @@ public class NetSession : MonoBehaviour
         w.Write(bomb.Site ?? "");
     }
 
-    void WriteCombatants(BinaryWriter w)
+    void WriteCombatants(BinaryWriter w, SkinTable skins)
     {
         w.Write((byte)gm.Combatants.Count);
         foreach (var c in gm.Combatants)
@@ -831,10 +851,9 @@ public class NetSession : MonoBehaviour
             w.Write((ushort)Mathf.Clamp(current?.Reserve ?? 0, 0, 65535));
             w.Write((byte)Mathf.RoundToInt(c.ReloadProgress * 255f));
             w.Write((byte)(c.SpawnCount & 0xFF));
-            w.Write((ushort)c.SkinSeed);
-            string skin = null;
-            if (c.SkinChoices != null && current != null) c.SkinChoices.TryGetValue(current.Data.Id, out skin);
-            w.Write(skin ?? "");
+            w.Write((byte)skins.Add(WeaponSkins.IdOf(c, c.Primary)));
+            w.Write((byte)skins.Add(WeaponSkins.IdOf(c, c.Secondary)));
+            w.Write((byte)skins.Add(WeaponSkins.IdOf(c, c.Knife)));
         }
     }
 
@@ -969,6 +988,12 @@ public class NetSession : MonoBehaviour
             case Msg.Reject:
                 gm.OnNetworkGameEnded(reader.ReadString());
                 break;
+            case Msg.SkinWant:
+                ClientSkinWant(reader);
+                break;
+            case Msg.SkinChunk:
+                ReceiveSkinChunk(reader, null);
+                break;
             case Msg.VoiceRelay:
                 {
                     string speaker = reader.ReadString();
@@ -1014,7 +1039,8 @@ public class NetSession : MonoBehaviour
         int userId = r.ReadUInt16();
         float useProgress = r.ReadSingle();
         string site = r.ReadString();
-        gm.Drops.Read(r);
+        var skins = SkinTable.Read(r);
+        gm.Drops.Read(r, skins);
 
         int count = r.ReadByte();
         var states = new List<NetCombatantState>(count);
@@ -1049,8 +1075,9 @@ public class NetSession : MonoBehaviour
             s.Reserve = r.ReadUInt16();
             s.Reload = r.ReadByte() / 255f;
             s.SpawnCount = r.ReadByte();
-            s.SkinSeed = r.ReadUInt16();
-            s.Skin = r.ReadString();
+            s.PrimarySkin = skins[r.ReadByte()];
+            s.SecondarySkin = skins[r.ReadByte()];
+            s.KnifeSkin = skins[r.ReadByte()];
             states.Add(s);
         }
 
@@ -1187,6 +1214,7 @@ public class NetSession : MonoBehaviour
             nextHello = now + 1f;
             SendHello();   // keeps the connection alive in the lobby
         }
+        UpdateSkinSharing();
     }
 
     void SendHello()

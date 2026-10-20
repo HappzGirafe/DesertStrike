@@ -100,6 +100,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
     void Update()
     {
         UseHeld = false;
+        if (shownSkins != WeaponSkins.Version && Self.Current != null) BuildViewModel();   // a skin came from another game
         if (!Self.IsAlive) return;
         var gm = GameManager.Instance;
         if (gm.IsPaused) return;
@@ -334,10 +335,20 @@ public class PlayerController : MonoBehaviour, ICombatantController
 
     void RefreshViewModel()
     {
-        for (int i = viewModel.childCount - 1; i >= 0; i--) Destroy(viewModel.GetChild(i).gameObject);
         IsScoped = false;
+        BuildViewModel();
+    }
+
+    int shownSkins;
+
+    // The gun in the hands, with its own skin: a gun picked up from someone keeps theirs (on a network client the host
+    // says which skin each gun has).
+    void BuildViewModel()
+    {
+        shownSkins = WeaponSkins.Version;
+        for (int i = viewModel.childCount - 1; i >= 0; i--) Destroy(viewModel.GetChild(i).gameObject);
         if (Self.Current == null) return;
-        WeaponModels.Build(Self.Current.Data, viewModel, false, out var muzzle, WeaponSkins.Equipped(Self.Current.Data));
+        WeaponModels.Build(Self.Current.Data, viewModel, false, out var muzzle, WeaponSkins.SkinOf(Self, Self.Current));
         Self.Muzzle = muzzle;
     }
 

@@ -143,10 +143,10 @@ public class WeaponData
     };
 
     // The Dragunov: a semi-automatic sniper rifle, cheaper and faster than the AWP but weaker. Where it hits decides:
-    // 110 to the head, 75-80 to the body, 20-30 to the arms and legs.
+    // 110 to the head, 75-80 to the body, 20-30 to the arms and legs. Every round adds 15 rounds to its reserve.
     public static readonly WeaponData Svd = new WeaponData
     {
-        Id = "svd", Name = "SVD", RoundAmmoBonus = 5, Slot = WeaponSlot.Primary, Price = 2900, Damage = 75,
+        Id = "svd", Name = "SVD", RoundAmmoBonus = 15, Slot = WeaponSlot.Primary, Price = 2900, Damage = 75,
         BodyDamageMax = 80, HeadDamage = 110, LimbDamage = 20, LimbDamageMax = 30,
         FireInterval = 0.45f, MagSize = 10, ReserveAmmo = 20, ReloadTime = 3.2f, Spread = 0.08f,
         MoveSpread = 5f, Recoil = 3.2f, ZoomFov = 24f, ArmorPenetration = 0.95f, MoveSpeed = 5.2f,

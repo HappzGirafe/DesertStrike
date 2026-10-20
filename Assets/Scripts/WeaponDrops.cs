@@ -49,7 +49,7 @@ public class WeaponDrops : MonoBehaviour
         if (gm.IsClient || c == null || slot == WeaponSlot.Knife || gm.State == MatchState.Menu) return false;
         var weapon = c.Get(slot);
         if (weapon == null) return false;
-        string skin = WeaponSkins.SkinOf(c, weapon.Data)?.Id;
+        string skin = WeaponSkins.IdOf(c, weapon);   // it keeps its skin on the ground, and in the next hands
         c.RemoveWeapon(slot);
         Vector3 spot = c.transform.position;
         if (thrown)
@@ -99,11 +99,12 @@ public class WeaponDrops : MonoBehaviour
 
     void Take(Combatant c, Dropped d)
     {
-        // A gun from the ground sells for nothing: no money changes hands by dropping guns to each other.
-        c.GiveWeapon(new WeaponInstance(d.Data) { Mag = d.Mag, Reserve = d.Reserve, SellPrice = 0 });
+        // A gun from the ground sells for nothing: no money changes hands by dropping guns to each other. It keeps
+        // the skin it had, whoever picks it up.
+        c.GiveWeapon(new WeaponInstance(d.Data) { Mag = d.Mag, Reserve = d.Reserve, SellPrice = 0, Skin = d.Skin ?? "" });
         Remove(d);
         SoundFX.Play(SoundFX.DryFire, d.Position, 0.6f, 0.9f, !c.IsPlayer, 15f);
-        Debug.Log($"[DesertStrike] {c.DisplayName} picked up a {d.Data.Name}");
+        Debug.Log($"[DesertStrike] {c.DisplayName} picked up a {d.Data.Name} (skin '{d.Skin}', dropped by {d.DroppedBy?.DisplayName})");
     }
 
     void Add(WeaponData data, int mag, int reserve, string skin, Vector3 position, float yaw, Combatant by)
@@ -130,9 +131,23 @@ public class WeaponDrops : MonoBehaviour
         var root = new GameObject("Dropped " + d.Data.Name).transform;
         root.position = d.Position + Vector3.up * 0.07f;
         root.rotation = Quaternion.Euler(0f, d.Yaw, 90f);   // lying on its side
-        WeaponModels.Build(d.Data, root, true, out _, WeaponSkins.Find(d.Data, d.Skin ?? ""));
+        WeaponModels.Build(d.Data, root, true, out _, WeaponSkins.Shown(d.Data, d.Skin));
         return root;
     }
+
+    // A skin came from another player's game: guns waiting for it show it now.
+    void RebuildModels()
+    {
+        shownSkins = WeaponSkins.Version;
+        foreach (var d in Items)
+        {
+            if (string.IsNullOrEmpty(d.Skin) || d.Model == null) continue;
+            Destroy(d.Model.gameObject);
+            d.Model = BuildModel(d);
+        }
+    }
+
+    int shownSkins;
 
     static Vector3 Ground(Vector3 position) =>
         Physics.Raycast(position + Vector3.up, Vector3.down, out var hit, 10f, Ballistics.EnvironmentMask, QueryTriggerInteraction.Ignore)
@@ -143,6 +158,7 @@ public class WeaponDrops : MonoBehaviour
 
     void Update()
     {
+        if (shownSkins != WeaponSkins.Version) RebuildModels();
         if (gm.IsClient || gm.State == MatchState.Menu || Items.Count == 0) return;
         // Walking over a gun picks it up when that slot is free.
         foreach (var c in gm.Combatants)
@@ -160,8 +176,9 @@ public class WeaponDrops : MonoBehaviour
 
     // ----------------------------------------------------------------- network
 
-    /// <summary>Host: the guns on the ground, for a snapshot (positions in 2 cm steps).</summary>
-    public void Write(System.IO.BinaryWriter w)
+    /// <summary>Host: the guns on the ground, for a snapshot (positions in 2 cm steps; skins by their number in
+    /// the snapshot's table).</summary>
+    public void Write(System.IO.BinaryWriter w, SkinTable skins)
     {
         w.Write((byte)Items.Count);
         foreach (var d in Items)
@@ -172,12 +189,12 @@ public class WeaponDrops : MonoBehaviour
             w.Write((short)Mathf.Clamp(Mathf.RoundToInt(d.Position.y * 50f), short.MinValue, short.MaxValue));
             w.Write((short)Mathf.Clamp(Mathf.RoundToInt(d.Position.z * 50f), short.MinValue, short.MaxValue));
             w.Write((byte)Mathf.RoundToInt(Mathf.Repeat(d.Yaw, 360f) / 360f * 255f));
-            w.Write(d.Skin ?? "");
+            w.Write((byte)skins.Add(d.Skin));
         }
     }
 
     /// <summary>Client: reads the snapshot's guns and shows them (new ones appear, picked-up ones go).</summary>
-    public void Read(System.IO.BinaryReader r)
+    public void Read(System.IO.BinaryReader r, SkinTable skins)
     {
         int count = r.ReadByte();
         var seen = new HashSet<int>();
@@ -187,7 +204,7 @@ public class WeaponDrops : MonoBehaviour
             var data = WeaponData.FromIndex(r.ReadByte());
             var position = new Vector3(r.ReadInt16() / 50f, r.ReadInt16() / 50f, r.ReadInt16() / 50f);
             float yaw = r.ReadByte() / 255f * 360f;
-            string skin = r.ReadString();
+            string skin = skins[r.ReadByte()];
             if (data == null) continue;
             seen.Add(id);
             if (Items.Exists(item => item.Id == id)) continue;

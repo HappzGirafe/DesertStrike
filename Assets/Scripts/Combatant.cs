@@ -10,6 +10,9 @@ public class WeaponInstance
     public bool AutoMode;   // only used by select-fire weapons
     public int SellPrice;   // what selling it back gives: the full price in the round it was bought, half after that
     public float LastShotAt = -100f;
+    // The skin it shows (a skin id; "" = the weapon's plain look). Null: whatever its owner chose. A gun picked up
+    // from the ground keeps the skin it had, and a network client gets every gun's skin from the host.
+    public string Skin;
 
     /// <summary>A gun that has not fired for this many seconds fires its next shot exactly where it is aimed.</summary>
     public const float FirstShotRest = 3f;
@@ -346,13 +349,24 @@ public class Combatant : MonoBehaviour
     public void HoldPrediction() => predictUntil = Time.time + 0.35f;
 
     public void ApplyNetLoadout(WeaponData primary, WeaponData secondary, WeaponSlot slot, int mag, int reserve,
-                                float reloadProgress, bool autoMode, int primarySell, int secondarySell)
+                                float reloadProgress, bool autoMode, int primarySell, int secondarySell,
+                                string primarySkin, string secondarySkin, string knifeSkin)
     {
+        string shownSkin = Current?.Skin;
         if (Knife == null) Knife = new WeaponInstance(WeaponData.Knife);
         if (Primary?.Data != primary) Primary = primary != null ? new WeaponInstance(primary) : null;
         if (Secondary?.Data != secondary) Secondary = secondary != null ? new WeaponInstance(secondary) : null;
-        if (Primary != null) Primary.SellPrice = primarySell;
-        if (Secondary != null) Secondary.SellPrice = secondarySell;
+        if (Primary != null)
+        {
+            Primary.SellPrice = primarySell;
+            Primary.Skin = primarySkin;
+        }
+        if (Secondary != null)
+        {
+            Secondary.SellPrice = secondarySell;
+            Secondary.Skin = secondarySkin;
+        }
+        Knife.Skin = knifeSkin;
 
         bool predicting = Time.time < predictUntil;
         var wanted = predicting && Current != null && Get(Current.Data.Slot) == Current ? Current : Get(slot) ?? Knife;
@@ -362,6 +376,7 @@ public class Combatant : MonoBehaviour
             previous = Current;
             Current = wanted;
         }
+        else if (Current.Skin != shownSkin) changed = true;   // the same gun with another skin (one picked up)
         if (!predicting && Current.Data.Slot == slot)
         {
             Current.Mag = mag;
