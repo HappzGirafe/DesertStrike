@@ -339,7 +339,47 @@ public partial class GameUI : MonoBehaviour
     }
 
     float PlayersRow(float x, float y, float rowWidth) =>
-        OptionRow(x, y, "Players per team", new[] { "1v1", "2v2", "3v3", "4v4", "5v5" }, gm.TeamSize - 1, i => gm.TeamSize = i + 1, rowWidth);
+        TeamCountsRow(x, y, rowWidth, "menu", gm.TerroristCount, gm.SwatCount, gm.SetTeamCounts);
+
+    /// <summary>
+    /// How many players each team has (people, and bots for the rest): a number for the Terrorists and one for SWAT,
+    /// typed in or changed with - and +. The teams may differ, e.g. 2 against 5.
+    /// </summary>
+    float TeamCountsRow(float x, float y, float rowWidth, string id, int terrorists, int swat, Action<int, int> onChange)
+    {
+        Label(new Rect(x + 40f, y, rowWidth, 34f), "Players in each team", 22, Color.white);
+        float half = (rowWidth - 20f) / 2f;
+        int t = CountField(new Rect(x + 40f, y + 38f, half, 48f), id + "-t", "Terrorists", terrorists);
+        int s = CountField(new Rect(x + 40f + half + 20f, y + 38f, half, 48f), id + "-swat", "SWAT", swat);
+        if (t != terrorists || s != swat) onChange(t, s);
+        return y + 105f;
+    }
+
+    // What is typed in each team's number box (it counts once it is a number).
+    readonly Dictionary<string, string> countTexts = new Dictionary<string, string>();
+
+    // "Terrorists  [-] [ 5 ] [+]": the number is typed (1 to GameManager.MaxPerTeam), or changed by one.
+    int CountField(Rect rect, string id, string team, int value)
+    {
+        const float labelWidth = 112f, buttonWidth = 46f, gap = 6f;
+        Label(new Rect(rect.x, rect.y, labelWidth - 4f, rect.height), team, 19, Dim, TextAnchor.MiddleLeft);
+        var minus = new Rect(rect.x + labelWidth, rect.y, buttonWidth, rect.height);
+        var field = new Rect(minus.xMax + gap, rect.y, rect.xMax - minus.xMax - 2f * gap - buttonWidth, rect.height);
+        var plus = new Rect(field.xMax + gap, rect.y, buttonWidth, rect.height);
+
+        bool editing = OnPhone ? keyboardField == id : GUI.GetNameOfFocusedControl() == id;
+        countTexts.TryGetValue(id, out string before);
+        string text = TextInput(field, id, editing && before != null ? before : value.ToString(), 2, numbers: true);
+        text = new string(Array.FindAll(text.ToCharArray(), char.IsDigit));
+        if (text != before && int.TryParse(text, out int typed) && typed >= 1) value = Mathf.Min(typed, GameManager.MaxPerTeam);
+        countTexts[id] = text;
+
+        int stepped = value;
+        if (Button(minus, "-", false, value > 1)) stepped = value - 1;
+        if (Button(plus, "+", false, value < GameManager.MaxPerTeam)) stepped = value + 1;
+        if (stepped != value) countTexts[id] = stepped.ToString();
+        return Mathf.Clamp(stepped, 1, GameManager.MaxPerTeam);
+    }
 
     float DifficultyRow(float x, float y, float rowWidth) =>
         OptionRow(x, y, "Bot difficulty", new[] { "Easy", "Normal", "Hard", "Extreme" }, (int)gm.Difficulty, i => gm.Difficulty = (BotDifficulty)i, rowWidth,
@@ -712,6 +752,8 @@ public partial class GameUI : MonoBehaviour
         "pw-new" => "New password",
         "pw-repeat" => "New password again",
         "delete-password" => "Your password",
+        _ when id.EndsWith("-t") => "Terrorists",
+        _ when id.EndsWith("-swat") => "SWAT",
         _ => "",
     };
 

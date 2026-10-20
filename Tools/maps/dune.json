@@ -1,0 +1,9 @@
+{
+  "about": "de_dune made bigger in Blender (Art/Blender/dunenorm.blend, 2.57 times the game's old Dune): its spawns and bombsites where the old Dune had them (MapBuilder's areas, scaled the same way). Also for dune_closedA / dune_closedB.",
+  "areas": {
+    "TSpawn_Tiles": [[-61.5, 95.9, 61.8, 157.5, -1.04]],
+    "CTSpawn_Tiles": [[-40.9, -150.7, 51.5, -89.1, -1.04]],
+    "Site_Tiles": [[-143.7, -140.5, -51.3, -78.9, -1.04], [61.9, -140.5, 144.0, -68.6, -1.04]]
+  },
+  "letters": {"Decal_A": [-97.5, -109.7, -1.04], "Decal_B": [103.0, -104.5, -1.04]}
+}

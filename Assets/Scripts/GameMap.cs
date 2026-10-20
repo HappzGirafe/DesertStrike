@@ -15,7 +15,11 @@ public struct MapLighting
     public Color Background;
 }
 
-/// <summary>The maps the game knows: de_dune (built from blocks) and the maps made in Blender (Resources/Maps/&lt;id&gt;).</summary>
+/// <summary>
+/// The maps the game knows, made in Blender (Resources/Maps/&lt;id&gt;; de_dune is built from blocks when it has no
+/// model there). A map may also have its own versions for small matches, with one site's half shut by hand:
+/// Resources/Maps/&lt;id&gt;/closedA and closedB (Tools/export_maps.ps1); without one the game walls that half off itself.
+/// </summary>
 public static class MapCatalog
 {
     public class Entry
@@ -67,6 +71,16 @@ public static class MapCatalog
                 Fog = new Color(0.8f, 0.76f, 0.68f), FogStart = 70f, FogEnd = 300f, Skybox = true, Background = new Color(0.62f, 0.75f, 0.9f),
             },
         },
+        new Entry
+        {
+            Id = "bone", Name = "Bone", Description = "a bone yard: two fenced bases, giant pumpkins and a ribcage in the middle",
+            Lighting = new MapLighting
+            {
+                Sun = new Color(1f, 0.82f, 0.62f), SunIntensity = 0.85f, SunAngles = new Vector3(38f, 60f, 0f),
+                Sky = new Color(0.46f, 0.4f, 0.54f), Equator = new Color(0.42f, 0.34f, 0.36f), Ground = new Color(0.2f, 0.16f, 0.16f),
+                Fog = new Color(0.36f, 0.27f, 0.36f), FogStart = 70f, FogEnd = 300f, Skybox = false, Background = new Color(0.27f, 0.2f, 0.32f),
+            },
+        },
     };
 
     public static Entry Find(string id)
@@ -76,10 +90,30 @@ public static class MapCatalog
         return null;
     }
 
-    public static GameMap Create(string id)
+    static readonly Dictionary<string, bool> present = new Dictionary<string, bool>();
+
+    // Whether Resources/<folder>/parts.json exists (every exported map has one).
+    static bool Exported(string folder)
+    {
+        if (!present.TryGetValue(folder, out bool found))
+        {
+            var parts = Resources.Load<TextAsset>(folder + "/parts");
+            present[folder] = found = parts != null;
+            if (parts != null) Resources.UnloadAsset(parts);
+        }
+        return found;
+    }
+
+    /// <summary>Whether the map has its own version with that site's half shut ("A" or "B").</summary>
+    public static bool HasClosedVersion(string id, string site) =>
+        (site == "A" || site == "B") && Exported($"Maps/{id}/closed{site}");
+
+    /// <param name="closed">"A" or "B": the map's own closed version (see <see cref="HasClosedVersion"/>).</param>
+    public static GameMap Create(string id, string closed = null)
     {
         var entry = Find(id) ?? Find(DefaultId);
-        GameMap map = entry.Id == "dune" ? (GameMap)new MapBuilder() : new ModelMap(entry.Id);
+        bool blocks = entry.Id == "dune" && !Exported("Maps/dune");
+        GameMap map = blocks ? (GameMap)new MapBuilder() : new ModelMap(entry.Id, HasClosedVersion(entry.Id, closed) ? closed : null);
         map.Id = entry.Id;
         map.Name = entry.Name;
         map.Description = entry.Description;
@@ -124,6 +158,16 @@ public abstract class GameMap
     /// <summary>The bombsite walled off for small matches (1v1 to 3v3), or null when both are open.</summary>
     public string ClosedSite { get; private set; }
     Transform barrier;
+
+    /// <summary>"A" or "B" when this is the map's own closed version for small matches (made in Blender, with its
+    /// own walls); null for the normal map.</summary>
+    public virtual string ClosedVersion => null;
+
+    /// <summary>True when the map itself shuts that site's half (its closed version): no walls are added.</summary>
+    protected virtual bool ClosedByModel(string site) => false;
+
+    /// <summary>A place on the map, for messages: in the coordinates the map was made in.</summary>
+    protected virtual string Where(Vector3 p) => $"({p.x:0}, {p.z:0})";
 
     public abstract void Build(Transform parent);
 
@@ -176,6 +220,15 @@ public abstract class GameMap
         if (site == null) return;
 
         float started = Time.realtimeSinceStartup;
+        if (ClosedByModel(site))
+        {
+            if (MarkClosedSide(site, out int shut))
+            {
+                Debug.Log($"[Map] {Name}: its own version with the {site} side closed ({shut}% of the map out of reach)");
+                return;
+            }
+            Debug.LogWarning($"[Map] {Name}: its version with the {site} side closed still lets the spawns reach site {site}; walls added");
+        }
         if (WallOffHalf(site, out int share, out int panels, out int plugs))
         {
             Debug.Log($"[Map] The {site} side is closed for a small match: {share}% of the map, {panels} wall panels" +
@@ -242,10 +295,14 @@ public abstract class GameMap
     /// site and the other spawn, and none the closed site; a way through that the cells missed (a ledge, a gap) gets a
     /// wall across it. False when no cut works on this map.
     /// </summary>
-    bool WallOffHalf(string site, out int share, out int panels, out int plugs)
+    /// <summary>
+    /// The walkable ground in 1 m cells (from the NavMesh), with each cell's floor height and which neighbouring
+    /// cells can be walked between (to the right, +x, and up, +z). False when there is no NavMesh, or it is too big.
+    /// </summary>
+    bool WalkGrid(out bool[] walk, out float[] floorY, out bool[] right, out bool[] up)
     {
-        share = panels = plugs = 0;
-        // 1. The walkable ground, in 1 m cells, and which neighbouring cells can be walked between.
+        walk = right = up = null;
+        floorY = null;
         var triangulation = NavMesh.CalculateTriangulation();
         if (triangulation.vertices.Length == 0) return false;
         Vector3 lo = triangulation.vertices[0], hi = lo;
@@ -259,8 +316,9 @@ public abstract class GameMap
         gridH = Mathf.CeilToInt((hi.z - gridMin.z) / GridCell) + 2;
         int n = gridW * gridH;
         if (n > 250000) return false;
-        var walk = new bool[n];
-        var floorY = new float[n];
+        walk = new bool[n];
+        floorY = new float[n];
+        cellPoints = new Vector3[n];
         float probe = lo.y - 0.5f, reach = Mathf.Min(hi.y - lo.y + 1.5f, 4f);
         for (int z = 0; z < gridH; z++)
             for (int x = 0; x < gridW; x++)
@@ -270,9 +328,10 @@ public abstract class GameMap
                 if (new Vector2(hit.position.x - c.x, hit.position.z - c.z).magnitude > GridCell * 0.71f) continue;
                 walk[x + z * gridW] = true;
                 floorY[x + z * gridW] = hit.position.y;
+                cellPoints[x + z * gridW] = hit.position;
             }
-        var right = new bool[n];
-        var up = new bool[n];
+        right = new bool[n];
+        up = new bool[n];
         for (int z = 0; z < gridH; z++)
             for (int x = 0; x < gridW; x++)
             {
@@ -281,6 +340,64 @@ public abstract class GameMap
                 if (x + 1 < gridW && walk[i + 1]) right[i] = Joined(i, i + 1, x, z, x + 1, z, floorY);
                 if (z + 1 < gridH && walk[i + gridW]) up[i] = Joined(i, i + gridW, x, z, x, z + 1, floorY);
             }
+        return true;
+    }
+
+    /// <summary>
+    /// The map's own closed version already shuts the site's half: the closed side is all ground the spawns cannot
+    /// walk to. False when a spawn can still reach the closed site, or the spawns cannot reach the open site or each
+    /// other (then walls are added as on any other map).
+    /// </summary>
+    bool MarkClosedSide(string site, out int share)
+    {
+        share = 0;
+        if (!WalkGrid(out var walk, out var floorY, out var right, out var up)) return false;
+        var spawnCells = new List<int>();
+        foreach (var spawn in TerroristSpawns) { int c = NearestCell(spawn, walk); if (c >= 0) spawnCells.Add(c); }
+        foreach (var spawn in SwatSpawns) { int c = NearestCell(spawn, walk); if (c >= 0) spawnCells.Add(c); }
+        int openSite = NearestCell(SitePoint(site != "A"), walk);
+        int tSpawn = NearestCell(TerroristSpawns[0], walk), swatSpawn = NearestCell(SwatSpawns[0], walk);
+        if (spawnCells.Count == 0 || openSite < 0 || tSpawn < 0 || swatSpawn < 0) return false;
+        int[] fromT = Distances(new[] { tSpawn }, walk, right, up, null);
+        if (fromT[swatSpawn] < 0 || fromT[openSite] < 0) return false;
+        int[] fromSpawns = Distances(spawnCells.ToArray(), walk, right, up, null);
+
+        // No spawn may walk onto the closed site: paths to points all over its floor (every 3 m).
+        Bounds zone = SiteZone(site);
+        var path = new NavMeshPath();
+        for (float x = zone.min.x + 1f; x < zone.max.x; x += 3f)
+            for (float z = zone.min.z + 1f; z < zone.max.z; z += 3f)
+            {
+                if (!NavMesh.SamplePosition(new Vector3(x, zone.min.y + 1f, z), out var hit, 1.5f, NavMesh.AllAreas)
+                    || SiteUnder(hit.position) != site) continue;
+                if (!Reaches(TerroristSpawns[0], hit.position, path) && !Reaches(SwatSpawns[0], hit.position, path)) continue;
+                // Where the way in goes, so whoever made the map can find the gap.
+                var way = new List<string>();
+                foreach (var corner in path.corners) way.Add(Where(corner));
+                Debug.LogWarning($"[Map] {Name}: the way onto closed site {site}: {string.Join(" -> ", way)}");
+                return false;
+            }
+
+        var closed = new bool[walk.Length];
+        int closedCount = 0, walkCount = 0;
+        for (int i = 0; i < walk.Length; i++)
+        {
+            if (!walk[i]) continue;
+            walkCount++;
+            closed[i] = fromSpawns[i] < 0;
+            if (closed[i]) closedCount++;
+        }
+        closedCells = closed;
+        share = walkCount > 0 ? Mathf.RoundToInt(100f * closedCount / walkCount) : 0;
+        return true;
+    }
+
+    bool WallOffHalf(string site, out int share, out int panels, out int plugs)
+    {
+        share = panels = plugs = 0;
+        // 1. The walkable ground, in 1 m cells, and which neighbouring cells can be walked between.
+        if (!WalkGrid(out var walk, out var floorY, out var right, out var up)) return false;
+        int n = walk.Length;
 
         // 2. How far each cell is, walking, from the sites and from the nearest spawn point.
         Vector3 shutPoint = SitePoint(site == "A"), openPoint = SitePoint(site != "A");
@@ -448,11 +565,15 @@ public abstract class GameMap
 
     Vector3 CellCentre(int x, int z, float y) => new Vector3(gridMin.x + (x + 0.5f) * GridCell, y, gridMin.z + (z + 0.5f) * GridCell);
 
+    // Walkable between two neighbouring cells: from the NavMesh point found for one to the other's (a cell's middle may
+    // lie just off the NavMesh, beside a wall, and a ray from there is not stopped by it).
     bool Joined(int a, int b, int ax, int az, int bx, int bz, float[] floorY)
     {
         if (Mathf.Abs(floorY[a] - floorY[b]) > 1.2f) return false;
-        return !NavMesh.Raycast(CellCentre(ax, az, floorY[a]), CellCentre(bx, bz, floorY[b]), out _, NavMesh.AllAreas);
+        return !NavMesh.Raycast(cellPoints[a], cellPoints[b], out _, NavMesh.AllAreas);
     }
+
+    Vector3[] cellPoints;   // each walkable cell's point on the NavMesh (WalkGrid)
 
     int NearestCell(Vector3 p, bool[] walk)
     {

@@ -31,8 +31,9 @@ public partial class NetSession : MonoBehaviour
     public const int DiscoveryPort = 27016;
     // 2: the map is part of the lobby and of every snapshot; 3: selling guns; 4: the Uzi; 5: online rooms (a ticket in
     // Hello, spectators, Reject); 6: a walled-off bombsite in small matches; 7: guns on the ground; 8: every gun's
-    // skin, and skins sent to the games that do not have them
-    const int ProtocolVersion = 8;
+    // skin, and skins sent to the games that do not have them; 9: the Bone map, Dune made in Blender, maps' own
+    // closed versions (both games must have the same maps)
+    const int ProtocolVersion = 9;
     public static int Protocol => ProtocolVersion;
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
@@ -639,7 +640,7 @@ public partial class NetSession : MonoBehaviour
     }
 
     bool HasPlace(Team team, Peer except) =>
-        Peers.FindAll(p => p != except && !p.Spectator && p.Team == team).Count < gm.TeamSize;
+        Peers.FindAll(p => p != except && !p.Spectator && p.Team == team).Count < gm.PlayersOn(team);
 
     // Each client may send PacketRate packets a second (PacketBurst at once); the rest is dropped.
     bool TakeToken(Peer peer)

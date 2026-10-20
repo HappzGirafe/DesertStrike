@@ -53,7 +53,8 @@ its Done key logs in or sends the request. Phones start on Low
 graphics with the 3D at 75%; LAN games work over WiFi. On iPhone, finding LAN games and friends by themselves needs
 an extra permission from Apple (the multicast networking entitlement), so there you join a LAN game by its IP address.
 
-The main menu lets you pick your team (Terrorists, SWAT, or watch the bots), team size (1v1 to 5v5),
+The main menu lets you pick your team (Terrorists, SWAT, or watch the bots), how many players each team has (typed
+in, or - and +: 1 to 10 per team, and the teams may differ, e.g. 2 against 5; bots fill the places people do not),
 bot difficulty, the map, the number of rounds to win and friendly fire.
 
 ### Accounts
@@ -136,7 +137,7 @@ The gun models and skins make no measurable difference: the models have 24 to 1,
 
 **PLAY ONLINE** (needs an online account): the list of rooms, with their map, players, and whether they are waiting
 or playing. **JOIN** one, **QUICK JOIN** the first with a free place, join a private one with its **code**, or
-**CREATE ROOM** (name, map, 1v1 to 5v5, bots, rounds, friendly fire, everyone or with the code). In the room you pick
+**CREATE ROOM** (name, map, players in each team, bots, rounds, friendly fire, everyone or with the code). In the room you pick
 Terrorists, SWAT or Watch, invite friends, and its owner presses **START MATCH**; bots fill the free places. After the
 match everyone is back in the room. If the connection drops, the game joins again by itself and gets its player back
 (within a minute). Voice chat works as in LAN games; the pause menu and the room's player list can **MUTE** a player.
@@ -349,13 +350,33 @@ blender -b Art/Blender/industrial_map.blend --python Tools/industrial_structures
 `Tools/industrial_structures.py` lists every structure with its place; before saving, it checks that none of them
 touches a wall, a building, a spawn or a bombsite letter, and prints what is in the way if one does.
 
-Export a map after editing it:
+Export the maps after editing them (all of them, or the ones named):
 
 ```
-blender -b Art/Blender/village_map.blend --python Tools/export_map_fbx.py -- Assets/Resources/Maps/village
+powershell -ExecutionPolicy Bypass -File Tools/export_maps.ps1 dune bone
 ```
 
-This writes `model.fbx`, `parts.json` (each object's texture, colour, glow and see-through look) and the textures.
+`Tools/export_maps.ps1` lists which `.blend` each map comes from: Village `village_map.blend`, Halloween
+`halloween_map.blend`, Industrial `industrialnorm.blend`, Dune `dunenorm.blend` (de_dune made in Blender, 2.57 times
+the size of the old one that the game built from blocks) and Bone `bone_map.blend`. It writes `model.fbx`,
+`parts.json` (each object's texture, colour, glow and see-through look) and the textures. Only what shows in
+Blender's viewport is exported (a collection or object hidden with its eye stays out), nothing lying wholly outside the
+map (a spare copy parked beside it), an object with several materials becomes one per material, and a solid object
+whose faces point inwards (Blender draws both sides, the game only the front) is turned outwards. Pictures the
+`.blend` cannot find (made on another computer, with a "текстури" folder) are looked for by name in `Art/Textures`.
+
+**Closed versions.** A map can have its own version for small matches with one site's half shut, made by hand:
+`<map>_closedA.blend` / `<map>_closedB.blend` (Dune, Halloween; Industrial has B), exported to
+`Maps/<map>/closedA` and `closedB` (they share the map's textures). When a small match closes that site the game
+loads that version instead of building walls, checks that no spawn can walk onto the closed site (if one can, it
+says where the way in goes, in Blender's coordinates, and adds its own walls too), and marks the half nobody can
+reach for the bots. Maps and sites without one get the game's walls as before.
+
+**A map without the marked objects** below (Dune and Bone were made without them) gets them from
+`Tools/maps/<map>.json` while it is exported (`Tools/map_markers.py`): the spawn and bombsite rectangles and the
+letters, in the `.blend`'s coordinates, as tiles 2 cm under the floor; and ramps where bots must climb a ledge (Bone's
+bases stand 1.2 m above the ground; bots climb 0.75 m). Bone: the Terrorists start in the fenced base in the
+south-west, SWAT in the north-east; site A is the open ground in the north-west corner, B in the south-east.
 The game reads the rest from objects with these names when the map loads:
 
 | Object | Becomes |

@@ -240,7 +240,8 @@ public partial class GameUI
         {
             online.CreateRoom(new RoomSettingsBody
             {
-                name = onlineRoomName.Trim(), map = gm.Map.Id, team_size = gm.TeamSize, difficulty = gm.Difficulty.ToString(),
+                name = onlineRoomName.Trim(), map = gm.Map.Id, team_size = gm.TeamSize, terrorists = gm.TerroristCount, swat = gm.SwatCount,
+                difficulty = gm.Difficulty.ToString(),
                 rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, @private = onlinePrivate, team = OnlineTeamKey,
                 closed_site = gm.ClosedSite,
             }, problem =>
@@ -342,9 +343,9 @@ public partial class GameUI
             if (room.is_owner && !playing && Button(new Rect(right + column - 160f, ry - 2f, 160f, 36f), "CHANGE", false, true, 17)) roomEditing = true;
             ry += 40f;
             WrapLabel(new Rect(right, ry, column, 90f),
-                      $"{MapName(room.map)}  ·  {room.team_size}v{room.team_size}  ·  {room.difficulty} bots  ·  first to {room.rounds}  ·  " +
+                      $"{MapName(room.map)}  ·  {room.Terrorists}v{room.Swat}  ·  {room.difficulty} bots  ·  first to {room.rounds}  ·  " +
                       $"friendly fire {(room.friendly_fire ? "on" : "off")}" +
-                      (room.team_size <= 3 && !string.IsNullOrEmpty(room.closed_site) ? $"  ·  site {room.closed_site} closed" : ""), 19, Dim);
+                      (Math.Max(room.Terrorists, room.Swat) <= 3 && !string.IsNullOrEmpty(room.closed_site) ? $"  ·  site {room.closed_site} closed" : ""), 19, Dim);
             ry += 70f;
             ry = DrawInviteList(right, ry, column, bottom - 120f);
         }
@@ -381,14 +382,14 @@ public partial class GameUI
         var maps = MapCatalog.All;
         var names = Array.ConvertAll(maps, m => m.Name);
         y = OptionRow(x - 40f, y, "Map", names, Array.FindIndex(maps, m => m.Id == room.map), i => Change(s => s.map = maps[i].Id), column);
-        y = OptionRow(x - 40f, y, "Players per team", new[] { "1v1", "2v2", "3v3", "4v4", "5v5" }, room.team_size - 1, i => Change(s => s.team_size = i + 1), column);
+        y = TeamCountsRow(x - 40f, y, column, "room", room.Terrorists, room.Swat, (t, s) => Change(body => body.SetTeams(t, s)));
         string[] difficulties = { "Easy", "Normal", "Hard", "Extreme" };
         y = OptionRow(x - 40f, y, "Bot difficulty", difficulties, Array.IndexOf(difficulties, room.difficulty), i => Change(s => s.difficulty = difficulties[i]), column);
         int[] rounds = { 3, 5, 8, 16 };
         y = OptionRow(x - 40f, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, room.rounds), i => Change(s => s.rounds = rounds[i]), column);
         float half = (column - 20f) / 2f;
         OptionRow(x - 40f, y, "Friendly fire", new[] { "Off", "On" }, room.friendly_fire ? 1 : 0, i => Change(s => s.friendly_fire = i == 1), half);
-        y = ClosedSiteRow(x - 20f + half, y, half, room.team_size, room.closed_site, site => Change(s => s.closed_site = site));
+        y = ClosedSiteRow(x - 20f + half, y, half, Math.Max(room.Terrorists, room.Swat), room.closed_site, site => Change(s => s.closed_site = site));
         y = OptionRow(x - 40f, y, "Who can join", new[] { "Everyone", "With the code" }, room.@private ? 1 : 0, i => Change(s => s.@private = i == 1), column);
         if (Button(new Rect(x, y, 200f, 42f), "DONE", true, true, 18)) roomEditing = false;
         return y + 56f;

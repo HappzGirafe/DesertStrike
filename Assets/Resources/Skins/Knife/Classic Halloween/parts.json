@@ -2,8 +2,8 @@
   "parts": [
     {
       "name": "Blade",
-      "texture": "",
-      "color": "#47265A",
+      "texture": "\u0445\u0435\u043b\u043b\u043e \u0432\u0456\u043d 2",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.6,
       "emission": "",
@@ -13,8 +13,8 @@
     },
     {
       "name": "Grip",
-      "texture": "",
-      "color": "#E67B1F",
+      "texture": "\u0445\u0435\u043b\u043b\u043e \u0432\u044b\u043d",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.48,
       "emission": "",
@@ -24,8 +24,8 @@
     },
     {
       "name": "Detail",
-      "texture": "",
-      "color": "#A81F1F",
+      "texture": "\u0430\u043b\u044f \u043f\u043e\u0440\u0435\u0437",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.51,
       "emission": "",
@@ -35,8 +35,8 @@
     },
     {
       "name": "Detail.001",
-      "texture": "",
-      "color": "#DCD0B7",
+      "texture": "\u043a\u043e\u0441\u0442\u044f\u0432\u043e\u0439",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.45,
       "emission": "",
@@ -46,8 +46,8 @@
     },
     {
       "name": "Detail.002",
-      "texture": "",
-      "color": "#A81F1F",
+      "texture": "\u0430\u043b\u044f \u043f\u043e\u0440\u0435\u0437",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.51,
       "emission": "",
@@ -57,8 +57,8 @@
     },
     {
       "name": "Detail.003",
-      "texture": "",
-      "color": "#DCD0B7",
+      "texture": "\u043a\u043e\u0441\u0442\u044f\u0432\u043e\u0439",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.3,
       "emission": "",
@@ -68,8 +68,8 @@
     },
     {
       "name": "Detail.004",
-      "texture": "",
-      "color": "#47265A",
+      "texture": "\u0445\u0435\u043b\u043b\u043e \u0432\u0456\u043d 2",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.3,
       "emission": "",
@@ -79,8 +79,8 @@
     },
     {
       "name": "Detail.005",
-      "texture": "",
-      "color": "#47265A",
+      "texture": "\u0445\u0435\u043b\u043b\u043e \u0432\u0456\u043d 2",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.3,
       "emission": "",
@@ -90,8 +90,8 @@
     },
     {
       "name": "Detail.006",
-      "texture": "",
-      "color": "#DCD0B7",
+      "texture": "\u043a\u043e\u0441\u0442\u044f\u0432\u043e\u0439",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.3,
       "emission": "",

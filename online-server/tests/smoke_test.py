@@ -173,6 +173,16 @@ def run(join_secret):
     check("only site A or B can be closed", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "C"}, a)[0] == 422)
     check("the owner closes site B instead", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "B"}, a)[0] == 200)
     check("the room shows site B closed", call("GET", f"/rooms/{room['id']}", token=a)[1]["closed_site"] == "B")
+    shown = call("GET", f"/rooms/{room['id']}", token=a)[1]
+    check("an older game's team_size sets both teams", shown["terrorists"] == 2 and shown["swat"] == 2 and shown["max_players"] == 4, shown)
+    status, changed = call("PATCH", f"/rooms/{room['id']}", {"terrorists": 1, "swat": 7}, a)
+    check("teams of different sizes", status == 200 and changed["terrorists"] == 1 and changed["swat"] == 7
+          and changed["team_size"] == 7 and changed["max_players"] == 8, changed)
+    check("a team of 11 is refused", call("PATCH", f"/rooms/{room['id']}", {"swat": 11}, a)[0] == 422)
+    check("a team smaller than its players is refused", call("PATCH", f"/rooms/{room['id']}", {"terrorists": 0}, a)[0] == 422)
+    status, answer = beat()
+    check("host gets each team's size", answer["room"]["terrorists"] == 1 and answer["room"]["swat"] == 7, answer)
+    check("back to 2 against 2", call("PATCH", f"/rooms/{room['id']}", {"terrorists": 2, "swat": 2}, a)[0] == 200)
     status, rooms = call("GET", "/rooms", token=b)
     check("private room hidden from others", status == 200 and rooms["rooms"] == [], rooms)
     status, body = call("POST", "/rooms", dict(settings, name="Bob room"), b)

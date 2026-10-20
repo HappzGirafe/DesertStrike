@@ -24,7 +24,7 @@
     },
     {
       "name": "Chimney_Cap",
-      "texture": "Chimney_Cap",
+      "texture": "halloween_Stone_Dark",
       "color": "",
       "metallic": 0.0,
       "smoothness": 0.09,
@@ -233,7 +233,7 @@
     },
     {
       "name": "House_Trim",
-      "texture": "House_Trim",
+      "texture": "halloween_Wood_Dark",
       "color": "",
       "metallic": 0.0,
       "smoothness": 0.09,
@@ -365,7 +365,7 @@
     },
     {
       "name": "Stone_Dark",
-      "texture": "Stone_Dark",
+      "texture": "halloween_Stone_Dark",
       "color": "",
       "metallic": 0.0,
       "smoothness": 0.06,
@@ -442,7 +442,7 @@
     },
     {
       "name": "Wood_Dark",
-      "texture": "Wood_Dark",
+      "texture": "halloween_Wood_Dark",
       "color": "",
       "metallic": 0.0,
       "smoothness": 0.06,

@@ -2,7 +2,7 @@
   "parts": [
     {
       "name": "Blade",
-      "texture": "teg92",
+      "texture": "teg9",
       "color": "",
       "metallic": 0.5,
       "smoothness": 0.48,
@@ -13,8 +13,8 @@
     },
     {
       "name": "Grip",
-      "texture": "",
-      "color": "#2B2B30",
+      "texture": "m4a1 balck",
+      "color": "",
       "metallic": 0.5,
       "smoothness": 0.48,
       "emission": "",

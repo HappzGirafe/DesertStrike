@@ -17,7 +17,8 @@ public class ModelMap : GameMap
     const int SpawnsPerTeam = 10;
     const int RadarPixels = 256;
 
-    readonly string folder;
+    readonly string folder, mapFolder;
+    readonly string closedVersion;
     Bounds bounds;
     readonly List<Vector3> terroristTiles = new List<Vector3>();   // spawn tiles' triangles (3 corners each), world space
     readonly List<Vector3> swatTiles = new List<Vector3>();
@@ -26,10 +27,23 @@ public class ModelMap : GameMap
     List<List<Vector3>> routesA, routesB;
     List<(List<Vector3> Route, Vector3 LookAt)> swatPosts;
 
-    public ModelMap(string id)
+    /// <param name="closed">"A" or "B": the map's own version with that site's half shut (made in Blender, in
+    /// Maps/&lt;id&gt;/closedA or closedB, with the map's textures from Maps/&lt;id&gt;); null: the normal map.</param>
+    public ModelMap(string id, string closed = null)
     {
-        folder = "Maps/" + id;
+        mapFolder = "Maps/" + id;
+        closedVersion = closed;
+        folder = closed != null ? $"{mapFolder}/closed{closed}" : mapFolder;
     }
+
+    public override string ClosedVersion => closedVersion;
+
+    // Turned round and exported, the map's x and z are Blender's x and y, less the centre it was moved by.
+    Vector2 blenderCentre;
+
+    protected override string Where(Vector3 p) => $"Blender ({p.x + blenderCentre.x:0}, {p.z + blenderCentre.y:0})";
+
+    protected override bool ClosedByModel(string site) => site != null && site == closedVersion;
 
     public override Vector3 SitePoint(bool a) => a ? siteA : siteB;
     public override List<List<Vector3>> TerroristRoutes(bool a) => a ? routesA : routesB;
@@ -55,6 +69,7 @@ public class ModelMap : GameMap
             model.localRotation = Quaternion.Euler(0f, 180f, 0f) * model.localRotation;
             Dress(model);
             // Centre the map on the origin (the menu camera circles around it), keeping its floor height.
+            blenderCentre = new Vector2(bounds.center.x, bounds.center.z);
             model.position += new Vector3(-bounds.center.x, 0f, -bounds.center.z);
             bounds.center = new Vector3(0f, bounds.center.y, 0f);
             Physics.SyncTransforms();
@@ -78,21 +93,44 @@ public class ModelMap : GameMap
     void Dress(Transform model)
     {
         var looks = PartLooks.Load(folder + "/parts");
+        // Parts that look the same share one material (they are then drawn together); a closed version's textures
+        // are the map's own, in its folder, unless it brings different ones.
+        var materials = new Dictionary<string, Material>();
+        Texture2D Picture(string name) => Resources.Load<Texture2D>(folder + "/" + name) ?? Resources.Load<Texture2D>(mapFolder + "/" + name);
         bool first = true;
+        Bounds floor = default;
         foreach (var filter in model.GetComponentsInChildren<MeshFilter>())
         {
             string part = filter.gameObject.name;
             var renderer = filter.GetComponent<MeshRenderer>();
             if (renderer == null) continue;
-            Material material = looks.TryGetValue(part, out var look) ? look.CreateMaterial(folder) : null;
+            Material material = null;
+            if (looks.TryGetValue(part, out var look))
+            {
+                string key = $"{look.texture}|{look.color}|{look.metallic}|{look.smoothness}|{look.emission}|{look.emissionTexture}|{look.alpha}|{look.cutoff}";
+                if (!materials.TryGetValue(key, out material)) materials[key] = material = look.CreateMaterial(Picture);
+            }
             renderer.sharedMaterial = material != null ? material : Effects.Mat(new Color(0.5f, 0.5f, 0.5f));
             bool marking = IsMarking(part);
             renderer.shadowCastingMode = marking ? ShadowCastingMode.Off : ShadowCastingMode.On;
             if (!marking && IsSolid(part)) filter.gameObject.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
 
-            if (first) bounds = renderer.bounds;
-            else bounds.Encapsulate(renderer.bounds);
+            Bounds box = renderer.bounds;
+            if (first || box.size.x * box.size.z > floor.size.x * floor.size.z) floor = box;
+            if (first) bounds = box;
+            else bounds.Encapsulate(box);
             first = false;
+        }
+        // The map is as wide as its floor (its biggest part seen from above): a wall that runs on past the edge
+        // does not make the radar or the menu's view any bigger.
+        if (!first)
+        {
+            Vector3 min = bounds.min, max = bounds.max;
+            min.x = Mathf.Max(min.x, floor.min.x - 5f);
+            min.z = Mathf.Max(min.z, floor.min.z - 5f);
+            max.x = Mathf.Min(max.x, floor.max.x + 5f);
+            max.z = Mathf.Min(max.z, floor.max.z + 5f);
+            bounds.SetMinMax(min, max);
         }
     }
 

@@ -35,8 +35,12 @@ public class OnlineUser
 public class RoomInfo
 {
     public string id, name, map, status, owner, owner_id, difficulty, code, closed_site;
-    public int team_size, max_players, players, spectators, rounds;
+    public int team_size, terrorists, swat, max_players, players, spectators, rounds;
     public bool @private, friendly_fire, is_member, is_owner, server_online;
+
+    /// <summary>Players in each team (an older API only has team_size, the same for both).</summary>
+    public int Terrorists => terrorists > 0 ? terrorists : team_size;
+    public int Swat => swat > 0 ? swat : team_size;
     public List<MemberInfo> members = new List<MemberInfo>();
 }
 
@@ -48,8 +52,15 @@ public class RoomInfo
 public class RoomSettingsBody
 {
     public string name = "", map = "dune", difficulty = "Normal", team = "t", closed_site = "B";
-    public int team_size = 5, rounds = 8;
+    public int team_size = 5, terrorists = 5, swat = 5, rounds = 8;   // team_size: the bigger team (older APIs read only that)
     public bool friendly_fire, @private;
+
+    public void SetTeams(int t, int s)
+    {
+        terrorists = t;
+        swat = s;
+        team_size = Math.Max(t, s);
+    }
 }
 
 /// <summary>
@@ -679,7 +690,8 @@ public class OnlineClient : MonoBehaviour
 
     public RoomSettingsBody SettingsOf(RoomInfo room) => new RoomSettingsBody
     {
-        name = room.name, map = room.map, difficulty = room.difficulty, team_size = room.team_size, rounds = room.rounds,
+        name = room.name, map = room.map, difficulty = room.difficulty, team_size = room.team_size, terrorists = room.Terrorists,
+        swat = room.Swat, rounds = room.rounds,
         friendly_fire = room.friendly_fire, @private = room.@private, closed_site = string.IsNullOrEmpty(room.closed_site) ? "B" : room.closed_site,
     };
 
@@ -873,8 +885,9 @@ public class OnlineClient : MonoBehaviour
                 testJoined = true;
                 CreateRoom(new RoomSettingsBody
                 {
-                    name = testNick + " room", map = gm.Map.Id, team_size = gm.TeamSize, difficulty = gm.Difficulty.ToString(),
-                    rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, team = testTeam, closed_site = gm.ClosedSite,
+                    name = testNick + " room", map = gm.Map.Id, team_size = gm.TeamSize, terrorists = gm.TerroristCount, swat = gm.SwatCount,
+                    difficulty = gm.Difficulty.ToString(), rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, team = testTeam,
+                    closed_site = gm.ClosedSite,
                 }, problem => Debug.Log(problem == null ? "[Online] Test: room created" : "[Online] Test: could not create a room: " + problem));
             }
             else if (testAction == "join" && Rooms.Count > 0)

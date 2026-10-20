@@ -1,7 +1,7 @@
-"""Makes an export copy of a weapon .blend whose texture pictures are missing on this computer: each missing
-picture becomes a plain colour that stands in for it (chosen by the picture's name), so the model can go into the game
-before its pictures arrive. The original .blend is not changed. With the pictures in place (Art/текстури or
-Art/Textures), export the original instead and the stand-ins are gone.
+"""Makes an export copy of a weapon .blend whose texture pictures are not where it says (it was made on another
+computer, in a folder "текстури"): each picture is looked for by name in Art/Textures (and Art/текстури), and one that
+is still missing becomes a plain colour that stands in for it (chosen by the picture's name), so the model can go into
+the game before its pictures arrive. The original .blend is not changed.
 
     blender -b -Y Art/Blender/<model>.blend --python Tools/stand_in_textures.py -- <copy.blend>
 """
@@ -13,6 +13,10 @@ import bpy
 out = os.path.abspath(sys.argv[sys.argv.index("--") + 1])
 project = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 textures = os.path.join(project, "Art", "Textures")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from blender_looks import relink_missing_images  # noqa: E402
+
+print("stand-ins: found", relink_missing_images([textures, os.path.join(project, "Art", "текстури")]))
 
 # Picture name (start) -> stand-in colour (linear RGB), or a picture of the project to use instead.
 STAND_INS = {

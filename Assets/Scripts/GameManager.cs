@@ -53,8 +53,10 @@ public class GameManager : MonoBehaviour
     public const int LossBonusStep = 500;
     public const int PlantedLossBonus = 800;   // Terrorists who planted but still lost
 
-    static readonly string[] TerroristNames = { "Viper", "Jackal", "Cobra", "Scorpion", "Raven", "Wolf", "Dagger", "Ghost" };
-    static readonly string[] SwatNames = { "Hawk", "Falcon", "Ranger", "Bishop", "Echo", "Titan", "Sentinel", "Patriot" };
+    static readonly string[] TerroristNames =
+        { "Viper", "Jackal", "Cobra", "Scorpion", "Raven", "Wolf", "Dagger", "Ghost", "Mamba", "Hyena", "Fang", "Shadow" };
+    static readonly string[] SwatNames =
+        { "Hawk", "Falcon", "Ranger", "Bishop", "Echo", "Titan", "Sentinel", "Patriot", "Eagle", "Knight", "Shield", "Arrow" };
 
     /// <summary>True for a bot's name (no account may take one).</summary>
     public static bool IsBotName(string name) =>
@@ -63,14 +65,29 @@ public class GameManager : MonoBehaviour
 
     // Match settings, chosen in the main menu (in a LAN game the host's count).
     public PlayerSide Side = PlayerSide.Terrorists;
-    public int TeamSize = 5;
+    /// <summary>Players in each team (people, and bots for the rest), typed in the menu: the teams may differ.</summary>
+    public int TerroristCount = 5, SwatCount = 5;
+    public const int MaxPerTeam = 10;
+    /// <summary>The bigger team's size.</summary>
+    public int TeamSize => Mathf.Max(TerroristCount, SwatCount);
+    public int PlayersOn(Team team) => team == Team.Terrorists ? TerroristCount : SwatCount;
     public BotDifficulty Difficulty = BotDifficulty.Normal;
     public int RoundsToWin = 8;
     public bool FriendlyFire;
-    /// <summary>The bombsite walled off when a team has 3 players or fewer ("A" or "B"; Settings choose).</summary>
+    /// <summary>The bombsite walled off when no team has more than 3 players ("A" or "B"; Settings choose).</summary>
     public string ClosedSite = "B";
     public string ActiveClosedSite => TeamSize <= 3 ? ClosedSite : null;
     const string ClosedSiteKey = "DesertStrike.closedSite";
+    const string TerroristCountKey = "DesertStrike.terrorists", SwatCountKey = "DesertStrike.swat";
+
+    /// <summary>How many players each team has (1 to <see cref="MaxPerTeam"/>); saved.</summary>
+    public void SetTeamCounts(int terrorists, int swat)
+    {
+        TerroristCount = Mathf.Clamp(terrorists, 1, MaxPerTeam);
+        SwatCount = Mathf.Clamp(swat, 1, MaxPerTeam);
+        PlayerPrefs.SetInt(TerroristCountKey, TerroristCount);
+        PlayerPrefs.SetInt(SwatCountKey, SwatCount);
+    }
     /// <summary>The map chosen in the menu (saved); in a LAN game the client plays the host's map instead.</summary>
     public string MapId { get; private set; } = MapCatalog.DefaultId;
 
@@ -175,8 +192,10 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<BotKnowledge>();
         string savedSite = PlayerPrefs.GetString(ClosedSiteKey, "B");
         ClosedSite = savedSite == "A" ? "A" : "B";
+        TerroristCount = Mathf.Clamp(PlayerPrefs.GetInt(TerroristCountKey, 5), 1, MaxPerTeam);
+        SwatCount = Mathf.Clamp(PlayerPrefs.GetInt(SwatCountKey, 5), 1, MaxPerTeam);
         ReadCommandLine();
-        if (siteCheck && views != null) Map.SetClosedSite(ClosedSite);   // -ds-closed-site with -ds-view: pictures of the wall
+        if (siteCheck && views != null) CloseSite(ClosedSite);   // -ds-closed-site with -ds-view: pictures of the wall
         if (exportClosed != null)
         {
             MapExport.ClosedHalves(Map, exportClosed);
@@ -203,7 +222,7 @@ public class GameManager : MonoBehaviour
     {
         if (Net.IsClient) return;
         ClearMatch();
-        Map.SetClosedSite(ActiveClosedSite);
+        CloseSite(ActiveClosedSite);
         if (siteCheck && Map.ClosedSite != null) Invoke(nameof(LogSiteCheck), 1.5f);
         Round = 0;
         TerroristWins = SwatWins = 0;
@@ -226,14 +245,18 @@ public class GameManager : MonoBehaviour
         // Bots fill the rest of each team.
         var terroristNames = new Queue<string>(Shuffled(TerroristNames));
         var swatNames = new Queue<string>(Shuffled(SwatNames));
-        for (int i = terroristHumans; i < TeamSize; i++) SpawnBot(Team.Terrorists, terroristNames.Dequeue());
-        for (int i = swatHumans; i < TeamSize; i++) SpawnBot(Team.Swat, swatNames.Dequeue());
+        for (int i = terroristHumans; i < TerroristCount; i++) SpawnBot(Team.Terrorists, BotName(terroristNames, TerroristNames, i));
+        for (int i = swatHumans; i < SwatCount; i++) SpawnBot(Team.Swat, BotName(swatNames, SwatNames, i));
 
         foreach (var c in Combatants) c.Money = startMoney;
-        Debug.Log($"[DesertStrike] Match started on {Map.Name}: {Side}, {TeamSize}v{TeamSize}, {Difficulty}, first to {RoundsToWin}, friendly fire {(FriendlyFire ? "on" : "off")}, {Net.Peers.Count} remote players");
+        Debug.Log($"[DesertStrike] Match started on {Map.Name}: {Side}, {TerroristCount}v{SwatCount}, {Difficulty}, first to {RoundsToWin}, friendly fire {(FriendlyFire ? "on" : "off")}, {Net.Peers.Count} remote players");
         if (noWarmup) StartRound();
         else StartWarmup();
     }
+
+    // The next unused name; a big team that runs out of names numbers them ("Viper 2").
+    static string BotName(Queue<string> names, string[] all, int index) =>
+        names.Count > 0 ? names.Dequeue() : $"{all[index % all.Length]} {index / all.Length + 1}";
 
     void StartWarmup()
     {
@@ -291,7 +314,7 @@ public class GameManager : MonoBehaviour
     public void ReturnToMenu()
     {
         ClearMatch();
-        Map.SetClosedSite(null);
+        CloseSite(null);
         Net.Stop();
         clientMatch = false;
         State = MatchState.Menu;
@@ -303,7 +326,7 @@ public class GameManager : MonoBehaviour
     public void BackToLobby()
     {
         ClearMatch();
-        Map.SetClosedSite(null);
+        CloseSite(null);
         foreach (var peer in Net.Peers) peer.Player = null;
         Net.ForgetAwayPlayers();
         State = MatchState.Menu;
@@ -322,7 +345,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>Online game host: the room's settings, from the online API (in the lobby only).</summary>
-    public void ApplyRoomSettings(string mapId, int teamSize, BotDifficulty difficulty, int roundsToWin, bool friendlyFire, string closedSite)
+    public void ApplyRoomSettings(string mapId, int terrorists, int swat, BotDifficulty difficulty, int roundsToWin, bool friendlyFire, string closedSite)
     {
         if (closedSite == "A" || closedSite == "B") ClosedSite = closedSite;
         if (State != MatchState.Menu) return;
@@ -331,7 +354,8 @@ public class GameManager : MonoBehaviour
             MapId = mapId;
             LoadMap(mapId);
         }
-        TeamSize = Mathf.Clamp(teamSize, 1, 5);
+        TerroristCount = Mathf.Clamp(terrorists, 1, MaxPerTeam);
+        SwatCount = Mathf.Clamp(swat, 1, MaxPerTeam);
         Difficulty = difficulty;
         RoundsToWin = Mathf.Clamp(roundsToWin, 1, 16);
         FriendlyFire = friendlyFire;
@@ -382,10 +406,21 @@ public class GameManager : MonoBehaviour
         if (MapCatalog.Find(id) != null) LoadMap(id);
     }
 
-    /// <summary>Replaces the current map (its objects, NavMesh, radar and lighting) with another one.</summary>
-    public void LoadMap(string id)
+    /// <summary>
+    /// Shuts a bombsite's half of the map for a small match (null: both sites open again). A map with its own version
+    /// for that (made in Blender) is loaded in its place; on any other map the game walls the half off itself.
+    /// </summary>
+    void CloseSite(string site)
     {
-        if (Map != null && Map.Id == id) return;
+        LoadMap(Map.Id, MapCatalog.HasClosedVersion(Map.Id, site) ? site : null);
+        Map.SetClosedSite(site);
+    }
+
+    /// <summary>Replaces the current map (its objects, NavMesh, radar and lighting) with another one, or with its own
+    /// version for small matches that has site <paramref name="closed"/>'s half shut.</summary>
+    public void LoadMap(string id, string closed = null)
+    {
+        if (Map != null && Map.Id == id && Map.ClosedVersion == closed) return;
         float started = Time.realtimeSinceStartup;
         if (Map != null)
         {
@@ -396,11 +431,12 @@ public class GameManager : MonoBehaviour
             if (Map.Root != null) Map.Root.gameObject.SetActive(false);
             Map.Unload();
         }
-        var map = MapCatalog.Create(id);
+        var map = MapCatalog.Create(id, closed);
         ApplyLighting(map.Lighting);
         map.Build(transform);
         Map = map;
-        Debug.Log($"[DesertStrike] Map {map.Name} loaded in {(Time.realtimeSinceStartup - started) * 1000f:0} ms");
+        Debug.Log($"[DesertStrike] Map {map.Name}{(map.ClosedVersion != null ? $" (its version with {map.ClosedVersion} closed)" : "")} " +
+                  $"loaded in {(Time.realtimeSinceStartup - started) * 1000f:0} ms");
     }
 
     void ApplyLighting(MapLighting lighting)
@@ -452,7 +488,7 @@ public class GameManager : MonoBehaviour
     }
 
     public string MatchDescription() =>
-        $"{Map.Name}  ·  {TeamSize}v{TeamSize}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}"
+        $"{Map.Name}  ·  {TerroristCount}v{SwatCount}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}"
         + (ActiveClosedSite != null ? $"  ·  site {ActiveClosedSite} closed" : "");
 
     /// <summary>Which bombsite small matches wall off; saved.</summary>
@@ -909,7 +945,7 @@ public class GameManager : MonoBehaviour
         Banner = string.IsNullOrEmpty(match.Banner) ? null : match.Banner;
         LastWinner = match.LastWinner;
         FriendlyFire = match.FriendlyFire;
-        Map.SetClosedSite(match.ClosedSite);
+        CloseSite(match.ClosedSite);
         Warmup = match.Warmup;
         Message = string.IsNullOrEmpty(match.Message) ? null : match.Message;
         MessageUntil = Time.time + match.MessageLeft;
@@ -1237,8 +1273,10 @@ public class GameManager : MonoBehaviour
                     RoundsToWin = Mathf.Clamp(int.Parse(args[++i], CultureInfo.InvariantCulture), 1, 16);
                     break;
                 case "-ds-players" when hasValue:
-                    // -ds-players <1-5>: players per team (tests)
-                    TeamSize = Mathf.Clamp(int.Parse(args[++i], CultureInfo.InvariantCulture), 1, 5);
+                    // -ds-players <n> or <terrorists>v<swat> ("2v4"): players per team, this run (tests)
+                    string[] counts = args[++i].ToLowerInvariant().Split('v');
+                    TerroristCount = Mathf.Clamp(int.Parse(counts[0], CultureInfo.InvariantCulture), 1, MaxPerTeam);
+                    SwatCount = counts.Length > 1 ? Mathf.Clamp(int.Parse(counts[1], CultureInfo.InvariantCulture), 1, MaxPerTeam) : TerroristCount;
                     break;
                 case "-ds-closed-site" when hasValue:
                     // -ds-closed-site <a|b>: the site small matches wall off, this run (tests)

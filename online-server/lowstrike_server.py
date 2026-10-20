@@ -55,7 +55,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 HERE = Path(__file__).resolve().parent
-PROTOCOL_VERSION = 8          # NetSession.ProtocolVersion of the game build these hosts run
+PROTOCOL_VERSION = 9          # NetSession.ProtocolVersion of the game build these hosts run
 MAX_BODY = 16 * 1024          # bytes in one request
 MAX_PROFILE = 8 * 1024        # bytes of saved skins and settings per account
 MAX_FRIENDS = 100
@@ -65,11 +65,12 @@ SLOT_LOST_SECONDS = 45        # a room whose host has been silent this long is c
 INVITE_SECONDS = 30 * 60
 PLAYED_GAP = 20               # seconds between two presence asks that still count as played
 TICKET_SECONDS = 120
-MAPS = ("dune", "village", "halloween", "industrial")
+MAPS = ("dune", "village", "halloween", "industrial", "bone")
 DIFFICULTIES = ("Easy", "Normal", "Hard", "Extreme")
 ROUNDS = (3, 5, 8, 16)
 TEAMS = ("t", "swat", "spectator")
 MAX_SPECTATORS = 4
+MAX_TEAM = 10                 # players in one team (people and bots): GameManager.MaxPerTeam
 NICK = re.compile(r"^[A-Za-z0-9_-]{3,16}$")
 CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # no 0/O or 1/I
 
@@ -299,6 +300,11 @@ MIGRATIONS = [
     """
     ALTER TABLE users ADD COLUMN played_seconds REAL NOT NULL DEFAULT 0;
     ALTER TABLE users ADD COLUMN played_at REAL NOT NULL DEFAULT 0;
+    """,
+    # 7: each team's own size (0: team_size, as rooms made before had); team_size stays the bigger one
+    """
+    ALTER TABLE rooms ADD COLUMN terrorists INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE rooms ADD COLUMN swat INTEGER NOT NULL DEFAULT 0;
     """,
 ]
 
@@ -547,13 +553,20 @@ def members_of(con, room_id: str) -> list:
                        "ORDER BY m.joined_at", (room_id,)).fetchall()
 
 
+def team_sizes(room) -> tuple:
+    """(Terrorists, SWAT): each team's size; rooms made before both were the room's team_size."""
+    return room["terrorists"] or room["team_size"], room["swat"] or room["team_size"]
+
+
 def room_view(con, room, me_id: str, details: bool = False) -> dict:
     members = members_of(con, room["id"])
     is_member = any(m["user_id"] == me_id for m in members)
     owner = next((m["nick"] for m in members if m["user_id"] == room["owner_id"]), "")
+    terrorists, swat = team_sizes(room)
     view = {
         "id": room["id"], "name": room["name"], "map": room["map"], "team_size": room["team_size"],
-        "max_players": room["team_size"] * 2, "players": sum(1 for m in members if m["team"] != "spectator"),
+        "terrorists": terrorists, "swat": swat,
+        "max_players": terrorists + swat, "players": sum(1 for m in members if m["team"] != "spectator"),
         "spectators": sum(1 for m in members if m["team"] == "spectator"), "status": room["status"],
         "private": bool(room["private"]), "owner": owner, "owner_id": room["owner_id"] or "",
         "difficulty": room["difficulty"], "rounds": room["rounds"], "friendly_fire": bool(room["friendly_fire"]),
@@ -585,7 +598,8 @@ def join_info(con, room, user, team: str) -> dict:
 def team_has_room(con, room, team: str, user_id: str) -> bool:
     count = con.execute("SELECT COUNT(*) AS n FROM room_members WHERE room_id = ? AND team = ? AND user_id != ?",
                         (room["id"], team, user_id)).fetchone()["n"]
-    return count < (MAX_SPECTATORS if team == "spectator" else room["team_size"])
+    terrorists, swat = team_sizes(room)
+    return count < (MAX_SPECTATORS if team == "spectator" else terrorists if team == "t" else swat)
 
 
 def pick_team(con, room, wanted: str, user_id: str) -> str:
@@ -632,7 +646,9 @@ def clean_room_name(name: str) -> str:
 class RoomSettings(BaseModel):
     name: Optional[str] = None
     map: Optional[str] = None
-    team_size: Optional[int] = None
+    team_size: Optional[int] = None      # older games: both teams this size
+    terrorists: Optional[int] = None
+    swat: Optional[int] = None
     difficulty: Optional[str] = None
     rounds: Optional[int] = None
     friendly_fire: Optional[bool] = None
@@ -666,11 +682,18 @@ def check_settings(s: RoomSettings, partial: bool) -> dict:
         if (s.map or "dune") not in MAPS:
             raise HTTPException(422, "Unknown map.")
         values["map"] = s.map or "dune"
-    if s.team_size is not None or not partial:
-        size = s.team_size if s.team_size is not None else 5
-        if not 1 <= size <= 5:
-            raise HTTPException(422, "Players per team: 1 to 5.")
-        values["team_size"] = size
+    # Each team's size; an older game sends only team_size (the same for both).
+    if s.team_size is not None:
+        values["terrorists"] = values["swat"] = s.team_size
+    for key in ("terrorists", "swat"):
+        if getattr(s, key) is not None:
+            values[key] = getattr(s, key)
+    if not partial:
+        values.setdefault("terrorists", 5)
+        values.setdefault("swat", 5)
+    for key in ("terrorists", "swat"):
+        if key in values and not 1 <= values[key] <= MAX_TEAM:
+            raise HTTPException(422, f"Players in a team: 1 to {MAX_TEAM}.")
     if s.difficulty is not None or not partial:
         if (s.difficulty or "Normal") not in DIFFICULTIES:
             raise HTTPException(422, "Unknown bot difficulty.")
@@ -990,10 +1013,12 @@ def create_room(body: RoomSettings, request: Request, user=Depends(current_user)
             raise HTTPException(503, "All rooms are busy. Join a room or try again later.")
         room_id = str(uuid.uuid4())
         t = now()
-        con.execute("INSERT INTO rooms (id, slot_id, name, owner_id, map, team_size, difficulty, rounds, friendly_fire, private, code, "
-                    "status, created_at, updated_at, closed_site) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?, ?)",
-                    (room_id, free[0]["id"], values["name"], user["id"], values["map"], values["team_size"], values["difficulty"],
-                     values["rounds"], values["friendly_fire"], values["private"], new_code(con), t, t, values["closed_site"]))
+        con.execute("INSERT INTO rooms (id, slot_id, name, owner_id, map, team_size, terrorists, swat, difficulty, rounds, friendly_fire, "
+                    "private, code, status, created_at, updated_at, closed_site) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?, ?)",
+                    (room_id, free[0]["id"], values["name"], user["id"], values["map"], max(values["terrorists"], values["swat"]),
+                     values["terrorists"], values["swat"], values["difficulty"], values["rounds"], values["friendly_fire"],
+                     values["private"], new_code(con), t, t, values["closed_site"]))
         room = open_room(con, room_id)
         team = pick_team(con, room, body.team or "t", user["id"])
         con.execute("INSERT INTO room_members (room_id, user_id, team, joined_at) VALUES (?, ?, ?, ?)", (room_id, user["id"], team, t))
@@ -1024,11 +1049,15 @@ def change_room(room_id: str, body: RoomSettings, user=Depends(current_user)):
             raise HTTPException(403, "Only the room's owner can change it.")
         if room["status"] != "waiting":
             raise HTTPException(409, "Wait until the match is over.")
-        if "team_size" in values:
-            biggest = con.execute("SELECT MAX(n) AS n FROM (SELECT COUNT(*) AS n FROM room_members WHERE room_id = ? AND team != 'spectator' "
-                                  "GROUP BY team)", (room_id,)).fetchone()["n"] or 0
-            if values["team_size"] < biggest:
-                raise HTTPException(409, "More players are in a team than that.")
+        if "terrorists" in values or "swat" in values:
+            terrorists, swat = team_sizes(room)
+            values.setdefault("terrorists", terrorists)
+            values.setdefault("swat", swat)
+            for team, key in (("t", "terrorists"), ("swat", "swat")):
+                count = con.execute("SELECT COUNT(*) AS n FROM room_members WHERE room_id = ? AND team = ?", (room_id, team)).fetchone()["n"]
+                if values[key] < count:
+                    raise HTTPException(409, "More players are in that team than that.")
+            values["team_size"] = max(values["terrorists"], values["swat"])
         for key, value in values.items():
             con.execute(f"UPDATE rooms SET {key} = ? WHERE id = ?", (value, room_id))
         con.execute("UPDATE rooms SET updated_at = ? WHERE id = ?", (now(), room_id))
@@ -1227,7 +1256,8 @@ def heartbeat(slot_id: str, body: Heartbeat, request: Request):
             room = open_room(con, room["id"])
         members = members_of(con, room["id"])
         return {"has_room": True, "room": {
-            "id": room["id"], "name": room["name"], "map": room["map"], "team_size": room["team_size"], "difficulty": room["difficulty"],
+            "id": room["id"], "name": room["name"], "map": room["map"], "team_size": room["team_size"],
+            "terrorists": team_sizes(room)[0], "swat": team_sizes(room)[1], "difficulty": room["difficulty"],
             "rounds": room["rounds"], "friendly_fire": bool(room["friendly_fire"]), "start": bool(room["start_requested"]),
             "owner_id": room["owner_id"] or "", "closed_site": room["closed_site"],
             "members": [{"user_id": m["user_id"], "nick": m["nick"], "team": m["team"]} for m in members]}}

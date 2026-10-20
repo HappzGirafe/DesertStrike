@@ -1,0 +1,15 @@
+{
+  "about": "The bone map (Art/Blender/bone_map.blend): the Terrorists start in the fenced base in the south-west corner, SWAT in the one in the north-east; site A is the open ground in the north-west corner, B in the south-east. The bases stand 1.2 m above the ground: a ramp in each gap between the bone trees lets bots in and out.",
+  "areas": {
+    "TSpawn_Tiles": [[-84.0, -89.0, -52.0, -57.0, -3.0]],
+    "CTSpawn_Tiles": [[71.0, 60.0, 99.5, 90.0, -3.0]],
+    "Site_Tiles": [[-84.0, 66.0, -62.0, 90.0, -4.2], [62.0, -89.0, 100.0, -64.0, -4.2]]
+  },
+  "letters": {"Decal_A": [-73.0, 78.0, -4.2], "Decal_B": [81.0, -76.5, -4.2]},
+  "ramps": [
+    {"top": [-76.2, -54.5, -3.0], "bottom": [-76.2, -50.5, -4.2], "width": 3.2, "look": "Cube.025"},
+    {"top": [-49.2, -80.8, -3.0], "bottom": [-45.2, -80.8, -4.2], "width": 2.8, "look": "Cube.025"},
+    {"top": [95.1, 57.4, -3.0], "bottom": [95.1, 53.4, -4.2], "width": 2.8, "look": "Cube.026"},
+    {"top": [68.5, 84.7, -3.0], "bottom": [64.5, 84.7, -4.2], "width": 2.8, "look": "Cube.026"}
+  ]
+}

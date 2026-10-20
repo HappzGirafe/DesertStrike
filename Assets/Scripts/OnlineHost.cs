@@ -42,7 +42,7 @@ public class OnlineHost : MonoBehaviour
     class Room
     {
         public string id, name, map, difficulty, owner_id, closed_site;
-        public int team_size, rounds;
+        public int team_size, terrorists, swat, rounds;   // terrorists / swat 0: an older API (both team_size)
         public bool friendly_fire, start;
         public List<Member> members = new List<Member>();
     }
@@ -193,7 +193,8 @@ public class OnlineHost : MonoBehaviour
 
         if (gm.State != MatchState.Menu) return;
         Enum.TryParse(room.difficulty, out BotDifficulty difficulty);
-        gm.ApplyRoomSettings(room.map, room.team_size, difficulty, room.rounds, room.friendly_fire, room.closed_site);
+        gm.ApplyRoomSettings(room.map, room.terrorists > 0 ? room.terrorists : room.team_size, room.swat > 0 ? room.swat : room.team_size,
+                             difficulty, room.rounds, room.friendly_fire, room.closed_site);
         if (room.start && net.Peers.Exists(p => !p.Away))
         {
             matchNumber++;
