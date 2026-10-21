@@ -22,7 +22,7 @@ public class OnlineProfile
 public class OnlineUser
 {
     public string id, nick, created_at;
-    public bool hide_status, linked_local;
+    public bool hide_status, linked_local, admin;
     public OnlineProfile profile = new OnlineProfile();
 }
 
@@ -46,6 +46,19 @@ public class RoomInfo
 
 [Serializable] public class InviteInfo { public string id, room_id, room_name, map, from, status; }
 [Serializable] public class PlayerInfo { public string id, nick; public bool friend, request_sent, request_received; }
+[Serializable] public class ShopItem { public string weapon, skin; public int price; }
+
+/// <summary>The admin panel's view of a player's account (online-server/admin.py).</summary>
+[Serializable]
+public class AdminPlayer
+{
+    public string nick, created_at;
+    public int tokens, today, day_limit, played;
+    public List<string> owned = new List<string>();
+    public List<ShopItem> shop = new List<ShopItem>();
+}
+
+[Serializable] public class AdminLogEntry { public double at; public string admin, target, action; }
 [Serializable] public class HealthInfo { public string status, game_version; public int protocol, servers, rooms_free, players_online; }
 
 [Serializable]
@@ -99,10 +112,12 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class ProfileBody { public OnlineProfile profile; }
     [Serializable] class LinkBody { public bool linked_local = true; public OnlineProfile profile; }
     [Serializable] class HideBody { public bool hide_status; }
-    [Serializable] class ShopItem { public string weapon, skin; public int price; }
     [Serializable] class TokensAnswer { public int tokens, today, day_limit, earned; public List<string> owned = new List<string>(); public List<ShopItem> shop = new List<ShopItem>(); }
     [Serializable] class MatchBody { public int kills, rounds; public bool won; public float seconds; }
     [Serializable] class BuyBody { public string weapon, skin; }
+    [Serializable] class AdminTokensBody { public string nick; public int amount; }
+    [Serializable] class AdminSkinBody { public string nick, weapon, skin; public bool owned; }
+    [Serializable] class AdminLogAnswer { public List<AdminLogEntry> entries = new List<AdminLogEntry>(); }
 
     public Service State { get; private set; } = Service.Checking;
     public string ApiUrl { get; private set; }
@@ -231,6 +246,51 @@ public class OnlineClient : MonoBehaviour
         {
             UseTokens(text);
             if (before >= 0) Earned(Tokens - before);
+        });
+    }
+
+    // ----------------------------------------------------------------- the admin panel (online-server/admin.py)
+
+    /// <summary>The server lists this account as an admin (it checks every admin request itself).</summary>
+    public bool IsAdmin => LoggedIn && User.admin;
+    /// <summary>What admins did lately, newest first.</summary>
+    public List<AdminLogEntry> AdminLog { get; private set; } = new List<AdminLogEntry>();
+
+    /// <summary>A player's account; <paramref name="done"/> gets it, or null and what went wrong.</summary>
+    public void AdminFind(string nick, Action<AdminPlayer, string> done) =>
+        AdminAsk("GET", "/admin/player?nick=" + UnityWebRequest.EscapeURL(nick.Trim()), null, done);
+
+    /// <summary>Gives a player Halloween Tokens (a negative amount takes them).</summary>
+    public void AdminTokens(string nick, int amount, Action<AdminPlayer, string> done) =>
+        AdminAsk("POST", "/admin/tokens", new AdminTokensBody { nick = nick, amount = amount }, done);
+
+    /// <summary>Gives a player a skin of the shop, or takes it back.</summary>
+    public void AdminSkin(string nick, string weapon, string skin, bool owned, Action<AdminPlayer, string> done) =>
+        AdminAsk("POST", "/admin/skins", new AdminSkinBody { nick = nick, weapon = weapon, skin = skin, owned = owned }, done);
+
+    public void RefreshAdminLog()
+    {
+        if (IsAdmin) Ask("admin-log", "GET", "/admin/log", null, text => AdminLog = JsonUtility.FromJson<AdminLogAnswer>(text).entries);
+    }
+
+    void AdminAsk(string method, string path, object body, Action<AdminPlayer, string> done)
+    {
+        busy++;
+        Ask(null, method, path, body, text =>
+        {
+            busy--;
+            var player = JsonUtility.FromJson<AdminPlayer>(text);
+            if (method == "POST")
+            {
+                Debug.Log($"[Admin] {player.nick} now has {player.tokens} Halloween Tokens and {string.Join(", ", player.owned)}");
+                RefreshAdminLog();
+                if (User != null && string.Equals(player.nick, User.nick, StringComparison.OrdinalIgnoreCase)) RefreshTokens();   // their own
+            }
+            done?.Invoke(player, null);
+        }, (code, message) =>
+        {
+            busy--;
+            done?.Invoke(null, message);
         });
     }
 

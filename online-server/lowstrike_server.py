@@ -44,6 +44,7 @@ from pathlib import Path
 from typing import Optional
 
 import uvicorn
+import admin
 import bot_knowledge
 import living_world
 import reviews
@@ -98,7 +99,7 @@ class Config:
         env = read_env_file(Path(os.environ.get("LOWSTRIKE_ENV", HERE / ".env")))
         env.update({k: v for k, v in os.environ.items() if k in env or k.startswith(("API_", "LOWSTRIKE_", "GAME_", "ROOM_", "UNITY_", "WORLD_"))
                     or k in ("PUBLIC_API_URL", "DATABASE_PATH", "AUTH_SECRET", "INTERNAL_PORT", "SESSION_IDLE_DAYS", "SESSION_MAX_DAYS",
-                             "REVIEW_ORIGINS")})
+                             "REVIEW_ORIGINS", "ADMIN_NICKS")})
         self.domain = env.get("LOWSTRIKE_DOMAIN", "")
         self.public_api_url = env.get("PUBLIC_API_URL", "")
         self.api_host = env.get("API_HOST", "127.0.0.1")
@@ -107,6 +108,7 @@ class Config:
         db = env.get("DATABASE_PATH", "./data/lowstrike.sqlite3")
         self.database_path = Path(db) if os.path.isabs(db) else (HERE / db).resolve()
         self.auth_secret = env.get("AUTH_SECRET", "")
+        self.admin_nicks = admin.admin_nicks(env.get("ADMIN_NICKS", admin.DEFAULT_ADMINS))   # admin.py
         self.join_secret = env.get("GAME_JOIN_SECRET", "")
         self.game_version = env.get("GAME_BUILD_VERSION", "")
         if self.game_version.upper().startswith("REPLACE"):
@@ -308,6 +310,7 @@ MIGRATIONS = [
     ALTER TABLE rooms ADD COLUMN swat INTEGER NOT NULL DEFAULT 0;
     """,
     tokens.SCHEMA,          # 8: Halloween Tokens and the skins bought with them
+    admin.SCHEMA,           # 9: what admins did (the admin panel)
 ]
 
 
@@ -489,7 +492,8 @@ def me_view(con, user) -> dict:
     profile = con.execute("SELECT data, linked_local FROM profiles WHERE user_id = ?", (user["id"],)).fetchone()
     return {"id": user["id"], "nick": user["nick"], "hide_status": bool(user["hide_status"]),
             "created_at": user["created_at"], "profile": json.loads(profile["data"]) if profile else {},
-            "linked_local": bool(profile["linked_local"]) if profile else False}
+            "linked_local": bool(profile["linked_local"]) if profile else False,
+            "admin": user["nick_key"] in CONFIG.admin_nicks}
 
 
 # ----------------------------------------------------------------- friends and presence
@@ -768,8 +772,8 @@ def register(body: Credentials, request: Request):
     hashed = HASHER.hash(body.password)
     user_id = str(uuid.uuid4())
     with Transaction() as con:
-        if con.execute("SELECT 1 FROM users WHERE nick_key = ?", (nick.lower(),)).fetchone():
-            raise HTTPException(409, "This nickname is already taken.")
+        if nick.lower() in CONFIG.admin_nicks or con.execute("SELECT 1 FROM users WHERE nick_key = ?", (nick.lower(),)).fetchone():
+            raise HTTPException(409, "This nickname is already taken.")   # an admin's name is kept for the admin (admin.py)
         con.execute("INSERT INTO users (id, nick, nick_key, password_hash, created_at, last_seen) VALUES (?, ?, ?, ?, ?, ?)",
                     (user_id, nick, nick.lower(), hashed, iso(now()), now()))
         con.execute("INSERT INTO profiles (user_id, data, updated_at) VALUES (?, '{}', ?)", (user_id, now()))
@@ -1434,6 +1438,7 @@ WORLD = {}
 KNOWLEDGE = {}
 REVIEWS = {}
 TOKENS = {}
+ADMIN = {}
 
 
 def command_line() -> bool:
@@ -1544,6 +1549,7 @@ def main():
     KNOWLEDGE.update(bot_knowledge.install(app, internal, sys.modules[__name__]))
     REVIEWS.update(reviews.install(app, sys.modules[__name__]))
     TOKENS.update(tokens.install(app, sys.modules[__name__]))
+    ADMIN.update(admin.install(app, sys.modules[__name__], tokens, TOKENS["view"]))
     print(f"[api] database {CONFIG.database_path}")
     print(f"[api] public API on http://{CONFIG.api_host}:{CONFIG.api_port} (the tunnel's target), "
           f"game hosts report to http://127.0.0.1:{CONFIG.internal_port}")

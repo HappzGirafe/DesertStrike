@@ -166,6 +166,7 @@ public partial class GameUI : MonoBehaviour
             if (updateQuestion) DrawUpdateQuestion();
             else if (accountOpen) DrawAccount();
             else if (onlineAccountOpen) DrawOnlineAccount();
+            else if (adminOpen) DrawAdmin();
             else if (inventoryOpen) DrawInventory();
             else if (gm.Net.IsHost) DrawHostLobby();
             else if (Online.Room != null || (gm.Net.IsClient && gm.Net.OnlineClient)) DrawOnlineRoom();
@@ -762,6 +763,8 @@ public partial class GameUI : MonoBehaviour
         "pw-new" => "New password",
         "pw-repeat" => "New password again",
         "delete-password" => "Your password",
+        "admin-nick" => "Player's nickname",
+        "admin-amount" => "Amount",
         _ when id.EndsWith("-t") => "Terrorists",
         _ when id.EndsWith("-swat") => "SWAT",
         _ => "",
@@ -1089,6 +1092,7 @@ public partial class GameUI : MonoBehaviour
                 onlineAccountOpen = true;
                 accountPageMessage = null;
             }
+            if (Accounts.IsOnline && Online.IsAdmin && Button(new Rect(x + 300f, y + 32f, 120f, 38f), "ADMIN", false, true, 18)) OpenAdmin();
         }
         else
         {

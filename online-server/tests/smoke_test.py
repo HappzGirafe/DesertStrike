@@ -1,5 +1,6 @@
 """Starts the online server with a throw-away database and checks the whole API over HTTP: accounts, friends,
-presence, rooms, tickets, invites, the game hosts' reports, the bots' knowledge, reviews, limits and account deletion.
+presence, rooms, tickets, invites, the game hosts' reports, the bots' knowledge, reviews, Halloween Tokens, the admin
+panel, limits and account deletion.
 
 Run:  python tests/smoke_test.py      (from online-server/, with the requirements installed)
 """
@@ -63,32 +64,43 @@ def check(name, condition, detail=""):
 def main():
     work = Path(tempfile.mkdtemp(prefix="lowstrike-test-"))
     join_secret = secrets.token_urlsafe(48)
-    env_file = work / "test.env"
-    env_file.write_text("\n".join([
-        "API_HOST=127.0.0.1", f"API_PORT={PORT}", f"INTERNAL_PORT={INTERNAL}", f"DATABASE_PATH={work / 'test.sqlite3'}",
-        f"AUTH_SECRET={secrets.token_urlsafe(48)}", f"GAME_JOIN_SECRET={join_secret}", "GAME_BUILD_VERSION=1.19",
-        "REVIEW_ORIGINS=https://lowstrike.lokvetia.com",
-        'ROOM_SLOTS_JSON=[{"id":"room-1","local_udp_port":27015,"public_udp_host":"test.example","public_udp_port":40000}]',
-    ]), encoding="utf-8")
-    env = dict(os.environ, LOWSTRIKE_ENV=str(env_file))
-    for key in ("API_PORT", "INTERNAL_PORT", "DATABASE_PATH", "AUTH_SECRET", "GAME_JOIN_SECRET", "ROOM_SLOTS_JSON", "UNITY_SERVER_EXECUTABLE"):
-        env.pop(key, None)
-    server = subprocess.Popen([sys.executable, str(HERE / "lowstrike_server.py")], env=env, cwd=HERE,
-                              stdout=open(work / "server.log", "w"), stderr=subprocess.STDOUT)
-    try:
-        for _ in range(100):
-            try:
-                if call("GET", "/health")[0] == 200:
-                    break
-            except OSError:
-                time.sleep(0.2)
-        run(join_secret)
-    finally:
-        server.terminate()
-        server.wait(10)
-    log = (work / "server.log").read_text()
-    check("the server log holds no password", "secret-pass" not in log and "Hunter2hunter" not in log)
-    print(f"\n{'ALL PASSED' if failures == 0 else f'{failures} FAILED'}   (server log: {work / 'server.log'})")
+    auth_secret = secrets.token_urlsafe(48)
+    logs = []
+
+    def serve(admins, then):
+        """Starts the server (ADMIN_NICKS=admins) on the test database, runs the checks, stops it."""
+        env_file = work / "test.env"
+        env_file.write_text("\n".join([
+            "API_HOST=127.0.0.1", f"API_PORT={PORT}", f"INTERNAL_PORT={INTERNAL}", f"DATABASE_PATH={work / 'test.sqlite3'}",
+            f"AUTH_SECRET={auth_secret}", f"GAME_JOIN_SECRET={join_secret}", "GAME_BUILD_VERSION=1.19",
+            "REVIEW_ORIGINS=https://lowstrike.lokvetia.com", f"ADMIN_NICKS={admins}",
+            'ROOM_SLOTS_JSON=[{"id":"room-1","local_udp_port":27015,"public_udp_host":"test.example","public_udp_port":40000}]',
+        ]), encoding="utf-8")
+        env = dict(os.environ, LOWSTRIKE_ENV=str(env_file))
+        for key in ("API_PORT", "INTERNAL_PORT", "DATABASE_PATH", "AUTH_SECRET", "GAME_JOIN_SECRET", "ROOM_SLOTS_JSON",
+                    "UNITY_SERVER_EXECUTABLE", "ADMIN_NICKS"):
+            env.pop(key, None)
+        log = work / f"server-{len(logs) + 1}.log"
+        logs.append(log)
+        server = subprocess.Popen([sys.executable, str(HERE / "lowstrike_server.py")], env=env, cwd=HERE,
+                                  stdout=open(log, "w"), stderr=subprocess.STDOUT)
+        try:
+            for _ in range(100):
+                try:
+                    if call("GET", "/health")[0] == 200:
+                        break
+                except OSError:
+                    time.sleep(0.2)
+            then()
+        finally:
+            server.terminate()
+            server.wait(10)
+
+    serve("ghost_admin", lambda: run(join_secret))
+    serve("alice,ghost_admin", run_admin)   # the same database: Alice (made in the first run) is now an admin
+    text = "".join(log.read_text() for log in logs)
+    check("the server log holds no password", "secret-pass" not in text and "Hunter2hunter" not in text and "carol-pass" not in text)
+    print(f"\n{'ALL PASSED' if failures == 0 else f'{failures} FAILED'}   (server logs: {work})")
     sys.exit(1 if failures else 0)
 
 
@@ -345,6 +357,7 @@ def run(join_secret):
     check("buying it again costs nothing", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, a)[1]["tokens"] == 12)
     check("not enough for the M4A1", call("POST", "/tokens/buy", {"weapon": "m4a1", "skin": "Halloween"}, a)[0] == 409)
 
+
     print("passwords, logout, deletion, limits")
     check("change password needs the old one", call("POST", "/me/password", {"old_password": "x", "new_password": "new-secret-pass"}, a)[0] == 401)
     check("change password", call("POST", "/me/password", {"old_password": "secret-pass", "new_password": "new-secret-pass"}, a)[0] == 200)
@@ -361,6 +374,40 @@ def run(join_secret):
     check("bob_2's review went with the account", [r["nick"] for r in listed["reviews"]] == ["carol"], listed)
     codes = [call("POST", "/auth/login", {"nick": "carol", "password": f"wrong-{i}"})[0] for i in range(9)]
     check("wrong passwords get limited", codes[-1] == 429, codes)
+
+
+def run_admin():
+    print("admin panel (the server started again, with Alice on ADMIN_NICKS)")
+    a = call("POST", "/auth/login", {"nick": "Alice", "password": "new-secret-pass"})[1]["token"]
+    c = call("POST", "/auth/login", {"nick": "carol", "password": "carol-pass"})[1]["token"]
+    check("Alice is an admin now", call("GET", "/me", token=a)[1]["admin"] is True)
+    check("carol is not", call("GET", "/me", token=c)[1]["admin"] is False)
+    check("an admin's name without an account cannot be signed up",
+          call("POST", "/auth/register", {"nick": "Ghost_Admin", "password": "secret-pass"})[0] == 409)
+    check("not an admin: 403", call("GET", "/admin/player?nick=Alice", token=c)[0] == 403)
+    check("not an admin cannot give tokens", call("POST", "/admin/tokens", {"nick": "carol", "amount": 500}, c)[0] == 403)
+    status, found = call("GET", "/admin/player?nick=CAROL", token=a)
+    check("find a player (any case)", status == 200 and found["nick"] == "carol" and found["owned"] == []
+          and len(found["shop"]) == 3 and "created_at" in found, found)
+    had = found["tokens"]
+    check("no such player: 404", call("GET", "/admin/player?nick=nobody_here", token=a)[0] == 404)
+    status, given = call("POST", "/admin/tokens", {"nick": "carol", "amount": 100}, a)
+    check("give 100 tokens", status == 200 and given["tokens"] == had + 100, given)
+    status, taken = call("POST", "/admin/tokens", {"nick": "carol", "amount": -100000}, a)
+    check("take more than there is: 0", status == 200 and taken["tokens"] == 0, taken)
+    check("0 tokens refused", call("POST", "/admin/tokens", {"nick": "carol", "amount": 0}, a)[0] == 422)
+    check("too many at once refused", call("POST", "/admin/tokens", {"nick": "carol", "amount": 100001}, a)[0] == 422)
+    status, gift = call("POST", "/admin/skins", {"nick": "carol", "weapon": "knife", "skin": "Classic Halloween", "owned": True}, a)
+    check("give a skin", status == 200 and gift["owned"] == ["knife/Classic Halloween"] and gift["tokens"] == 0, gift)
+    check("carol has it as her own", call("GET", "/tokens", token=c)[1]["owned"] == ["knife/Classic Halloween"])
+    status, back = call("POST", "/admin/skins", {"nick": "carol", "weapon": "knife", "skin": "Classic Halloween", "owned": False}, a)
+    check("take it back", status == 200 and back["owned"] == [], back)
+    check("only shop skins", call("POST", "/admin/skins", {"nick": "carol", "weapon": "ak47", "skin": "Gold"}, a)[0] == 404)
+    status, log = call("GET", "/admin/log", token=a)
+    check("every change is logged, newest first", status == 200 and [e["action"] for e in log["entries"]] == [
+        "took knife/Classic Halloween", "gave knife/Classic Halloween", f"-100000 tokens ({had + 100} -> 0)",
+        f"+100 tokens ({had} -> {had + 100})"] and all(e["admin"] == "Alice" and e["target"] == "carol" for e in log["entries"]), log)
+    check("not an admin cannot read the log", call("GET", "/admin/log", token=c)[0] == 403)
 
 
 if __name__ == "__main__":

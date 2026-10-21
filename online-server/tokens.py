@@ -125,4 +125,4 @@ def install(app, s):
             if p.team in ("t", "swat") and con.execute("SELECT 1 FROM users WHERE id = ?", (p.user_id,)).fetchone():
                 give(con, p.user_id, pay(p.kills, p.team == winner), capped=False)
 
-    return {"room_match_over": room_match_over}
+    return {"room_match_over": room_match_over, "view": view}

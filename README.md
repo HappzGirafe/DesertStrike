@@ -105,6 +105,14 @@ A skin bought is yours for good, on every computer and phone you log in on. Unti
 padlock. A skin is sold for tokens when its `skin.json` has `"tokens": <price>` (the price shown until the server's is
 known); what it really costs is set by `SHOP` in `online-server/tokens.py`, which must list it too.
 
+### Admin panel
+
+Admin accounts (online: **001**, **pups183** and **pups183mobile**) have an **ADMIN** button next to ACCOUNT in the
+main menu. The panel finds any player by nickname (**ME** shows your own account) and shows their Halloween Tokens and
+Halloween skins. **GIVE** / **TAKE AWAY** gives or takes the amount typed (or **+10** ... **+1000**; never below 0), and
+each skin can be given or taken back. The right side lists what admins did lately. The server decides who is an admin
+(`ADMIN_NICKS` in its `.env`), checks every request, and logs everything done in the panel.
+
 ### Friends
 
 **FRIENDS** in the main menu (it needs an account): type a friend's nickname and click **SEND REQUEST**; on their
@@ -464,6 +472,7 @@ All in `Assets/Scripts`:
 | `GameUI.cs` | Menus, HUD, buy menu, scoreboard (IMGUI) |
 | `Rocket.cs` | RPG rocket flight and explosion damage |
 | `WeaponSkins.cs`, `SkinPreview.cs` | Pistol skins, the equipped choice, and the inventory's 3D preview |
+| `GameUI.Admin.cs` | The admin panel (admin accounts only; the server's side is `online-server/admin.py`) |
 | `Tutorial.cs`, `GameUI.Halloween.cs` | The tutorial's steps and training bot; its panel, the tutorial offer, buying skins with Halloween Tokens |
 | `Ballistics.cs`, `Effects.cs`, `SoundFX.cs`, `WeaponModels.cs` | Hitscan, visuals, generated sounds, gun models |
 | `GameSettings.cs` | Graphics quality, frame limit, FPS counter, sensitivity (saved) |

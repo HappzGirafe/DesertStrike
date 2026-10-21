@@ -27,7 +27,7 @@ public partial class GameUI
     Vector2 roomsScroll, onlineFriendsScroll, inviteScroll;
 
     OnlineClient Online => gm.Online;
-    string testScreen;   // -ds-online-screen <login|rooms|create|friends|account>: opens it once logged in (screenshots)
+    string testScreen;   // -ds-online-screen <login|rooms|create|friends|account|admin|...>: opens it once logged in (screenshots)
 
     void OpenTestScreen()
     {
@@ -48,6 +48,17 @@ public partial class GameUI
         }
         else if (testScreen == "friends") friendsOpen = true;
         else if (testScreen == "account") onlineAccountOpen = true;
+        else if (testScreen == "admin" || testScreen == "admin-give")
+        {
+            // "admin-give": also gives the admin 50 tokens and the Halloween AK-47, the way its buttons do.
+            if (!Online.IsAdmin) return;
+            OpenAdmin();
+            if (testScreen == "admin-give")
+            {
+                AdminChangeTokens(Online.User.nick, 50);
+                AdminChangeSkin(Online.User.nick, new ShopItem { weapon = "ak47", skin = "Halloween" }, true);
+            }
+        }
         else if (testScreen == "inventory" || testScreen == "buy")
         {
             // The AK-47 page of the inventory; "buy": asking to buy its Halloween skin (once the tokens are known).
