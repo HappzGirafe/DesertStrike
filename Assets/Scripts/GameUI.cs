@@ -193,15 +193,22 @@ public partial class GameUI : MonoBehaviour
         DrawHud();
         DrawFps(20f, 268f);
         UseHeight(BaseHeight);   // menus and the phone's buttons keep their own size
+        StartConsoleDemo();
+        if (gm.ConsoleOpen) HandleGameKeyboard();   // a phone types in the console on the game's keyboard
         if (gm.BuyMenuOpen) DrawBuyMenu();
         if (gm.State == MatchState.MatchOver && gm.Tutorial == null) DrawMatchOver();
         else if (GameInput.ScoresHeld) DrawScoreboard(170f);
         if (gm.Tutorial != null && !gm.IsPaused) DrawTutorial();
         DrawCheatsHud();
-        if (gm.ConsoleOpen && !gm.IsPaused) DrawConsole();
+        if (gm.ConsoleOpen && !gm.IsPaused)
+        {
+            DrawConsole();
+            DrawGameKeyboard();
+        }
         else consoleOpenedFrame = -1;   // focus the line again next time
         DrawTokenToast();
-        if (!gm.IsPaused && gm.State != MatchState.MatchOver && touch != null) touch.Draw();
+        // The phone's buttons wait while the console is open (its keyboard takes the bottom of the screen).
+        if (!gm.IsPaused && !gm.ConsoleOpen && gm.State != MatchState.MatchOver && touch != null) touch.Draw();
         if (!gm.IsPaused) settingsOpen = crosshairOpen = touchLayoutOpen = languagesOpen = false;
         else if (settingsOpen && languagesOpen) DrawLanguages();
         else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
@@ -775,6 +782,7 @@ public partial class GameUI : MonoBehaviour
         "pw-new" => "New password",
         "pw-repeat" => "New password again",
         "delete-password" => "Your password",
+        "console" => "CONSOLE",
         "admin-nick" => "Player's nickname",
         "admin-amount" => "Amount",
         _ when id.EndsWith("-t") => "Terrorists",
@@ -929,7 +937,7 @@ public partial class GameUI : MonoBehaviour
         if (keyboardDemo.Count == 0 || Event.current.type != EventType.Repaint || Time.frameCount < keyboardDemoFrame) return;
         keyboardDemoFrame = Time.frameCount + 15;
         string key = keyboardDemo.Dequeue();
-        if (key.StartsWith("@")) OpenKeyboard(key.Substring(1), "", key == "@account-name" ? 16 : 64, key != "@account-name");
+        if (key.StartsWith("@")) OpenKeyboard(key.Substring(1), "", key == "@account-name" ? 16 : 64, key.Contains("password"));
         else PressKey(key);
     }
 

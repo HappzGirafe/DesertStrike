@@ -11,8 +11,22 @@ public partial class GameUI
     static readonly Color CheatColor = new Color(1f, 0.3f, 0.3f);
 
     string consoleText = "";
+    // -ds-console-demo (with -ds-touch, logged in as an admin): opens the console in the match and types "/cheats on" on
+    // the game's keyboard, key by key, then DONE, as a phone would (tests).
+    bool consoleDemo = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-ds-console-demo") >= 0;
     readonly List<string> consoleLines = new List<string> { "Type /help for the commands." };
     int consoleOpenedFrame = -1;
+
+    void StartConsoleDemo()
+    {
+        if (!consoleDemo || gm.State != MatchState.Live || gm.Warmup || !Cheats.Allowed(gm)) return;
+        consoleDemo = false;
+        gm.ConsoleOpen = true;
+        keyboardDemo.Enqueue("@console");
+        foreach (char c in "/cheats on") keyboardDemo.Enqueue(c == ' ' ? "SPACE" : c.ToString());
+        keyboardDemo.Enqueue("DONE");
+        Debug.Log("[Console] Demo: typing /cheats on on the game's keyboard");
+    }
 
     void DrawConsole()
     {
@@ -23,7 +37,13 @@ public partial class GameUI
         Fill(new Rect(x, y, w, h), new Color(0.02f, 0.02f, 0.03f, 0.92f));
         Fill(new Rect(x, y, w, 4f), Gold);
         Label(new Rect(x + 20f, y + 10f, w - 40f, 30f), "CONSOLE", 22, Gold);
-        Label(new Rect(x + 20f, y + 10f, w - 40f, 30f), GameInput.Touch ? "" : "` or Esc: close", 15, Dim, TextAnchor.MiddleRight);
+        if (!GameInput.Touch) Label(new Rect(x + 20f, y + 10f, w - 40f, 30f), "` or Esc: close", 15, Dim, TextAnchor.MiddleRight);
+        else if (Button(new Rect(x + w - 170f, y + 8f, 150f, 40f), "CLOSE", false, true, 18))   // a phone's buttons wait meanwhile
+        {
+            gm.ConsoleOpen = false;
+            keyboardField = null;
+            return;
+        }
 
         // What was typed and answered, newest last.
         float ly = y + 48f;
@@ -39,6 +59,7 @@ public partial class GameUI
         {
             if (consoleText.Trim().Length > 0) consoleLines.Add("> " + consoleText.Trim());
             string answer = Cheats.Command(gm, consoleText);
+            Debug.Log($"[Console] {consoleText.Trim()} -> {answer}");
             if (answer != null) consoleLines.Add(answer);
             consoleText = "";
             if (enter) e.Use();
