@@ -243,7 +243,7 @@ public partial class GameUI
                 name = onlineRoomName.Trim(), map = gm.Map.Id, team_size = gm.TeamSize, terrorists = gm.TerroristCount, swat = gm.SwatCount,
                 difficulty = gm.Difficulty.ToString(),
                 rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, @private = onlinePrivate, team = OnlineTeamKey,
-                closed_site = gm.ClosedSite,
+                closed_site = gm.ClosedSiteSetting,
             }, problem =>
             {
                 ShowOnlineResult(problem);
@@ -345,7 +345,7 @@ public partial class GameUI
             WrapLabel(new Rect(right, ry, column, 90f),
                       $"{MapName(room.map)}  ·  {room.Terrorists}v{room.Swat}  ·  {room.difficulty} bots  ·  first to {room.rounds}  ·  " +
                       $"friendly fire {(room.friendly_fire ? "on" : "off")}" +
-                      (Math.Max(room.Terrorists, room.Swat) <= 3 && !string.IsNullOrEmpty(room.closed_site) ? $"  ·  site {room.closed_site} closed" : ""), 19, Dim);
+                      (Math.Max(room.Terrorists, room.Swat) <= 3 && (room.closed_site == "A" || room.closed_site == "B") ? $"  ·  site {room.closed_site} closed" : ""), 19, Dim);
             ry += 70f;
             ry = DrawInviteList(right, ry, column, bottom - 120f);
         }
@@ -389,7 +389,8 @@ public partial class GameUI
         y = OptionRow(x - 40f, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, room.rounds), i => Change(s => s.rounds = rounds[i]), column);
         float half = (column - 20f) / 2f;
         OptionRow(x - 40f, y, "Friendly fire", new[] { "Off", "On" }, room.friendly_fire ? 1 : 0, i => Change(s => s.friendly_fire = i == 1), half);
-        y = ClosedSiteRow(x - 20f + half, y, half, Math.Max(room.Terrorists, room.Swat), room.closed_site, site => Change(s => s.closed_site = site));
+        y = ClosedSiteRow(x - 20f + half, y, half, Math.Max(room.Terrorists, room.Swat), room.closed_site == "OFF" ? null : room.closed_site,
+                          site => Change(s => s.closed_site = site ?? "OFF"));
         y = OptionRow(x - 40f, y, "Who can join", new[] { "Everyone", "With the code" }, room.@private ? 1 : 0, i => Change(s => s.@private = i == 1), column);
         if (Button(new Rect(x, y, 200f, 42f), "DONE", true, true, 18)) roomEditing = false;
         return y + 56f;

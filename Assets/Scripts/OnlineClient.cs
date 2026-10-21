@@ -887,7 +887,7 @@ public class OnlineClient : MonoBehaviour
                 {
                     name = testNick + " room", map = gm.Map.Id, team_size = gm.TeamSize, terrorists = gm.TerroristCount, swat = gm.SwatCount,
                     difficulty = gm.Difficulty.ToString(), rounds = gm.RoundsToWin, friendly_fire = gm.FriendlyFire, team = testTeam,
-                    closed_site = gm.ClosedSite,
+                    closed_site = gm.ClosedSiteSetting,
                 }, problem => Debug.Log(problem == null ? "[Online] Test: room created" : "[Online] Test: could not create a room: " + problem));
             }
             else if (testAction == "join" && Rooms.Count > 0)

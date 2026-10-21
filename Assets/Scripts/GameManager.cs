@@ -74,10 +74,12 @@ public class GameManager : MonoBehaviour
     public BotDifficulty Difficulty = BotDifficulty.Normal;
     public int RoundsToWin = 8;
     public bool FriendlyFire;
-    /// <summary>The bombsite walled off when no team has more than 3 players ("A" or "B"; Settings choose).</summary>
+    /// <summary>The bombsite shut when no team has more than 3 players ("A" or "B"), unless <see cref="CloseHalf"/> is
+    /// off (the menu's "Whole map"); both are saved.</summary>
     public string ClosedSite = "B";
-    public string ActiveClosedSite => TeamSize <= 3 ? ClosedSite : null;
-    const string ClosedSiteKey = "DesertStrike.closedSite";
+    public bool CloseHalf = true;
+    public string ActiveClosedSite => CloseHalf && TeamSize <= 3 ? ClosedSite : null;
+    const string ClosedSiteKey = "DesertStrike.closedSite", CloseHalfKey = "DesertStrike.closeHalf";
     const string TerroristCountKey = "DesertStrike.terrorists", SwatCountKey = "DesertStrike.swat";
 
     /// <summary>How many players each team has (1 to <see cref="MaxPerTeam"/>); saved.</summary>
@@ -192,6 +194,7 @@ public class GameManager : MonoBehaviour
         gameObject.AddComponent<BotKnowledge>();
         string savedSite = PlayerPrefs.GetString(ClosedSiteKey, "B");
         ClosedSite = savedSite == "A" ? "A" : "B";
+        CloseHalf = PlayerPrefs.GetInt(CloseHalfKey, 1) == 1;
         TerroristCount = Mathf.Clamp(PlayerPrefs.GetInt(TerroristCountKey, 5), 1, MaxPerTeam);
         SwatCount = Mathf.Clamp(PlayerPrefs.GetInt(SwatCountKey, 5), 1, MaxPerTeam);
         ReadCommandLine();
@@ -347,7 +350,12 @@ public class GameManager : MonoBehaviour
     /// <summary>Online game host: the room's settings, from the online API (in the lobby only).</summary>
     public void ApplyRoomSettings(string mapId, int terrorists, int swat, BotDifficulty difficulty, int roundsToWin, bool friendlyFire, string closedSite)
     {
-        if (closedSite == "A" || closedSite == "B") ClosedSite = closedSite;
+        if (closedSite == "A" || closedSite == "B")
+        {
+            ClosedSite = closedSite;
+            CloseHalf = true;
+        }
+        else if (closedSite == "OFF") CloseHalf = false;   // the whole map
         if (State != MatchState.Menu) return;
         if (MapCatalog.Find(mapId) != null && mapId != MapId)
         {
@@ -491,13 +499,20 @@ public class GameManager : MonoBehaviour
         $"{Map.Name}  ·  {TerroristCount}v{SwatCount}  ·  {Difficulty} bots  ·  first to {RoundsToWin}  ·  friendly fire {(FriendlyFire ? "on" : "off")}"
         + (ActiveClosedSite != null ? $"  ·  site {ActiveClosedSite} closed" : "");
 
-    /// <summary>Which bombsite small matches wall off; saved.</summary>
+    /// <summary>Which bombsite small matches shut ("A" or "B"), or none (null or "OFF": they use the whole map); saved.</summary>
     public void SetClosedSite(string site)
     {
-        if (site != "A" && site != "B") return;
-        ClosedSite = site;
-        PlayerPrefs.SetString(ClosedSiteKey, site);
+        CloseHalf = site == "A" || site == "B";
+        if (CloseHalf)
+        {
+            ClosedSite = site;
+            PlayerPrefs.SetString(ClosedSiteKey, site);
+        }
+        PlayerPrefs.SetInt(CloseHalfKey, CloseHalf ? 1 : 0);
     }
+
+    /// <summary>The setting as the online API keeps it: "A", "B", or "OFF" for the whole map.</summary>
+    public string ClosedSiteSetting => CloseHalf ? ClosedSite : "OFF";
 
     bool siteCheck;   // -ds-closed-site: log whether the walled-off map still plays (tests)
     void LogSiteCheck() => Debug.Log("[Map] Closed site check: " + Map.CheckClosedSite());
@@ -1279,8 +1294,10 @@ public class GameManager : MonoBehaviour
                     SwatCount = counts.Length > 1 ? Mathf.Clamp(int.Parse(counts[1], CultureInfo.InvariantCulture), 1, MaxPerTeam) : TerroristCount;
                     break;
                 case "-ds-closed-site" when hasValue:
-                    // -ds-closed-site <a|b>: the site small matches wall off, this run (tests)
-                    ClosedSite = args[++i].ToUpperInvariant() == "A" ? "A" : "B";
+                    // -ds-closed-site <a|b|off>: the site small matches wall off, or the whole map, this run (tests)
+                    string closeArg = args[++i].ToUpperInvariant();
+                    CloseHalf = closeArg != "OFF";
+                    if (CloseHalf) ClosedSite = closeArg == "A" ? "A" : "B";
                     siteCheck = true;
                     break;
                 case "-ds-attack" when hasValue:

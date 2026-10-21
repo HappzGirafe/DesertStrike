@@ -173,6 +173,8 @@ def run(join_secret):
     check("only site A or B can be closed", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "C"}, a)[0] == 422)
     check("the owner closes site B instead", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "B"}, a)[0] == 200)
     check("the room shows site B closed", call("GET", f"/rooms/{room['id']}", token=a)[1]["closed_site"] == "B")
+    check("the owner opens the whole map", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "off"}, a)[1]["closed_site"] == "OFF")
+    check("and closes site B again", call("PATCH", f"/rooms/{room['id']}", {"closed_site": "B"}, a)[1]["closed_site"] == "B")
     shown = call("GET", f"/rooms/{room['id']}", token=a)[1]
     check("an older game's team_size sets both teams", shown["terrorists"] == 2 and shown["swat"] == 2 and shown["max_players"] == 4, shown)
     status, changed = call("PATCH", f"/rooms/{room['id']}", {"terrorists": 1, "swat": 7}, a)

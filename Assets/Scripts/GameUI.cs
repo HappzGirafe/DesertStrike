@@ -391,30 +391,33 @@ public partial class GameUI : MonoBehaviour
         return OptionRow(x, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, gm.RoundsToWin), i => gm.RoundsToWin = rounds[i], rowWidth);
     }
 
-    /// <summary>Friendly fire, and next to it the bombsite a small match (1v1 to 3v3) walls off.</summary>
+    /// <summary>Friendly fire, and next to it whether a small match (1v1 to 3v3) closes one site's half of the map.</summary>
     float FriendlyFireAndSiteRow(float x, float y, float rowWidth)
     {
         float half = (rowWidth - 20f) / 2f;
         OptionRow(x, y, "Friendly fire", new[] { "Off", "On" }, gm.FriendlyFire ? 1 : 0, i => gm.FriendlyFire = i == 1, half);
-        return ClosedSiteRow(x + half + 20f, y, half, gm.TeamSize, gm.ClosedSite, gm.SetClosedSite);
+        return ClosedSiteRow(x + half + 20f, y, half, gm.TeamSize, gm.CloseHalf ? gm.ClosedSite : null, gm.SetClosedSite);
     }
 
     /// <summary>
-    /// "Site in play": A or B. Small matches (1v1, 2v2, 3v3) play on that site, and the other site's half of the
-    /// map is walled off; with bigger teams it shows dimmed. The setting keeps the closed site.
+    /// "Site in play": A or B, and small matches (1v1, 2v2, 3v3) play on that site with the other site's half of the
+    /// map shut; or the whole map. With bigger teams it shows dimmed (they always have the whole map).
+    /// <paramref name="closedSite"/>: the shut site, or null for the whole map; <paramref name="onSelect"/> gets the same.
     /// </summary>
     float ClosedSiteRow(float x, float y, float rowWidth, int teamSize, string closedSite, Action<string> onSelect)
     {
         bool counts = teamSize <= 3;
         Label(new Rect(x + 40f, y, rowWidth, 34f), counts ? "Site in play" : "Site in play (1v1-3v3)", 22, counts ? Color.white : Dim);
-        float buttonWidth = (rowWidth - 10f) / 2f;
-        string[] sites = { "A", "B" };
-        string inPlay = closedSite == "A" ? "B" : "A";
-        for (int i = 0; i < 2; i++)
+        // The buttons, their share of the row and the site each one shuts (null: none).
+        var choices = new[] { ("Site A", 0.27f, "B"), ("Site B", 0.27f, "A"), ("Whole map", 0.46f, (string)null) };
+        float bx = x + 40f;
+        for (int i = 0; i < choices.Length; i++)
         {
-            var rect = new Rect(x + 40f + i * (buttonWidth + 10f), y + 38f, buttonWidth, 48f);
-            bool selected = inPlay == sites[i];
-            if (Button(rect, "Site " + sites[i], selected && counts, true)) onSelect(sites[i] == "A" ? "B" : "A");
+            var (text, share, shut) = choices[i];
+            var rect = new Rect(bx, y + 38f, (rowWidth - 20f) * share, 48f);
+            bx = rect.xMax + 10f;
+            bool selected = closedSite == shut;
+            if (Button(rect, text, selected && counts, true)) onSelect(shut);
             if (selected && !counts) Fill(new Rect(rect.x, rect.yMax - 4f, rect.width, 4f), Dim);
         }
         return y + 105f;

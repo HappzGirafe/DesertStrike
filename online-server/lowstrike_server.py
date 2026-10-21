@@ -708,8 +708,8 @@ def check_settings(s: RoomSettings, partial: bool) -> dict:
         values["private"] = 1 if s.private else 0
     if s.closed_site is not None or not partial:
         site = (s.closed_site or "B").upper()
-        if site not in ("A", "B"):
-            raise HTTPException(422, "Closed site: A or B.")
+        if site not in ("A", "B", "OFF"):   # OFF: small matches use the whole map
+            raise HTTPException(422, "Closed site: A, B or OFF.")
         values["closed_site"] = site
     return values
 

@@ -55,7 +55,9 @@ an extra permission from Apple (the multicast networking entitlement), so there 
 
 The main menu lets you pick your team (Terrorists, SWAT, or watch the bots), how many players each team has (typed
 in, or - and +: 1 to 10 per team, and the teams may differ, e.g. 2 against 5; bots fill the places people do not),
-bot difficulty, the map, the number of rounds to win and friendly fire.
+bot difficulty, the map, the number of rounds to win and friendly fire. **Site in play** is for small matches (no
+team over 3): **Site A** or **Site B** plays on that site with the other site's half of the map shut, **Whole map**
+keeps both sites open (bigger teams always have the whole map).
 
 ### Accounts
 
