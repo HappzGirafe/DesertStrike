@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Low Strike: kostenloser Shooter mit Bots, Online und LAN für Windows, macOS und Android</title>
+<title>Low Strike: kostenloser Shooter mit Bots, Online und LAN für Windows, macOS, Linux und Android</title>
 <meta name="description" content="Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.">
 <link rel="canonical" href="https://lowstrike.lokvetia.com/de/">
 <link rel="alternate" hreflang="en-GB" href="https://lowstrike.lokvetia.com/">
@@ -15,7 +15,7 @@
 <link rel="alternate" hreflang="x-default" href="https://lowstrike.lokvetia.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Low Strike">
-<meta property="og:title" content="Low Strike: kostenloser Shooter mit Bots, Online und LAN für Windows, macOS und Android">
+<meta property="og:title" content="Low Strike: kostenloser Shooter mit Bots, Online und LAN für Windows, macOS, Linux und Android">
 <meta property="og:description" content="Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.">
 <meta property="og:url" content="https://lowstrike.lokvetia.com/de/">
 <meta property="og:locale" content="de_DE">
@@ -27,7 +27,7 @@
 <meta name="theme-color" content="#15110d">
 <link rel="icon" type="image/png" sizes="192x192" href="https://lowstrike.lokvetia.com/favicon.png">
 <link rel="apple-touch-icon" href="https://lowstrike.lokvetia.com/favicon.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Low Strike", "url": "https://lowstrike.lokvetia.com/de/", "description": "Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.", "inLanguage": "de", "image": "https://lowstrike.lokvetia.com/media/poster.jpg", "genre": ["Shooter", "Tactical shooter"], "gamePlatform": ["Windows", "macOS", "Android"], "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer, Android", "applicationCategory": "GameApplication", "playMode": ["SinglePlayer", "MultiPlayer"], "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10}, "author": {"@type": "Person", "name": "HappzGirafe", "url": "https://github.com/HappzGirafe"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "trailer": {"@type": "VideoObject", "name": "Low Strike gameplay", "description": "Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.", "thumbnailUrl": "https://lowstrike.lokvetia.com/media/video-poster.jpg", "contentUrl": "https://lowstrike.lokvetia.com/media/gameplay.mp4", "uploadDate": "2026-10-07", "duration": "PT1M42S"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "Low Strike", "url": "https://lowstrike.lokvetia.com/de/", "description": "Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.", "inLanguage": "de", "image": "https://lowstrike.lokvetia.com/media/poster.jpg", "genre": ["Shooter", "Tactical shooter"], "gamePlatform": ["Windows", "macOS", "Android"], "operatingSystem": "Windows 10, Windows 11, macOS 12 or newer, Linux, Android", "applicationCategory": "GameApplication", "playMode": ["SinglePlayer", "MultiPlayer"], "numberOfPlayers": {"@type": "QuantitativeValue", "minValue": 1, "maxValue": 10}, "author": {"@type": "Person", "name": "HappzGirafe", "url": "https://github.com/HappzGirafe"}, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "trailer": {"@type": "VideoObject", "name": "Low Strike gameplay", "description": "Fast zwei Minuten aus einem echten Match auf der Karte Village, im Spiel aufgenommen.", "thumbnailUrl": "https://lowstrike.lokvetia.com/media/video-poster.jpg", "contentUrl": "https://lowstrike.lokvetia.com/media/gameplay.mp4", "uploadDate": "2026-10-07", "duration": "PT1M42S"}}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Tektur:wdth,wght@75..100,500..900&display=swap">
@@ -232,8 +232,8 @@
   .keys span { font-size: 15px; color: var(--text); min-width: 0; }
 
   /* downloads */
-  .downloads { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-  @media (max-width: 1060px) { .downloads { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .downloads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 1200px) { .downloads { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 760px) { .downloads { grid-template-columns: minmax(0, 1fr); } }
   .ios-note { margin: 14px 0 0; color: var(--muted); font-size: 15px; }
   .os { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -263,6 +263,37 @@
   .online-status[data-state="online"] { color: var(--money); }
   .online-status[data-state="offline"] { color: #ff7a6b; }
   .online-status[data-state="soon"] { color: var(--sand); }
+
+  /* reviews: written with an online account, read by everyone (the online server's /reviews) */
+  .reviews-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 0 0 16px; font: 700 15px/1.3 var(--font-mono); color: var(--sand); }
+  .stars { color: var(--gold); letter-spacing: 2px; font-size: 20px; white-space: nowrap; }
+  .reviews-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 760px) { .reviews-list { grid-template-columns: minmax(0, 1fr); } }
+  .review { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .review-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-width: 0; }
+  .review-nick { font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+  .review-date { font: 500 13px/1 var(--font-mono); color: var(--muted); }
+  .review p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+  .reviews-empty { margin: 0; color: var(--muted); }
+  .more { margin-top: 14px; font: 600 14px/1 var(--font-body); color: var(--text); background: var(--tile); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; cursor: pointer; }
+  .more:hover { background: var(--tile-hi); }
+  .review-form { margin-top: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 24px; display: grid; gap: 14px; max-width: 760px; }
+  .review-form .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 560px) { .review-form { padding: 18px 16px; } .review-form .row { grid-template-columns: minmax(0, 1fr); } }
+  .review-form label.field { display: grid; gap: 6px; font-size: 14px; color: var(--muted); min-width: 0; }
+  .review-form input, .review-form textarea { font: 400 16px/1.4 var(--font-body); color: var(--text); background: var(--tile); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; width: 100%; box-sizing: border-box; min-width: 0; }
+  .review-form textarea { resize: vertical; }
+  .rating { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+  .rating legend { float: left; margin-right: 12px; font-size: 14px; color: var(--muted); }
+  .rating label { cursor: pointer; font-size: 30px; line-height: 1; color: var(--line); padding: 2px; }
+  .rating label.on { color: var(--gold); }
+  .rating input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .rating input:focus-visible + span { outline: 2px solid var(--orange); outline-offset: 2px; }
+  .review-form button { justify-self: start; border: 0; cursor: pointer; }
+  .form-note { margin: 0; font-size: 13px; color: var(--muted); }
+  .form-status { margin: 0; min-height: 1.4em; font-weight: 600; }
+  .form-status[data-kind="error"] { color: #ff7a6b; }
+  .form-status[data-kind="ok"] { color: var(--money); }
 
   footer { border-top: 1px solid var(--line); padding-block: 28px 36px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; }
@@ -303,6 +334,7 @@
       <a href="#shop">Preise</a>
       <a href="#screenshots">Screenshots</a>
       <a href="#download">Download</a>
+      <a href="#reviews">Bewertungen</a>
     </nav>
     <nav class="langs" aria-label="Sprache">
       <a href="../ua/" hreflang="uk" lang="uk" title="Українська">UA</a>
@@ -319,15 +351,16 @@
   <div class="hero">
     <div class="wrap">
       <div>
-        <p class="eyebrow">Kostenlos · Windows, macOS und Android · Bots, LAN und online</p>
+        <p class="eyebrow">Kostenlos · Windows, macOS, Linux und Android · Bots, LAN und online</p>
         <h1>LOW STRIKE</h1>
         <p class="lead">Terroristen gegen SWAT auf vier Karten. Leg die Bombe, entschärfe sie oder schalte das andere Team aus, gegen Bots oder mit Freunden im selben WLAN.</p>
         <div class="buy-row">
           <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Windows.exe" target="_blank" rel="noopener"><span>Für Windows herunterladen</span><span class="price">$0</span></a>
           <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-macOS.zip" target="_blank" rel="noopener"><span>Für macOS herunterladen</span><span class="price">$0</span></a>
           <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Android.apk" target="_blank" rel="noopener"><span>Für Android herunterladen</span><span class="price">$0</span></a>
+          <a class="buy" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Linux.tar.gz" target="_blank" rel="noopener"><span>Für Linux herunterladen</span><span class="price">$0</span></a>
         </div>
-        <p class="note">Version 1.19 · Windows 37 MB · macOS 45 MB · Android 33 MB</p>
+        <p class="note">Version 1.20 · Windows 51 MB · macOS 59 MB · Android 54 MB · Linux 48 MB</p>
       </div>
       <figure class="screen">
         <img src="../media/poster.jpg" alt="Eine Runde auf der Karte Village: Häuser, ein Zaun und eine MP5" width="1280" height="720">
@@ -491,7 +524,7 @@
       <div class="downloads">
         <article class="os">
           <h3>Windows</h3>
-          <p class="file">LowStrike-Windows.exe · <span>eine Datei</span> · 37 MB</p>
+          <p class="file">LowStrike-Windows.exe · <span>eine Datei</span> · 51 MB</p>
           <ol>
             <li>Datei herunterladen und doppelklicken.</li>
             <li>Beim ersten Start wird das Spiel entpackt, das dauert ein paar Sekunden.</li>
@@ -501,7 +534,7 @@
         </article>
         <article class="os">
           <h3>macOS</h3>
-          <p class="file">LowStrike-macOS.zip · <span>Intel und Apple Silicon</span> · 45 MB</p>
+          <p class="file">LowStrike-macOS.zip · <span>Intel und Apple Silicon</span> · 59 MB</p>
           <ol>
             <li>ZIP herunterladen, entpacken und Low Strike doppelklicken.</li>
             <li>Beim ersten Mal blockiert macOS das Spiel. Meldung schließen.</li>
@@ -511,13 +544,23 @@
         </article>
         <article class="os">
           <h3>Android</h3>
-          <p class="file">LowStrike-Android.apk · <span>Handys und Tablets</span> · 33 MB</p>
+          <p class="file">LowStrike-Android.apk · <span>Handys und Tablets</span> · 54 MB</p>
           <ol>
             <li>Lade die Datei auf dem Handy herunter und öffne sie.</li>
             <li>Wenn Android fragt, erlaube das Installieren von Apps aus deinem Browser oder Dateimanager.</li>
             <li>Tippe auf Installieren. Warnt Play Protect vor einer unbekannten App, wähle Trotzdem installieren.</li>
           </ol>
           <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Android.apk" target="_blank" rel="noopener"><span>Für Android herunterladen</span><span class="price">$0</span></a>
+        </article>
+        <article class="os">
+          <h3>Linux</h3>
+          <p class="file">LowStrike-Linux.tar.gz · <span>64-Bit-PCs</span> · 48 MB</p>
+          <ol>
+            <li>Lade die Datei herunter und entpacke sie: <code>tar -xzf LowStrike-Linux.tar.gz</code></li>
+            <li>Öffne den Ordner LowStrike-Linux und starte <code>LowStrike.x86_64</code>.</li>
+            <li>Startet es nicht, mach es einmal ausführbar: <code>chmod +x LowStrike.x86_64</code></li>
+          </ol>
+          <a class="buy primary" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Linux.tar.gz" target="_blank" rel="noopener"><span>Für Linux herunterladen</span><span class="price">$0</span></a>
         </article>
       </div>
       <p class="ios-note">iPhone und iPad: noch nicht. Apple lässt Spiele nur über den App Store zu.</p>
@@ -540,6 +583,41 @@
         <span class="source">Alle Versionen, gezählt von GitHub.</span>
       </div>
       <p class="all"><a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener">Alle Versionen auf GitHub</a></p>
+    </div>
+  </section>
+
+  <section id="reviews">
+    <div class="wrap">
+      <h2>Bewertungen</h2>
+      <p class="intro">Was Spieler über Low Strike sagen. Schreib deine mit deinem Online-Konto (dem, mit dem du online spielst).</p>
+      <div class="reviews-summary" id="reviews-summary" hidden><span class="stars" id="reviews-average-stars"></span><span id="reviews-average"></span></div>
+      <div class="reviews-list" id="reviews-list"></div>
+      <button type="button" class="more" id="reviews-more" hidden>Mehr zeigen</button>
+      <form class="review-form" id="review-form" data-lang="de">
+        <div class="row">
+          <label class="field">Nickname<input name="nick" autocomplete="username" maxlength="16" required></label>
+          <label class="field">Passwort<input name="password" type="password" autocomplete="current-password" maxlength="128" required></label>
+        </div>
+        <fieldset class="rating">
+          <legend>Deine Wertung</legend>
+          <label><input type="radio" name="rating" value="1" aria-label="1/5"><span>★</span></label>
+          <label><input type="radio" name="rating" value="2" aria-label="2/5"><span>★</span></label>
+          <label><input type="radio" name="rating" value="3" aria-label="3/5"><span>★</span></label>
+          <label><input type="radio" name="rating" value="4" aria-label="4/5"><span>★</span></label>
+          <label><input type="radio" name="rating" value="5" aria-label="5/5"><span>★</span></label>
+        </fieldset>
+        <label class="field">Deine Bewertung<textarea name="text" rows="4" minlength="10" maxlength="600" required></textarea></label>
+        <button type="submit" class="buy primary"><span>Bewertung senden</span></button>
+        <p class="form-note">Das Passwort wird nur geprüft, nie gespeichert. Eine Bewertung pro Konto: eine neue ersetzt deine alte. Keine Links.</p>
+        <p class="form-status" id="review-status" role="status"></p>
+      </form>
+      <span hidden id="rv-none">Noch keine Bewertungen. Sei der Erste!</span>
+      <span hidden id="rv-sending">Wird gesendet…</span>
+      <span hidden id="rv-thanks">Danke! Deine Bewertung ist jetzt auf der Seite.</span>
+      <span hidden id="rv-offline">Der Server ist nicht erreichbar. Versuch es später nochmal.</span>
+      <span hidden id="rv-count">Bewertungen</span>
+      <span hidden id="rv-stars">Wähle 1 bis 5 Sterne.</span>
+      <span hidden id="rv-wrong">Falscher Nickname oder falsches Passwort.</span>
     </div>
   </section>
 </main>
@@ -642,6 +720,100 @@
           .then(health => say(health.servers > 0 ? "online" : "offline", health.servers > 0 ? "online" : "offline", health.servers > 0 ? health.players_online : 0));
       })
       .catch(() => say("offline", "offline", 0));
+  })();
+  // Reviews: read from the online server by anyone; written with an online account's nickname and password (the server
+  // checks them like a login and keeps only the nickname). Reviews are shown as text, never as HTML.
+  (function reviews() {
+    const list = document.getElementById("reviews-list");
+    const form = document.getElementById("review-form");
+    if (!list || !form) return;
+    const t = id => document.getElementById("rv-" + id).textContent;
+    const status = document.getElementById("review-status");
+    const more = document.getElementById("reviews-more");
+    const labels = Array.from(form.querySelectorAll(".rating label"));
+    const stars = n => "★".repeat(n) + "☆".repeat(5 - n);
+    const say = (kind, text) => { status.dataset.kind = kind; status.textContent = text; };
+    let api = null, before = null;
+    function add(r) {
+      const card = document.createElement("article");
+      card.className = "review";
+      const head = document.createElement("div");
+      head.className = "review-head";
+      const nick = document.createElement("span");
+      nick.className = "review-nick";
+      nick.textContent = r.nick;
+      const st = document.createElement("span");
+      st.className = "stars";
+      st.textContent = stars(r.rating);
+      st.setAttribute("aria-label", r.rating + "/5");
+      const date = document.createElement("span");
+      date.className = "review-date";
+      date.textContent = r.date;
+      head.append(nick, st, date);
+      const text = document.createElement("p");
+      text.textContent = r.text;
+      card.append(head, text);
+      list.append(card);
+    }
+    function empty(text) {
+      list.textContent = "";
+      const p = document.createElement("p");
+      p.className = "reviews-empty";
+      p.textContent = text;
+      list.append(p);
+    }
+    function load(fresh) {
+      if (!api) return;
+      fetch(api + "/reviews?limit=10" + (!fresh && before ? "&before=" + before : ""), { cache: "no-store" })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => {
+          if (fresh) list.textContent = "";
+          if (data.count > 0 && data.average != null) {
+            document.getElementById("reviews-average-stars").textContent = stars(Math.round(data.average));
+            document.getElementById("reviews-average").textContent = data.average.toFixed(1) + " / 5 · " + data.count + " " + t("count");
+            document.getElementById("reviews-summary").hidden = false;
+          }
+          if (fresh && data.reviews.length === 0) empty(t("none"));
+          data.reviews.forEach(add);
+          if (data.reviews.length) before = data.reviews[data.reviews.length - 1].at;
+          more.hidden = data.reviews.length < 10;
+        })
+        .catch(() => { if (fresh) empty(t("offline")); });
+    }
+    more.addEventListener("click", () => load(false));
+    form.querySelectorAll(".rating input").forEach(input => input.addEventListener("change", () =>
+      labels.forEach((label, i) => label.classList.toggle("on", i < Number(input.value)))));
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      if (!api) { say("error", t("offline")); return; }
+      const data = new FormData(form);
+      const rating = Number(data.get("rating") || 0);
+      if (!rating) { say("error", t("stars")); return; }
+      say("", t("sending"));
+      fetch(api + "/reviews", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nick: data.get("nick"), password: data.get("password"), rating: rating, text: data.get("text"), lang: form.dataset.lang }),
+      })
+        .then(r => r.json().catch(() => ({})).then(body => ({ status: r.status, ok: r.ok, body: body })))
+        .then(answer => {
+          if (!answer.ok) { say("error", answer.status === 401 ? t("wrong") : answer.body.detail || t("offline")); return; }
+          form.reset();
+          labels.forEach(label => label.classList.remove("on"));
+          say("ok", t("thanks"));
+          load(true);
+        })
+        .catch(() => say("error", t("offline")));
+    });
+    const sources = ["/online.json", "https://happzgirafe.github.io/DesertStrike/online.json"];
+    const loadConfig = i => i >= sources.length ? Promise.reject("no online.json")
+      : fetch(sources[i], { cache: "no-store" }).then(r => r.ok ? r.json() : Promise.reject(r.status)).catch(() => loadConfig(i + 1));
+    loadConfig(0)
+      .then(config => {
+        if (!config.api || !config.api.startsWith("https://")) return Promise.reject("no api");
+        api = config.api.replace(/\/+$/, "");
+        load(true);
+      })
+      .catch(() => empty(t("offline")));
   })();
   const clock = document.getElementById("clock");
   if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
