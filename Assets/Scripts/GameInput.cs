@@ -8,22 +8,26 @@ public static class GameInput
 {
     public static bool Touch => TouchControls.Active;
 
+    /// <summary>Tests only (-ds-tutorial-test): pretend controls, read instead of the keyboard and mouse while set.</summary>
+    public class Pretend { public Vector2 Move, Look; public bool Jump, Crouch, Fire, Use, Buy; }
+    public static Pretend Fake;
+
     /// <summary>-1..1 sideways (x) and forward (y). A phone's stick pushed a little walks slowly and silently.</summary>
-    public static Vector2 Move => Touch ? TouchControls.Move : new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+    public static Vector2 Move => Fake != null ? Fake.Move : Touch ? TouchControls.Move : new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
     /// <summary>How far to turn this frame (x right, y up), scaled by the sensitivity setting.</summary>
     public static Vector2 Look(float sensitivity) =>
-        Touch ? TouchControls.LookPixels * (0.055f * sensitivity)
+        Fake != null ? Fake.Look : Touch ? TouchControls.LookPixels * (0.055f * sensitivity)
               : new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y")) * sensitivity;
 
-    public static bool FireHeld => Touch ? TouchControls.Held(TouchButton.Fire) : Input.GetMouseButton(0);
-    public static bool FireDown => Touch ? TouchControls.Down(TouchButton.Fire) : Input.GetMouseButtonDown(0);
+    public static bool FireHeld => Fake != null ? Fake.Fire : Touch ? TouchControls.Held(TouchButton.Fire) : Input.GetMouseButton(0);
+    public static bool FireDown => Fake != null ? Fake.Fire : Touch ? TouchControls.Down(TouchButton.Fire) : Input.GetMouseButtonDown(0);
 
     /// <summary>Right click: scope (AWP) or semi/full-auto (TEC-DC9, M1911).</summary>
     public static bool AltFireDown => Touch ? TouchControls.Down(TouchButton.Scope) : Input.GetMouseButtonDown(1);
 
-    public static bool JumpDown => Touch ? TouchControls.Down(TouchButton.Jump) : Input.GetKeyDown(KeyCode.Space);
-    public static bool CrouchHeld => Touch ? TouchControls.Crouched : Input.GetKey(KeyCode.LeftControl);
+    public static bool JumpDown => Fake != null ? Fake.Jump : Touch ? TouchControls.Down(TouchButton.Jump) : Input.GetKeyDown(KeyCode.Space);
+    public static bool CrouchHeld => Fake != null ? Fake.Crouch : Touch ? TouchControls.Crouched : Input.GetKey(KeyCode.LeftControl);
     public static bool WalkHeld => !Touch && Input.GetKey(KeyCode.LeftShift);
     public static bool ReloadDown => Touch ? TouchControls.Down(TouchButton.Reload) : Input.GetKeyDown(KeyCode.R);
 
@@ -54,12 +58,12 @@ public static class GameInput
     }
 
     /// <summary>E: plant or defuse the bomb (held).</summary>
-    public static bool UseHeld => Touch ? TouchControls.Held(TouchButton.Use) : Input.GetKey(KeyCode.E);
+    public static bool UseHeld => Fake != null ? Fake.Use : Touch ? TouchControls.Held(TouchButton.Use) : Input.GetKey(KeyCode.E);
     /// <summary>E pressed: takes a gun from the ground (swapping it for the one carried).</summary>
     public static bool UseDown => Touch ? TouchControls.Down(TouchButton.Use) : Input.GetKeyDown(KeyCode.E);
     /// <summary>G: drops the gun in hand; with the knife in hand, the bomb.</summary>
     public static bool DropDown => Touch ? TouchControls.Down(TouchButton.Drop) : Input.GetKeyDown(KeyCode.G);
-    public static bool BuyDown => Touch ? TouchControls.Down(TouchButton.Buy) : Input.GetKeyDown(KeyCode.B);
+    public static bool BuyDown => Fake != null ? Fake.Buy : Touch ? TouchControls.Down(TouchButton.Buy) : Input.GetKeyDown(KeyCode.B);
     public static bool ScoresHeld => Touch ? TouchControls.Held(TouchButton.Scores) : Input.GetKey(KeyCode.Tab);
 
     /// <summary>Esc, a phone's pause button, or Android's back button (which Unity reports as Escape).</summary>

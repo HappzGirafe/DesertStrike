@@ -99,6 +99,10 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class ProfileBody { public OnlineProfile profile; }
     [Serializable] class LinkBody { public bool linked_local = true; public OnlineProfile profile; }
     [Serializable] class HideBody { public bool hide_status; }
+    [Serializable] class ShopItem { public string weapon, skin; public int price; }
+    [Serializable] class TokensAnswer { public int tokens, today, day_limit, earned; public List<string> owned = new List<string>(); public List<ShopItem> shop = new List<ShopItem>(); }
+    [Serializable] class MatchBody { public int kills, rounds; public bool won; public float seconds; }
+    [Serializable] class BuyBody { public string weapon, skin; }
 
     public Service State { get; private set; } = Service.Checking;
     public string ApiUrl { get; private set; }
@@ -137,6 +141,99 @@ public class OnlineClient : MonoBehaviour
     bool leaving;
     bool testApi;   // -ds-api: a test run, whose login is not saved (it would replace the player's own)
 
+    // ----------------------------------------------------------------- Halloween Tokens
+
+    /// <summary>The online account's Halloween Tokens (-1 until known; see online-server/tokens.py).</summary>
+    public int Tokens { get; private set; } = -1;
+    /// <summary>Tokens earned today from the player's own matches, and the most a day gives.</summary>
+    public int TokensToday { get; private set; }
+    public int TokenDayLimit { get; private set; } = 40;
+    /// <summary>What the last match paid, and when (shown for a while after it).</summary>
+    public int LastEarned { get; private set; }
+    public float LastEarnedAt { get; private set; } = -100f;
+    readonly HashSet<string> ownedSkins = new HashSet<string>();
+    readonly Dictionary<string, int> skinPrices = new Dictionary<string, int>();
+    int tokensBeforeRoomMatch = -1;
+    float roomMatchTokensAt = -1f;
+    bool wasInRoomMatch;
+
+    /// <summary>Whether the account has bought this skin with Halloween Tokens.</summary>
+    public bool Owns(string weapon, string skin) => ownedSkins.Contains(weapon + "/" + skin);
+
+    /// <summary>A skin's price in Halloween Tokens (the server's, else <paramref name="fallback"/>, skin.json's).</summary>
+    public int PriceOf(string weapon, string skin, int fallback) => skinPrices.TryGetValue(weapon + "/" + skin, out int price) ? price : fallback;
+
+    void UseTokens(string text)
+    {
+        var answer = JsonUtility.FromJson<TokensAnswer>(text);
+        Tokens = answer.tokens;
+        TokensToday = answer.today;
+        TokenDayLimit = answer.day_limit;
+        ownedSkins.Clear();
+        foreach (var owned in answer.owned) ownedSkins.Add(owned);
+        skinPrices.Clear();
+        foreach (var item in answer.shop) skinPrices[item.weapon + "/" + item.skin] = item.price;
+    }
+
+    void Earned(int amount)
+    {
+        if (amount <= 0) return;
+        LastEarned = amount;
+        LastEarnedAt = Time.unscaledTime;
+        Debug.Log($"[Online] +{amount} Halloween Tokens (now {Tokens})");
+    }
+
+    public void RefreshTokens()
+    {
+        if (LoggedIn) Ask("tokens", "GET", "/tokens", null, UseTokens);
+    }
+
+    /// <summary>A match this game ran (against bots, or a LAN game) is over: the API pays for it (capped a day).</summary>
+    public void ReportMatch(int kills, bool won, int rounds, float seconds)
+    {
+        if (!LoggedIn) return;
+        Debug.Log($"[Online] Match over ({kills} kills, {(won ? "won" : "lost")}): asking for Halloween Tokens");
+        Ask(null, "POST", "/tokens/match", new MatchBody { kills = kills, won = won, rounds = rounds, seconds = seconds }, text =>
+        {
+            UseTokens(text);
+            Earned(JsonUtility.FromJson<TokensAnswer>(text).earned);
+        });
+    }
+
+    /// <summary>Buys a skin with Halloween Tokens; <paramref name="done"/> gets what went wrong, or null.</summary>
+    public void BuySkin(string weapon, string skin, Action<string> done)
+    {
+        busy++;
+        Ask(null, "POST", "/tokens/buy", new BuyBody { weapon = weapon, skin = skin }, text =>
+        {
+            busy--;
+            UseTokens(text);
+            done?.Invoke(null);
+        }, (code, message) =>
+        {
+            busy--;
+            done?.Invoke(message);
+        });
+    }
+
+    // An online room's match is paid by the API when its game host reports the end: a few seconds after the match,
+    // the tokens are asked for again and the difference shown.
+    void WatchRoomMatchTokens(float now)
+    {
+        bool inMatch = Room != null && gm.Net.OnlineClient && gm.State != MatchState.Menu;
+        if (inMatch && !wasInRoomMatch) tokensBeforeRoomMatch = Tokens;
+        if (gm.State == MatchState.MatchOver && wasInRoomMatch && roomMatchTokensAt < 0f) roomMatchTokensAt = now + 4f;
+        wasInRoomMatch = inMatch && gm.State != MatchState.MatchOver;
+        if (roomMatchTokensAt < 0f || now < roomMatchTokensAt) return;
+        roomMatchTokensAt = -1f;
+        int before = tokensBeforeRoomMatch;
+        Ask("tokens", "GET", "/tokens", null, text =>
+        {
+            UseTokens(text);
+            if (before >= 0) Earned(Tokens - before);
+        });
+    }
+
     /// <summary>A newer Low Strike than this one on the website (its online.json says which), or null.</summary>
     public string NewVersion { get; private set; }
     /// <summary>Where to get it: the website's download section.</summary>
@@ -152,6 +249,7 @@ public class OnlineClient : MonoBehaviour
     void Start()
     {
         gm = GetComponent<GameManager>();
+        WeaponSkins.Bought = skin => LoggedIn && Owns(skin.WeaponId, skin.Id);
         var args = Environment.GetCommandLineArgs();
         testApi = Array.IndexOf(args, "-ds-api") >= 0;
         token = testApi ? "" : PlayerPrefs.GetString(TokenKey, "");
@@ -292,6 +390,7 @@ public class OnlineClient : MonoBehaviour
             });
         }
         AskPlayed(now);
+        WatchRoomMatchTokens(now);
         if ((WantRooms || testAction == "join") && Room == null && now >= nextRooms)
         {
             nextRooms = now + 4f;
@@ -421,6 +520,7 @@ public class OnlineClient : MonoBehaviour
         LinkSource = localBefore ?? Accounts.LastLocalName;
         syncedProfile = JsonUtility.ToJson(CurrentProfile());
         nextPresence = nextRooms = nextFriends = 0f;
+        RefreshTokens();
         Debug.Log($"[Online] Logged in as {user.nick}");
     }
 
@@ -463,6 +563,8 @@ public class OnlineClient : MonoBehaviour
         Invites.Clear();
         Rooms.Clear();
         RequestCount = InviteCount = 0;
+        Tokens = -1;
+        ownedSkins.Clear();
         AskLink = false;
         if (Accounts.IsOnline) Accounts.LogOut();
         if (wasIn) Debug.Log("[Online] Logged out" + (why != null ? ": " + why : ""));

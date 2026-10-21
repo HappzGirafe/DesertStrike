@@ -69,6 +69,7 @@ public class Combatant : MonoBehaviour
     public float Height = StandHeight;
     public bool Scoped;            // looking through a scope right now (for "noscope" in the kill feed)
     public string LastResupply;    // free ammo given at the start of this round
+    public bool Dummy;             // the tutorial's training bot: hits count, but it never gets hurt
     public Transform Eye;
     public Transform Muzzle;
 
@@ -324,6 +325,12 @@ public class Combatant : MonoBehaviour
 
     HitResult ApplyDamage(Combatant attacker, WeaponData weapon, float damage, bool headshot)
     {
+        if (Dummy)
+        {
+            Damaged?.Invoke(attacker, 0);
+            GameManager.Instance.Tutorial?.OnDummyHit();
+            return HitResult.Hit;
+        }
         if (Armor > 0 && (!headshot || Helmet))
         {
             float toHealth = damage * weapon.ArmorPenetration;

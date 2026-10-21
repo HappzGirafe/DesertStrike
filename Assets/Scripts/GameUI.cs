@@ -138,7 +138,8 @@ public partial class GameUI : MonoBehaviour
     {
         // IMGUI runs OnGUI once for every input event as well as for drawing, and a Mac sends many mouse-move
         // events per frame. The HUD has nothing to click, so during play only the drawing pass does any work.
-        bool interactive = gm.State == MatchState.Menu || gm.State == MatchState.MatchOver || gm.BuyMenuOpen || gm.IsPaused;
+        bool interactive = gm.State == MatchState.Menu || gm.State == MatchState.MatchOver || gm.BuyMenuOpen || gm.IsPaused
+                           || gm.Tutorial?.Current == Tutorial.Step.Done;
         if (Event.current.type != EventType.Repaint && !interactive) return;
         if (Event.current.type == EventType.Repaint) RenderScaler.Present();
         if (gm.ShowingViews) return;
@@ -179,6 +180,8 @@ public partial class GameUI : MonoBehaviour
             else if (settingsOpen) DrawSettings();
             else DrawMainMenu();
             if (Online.AskLink && !accountOpen && !updateQuestion) DrawLinkQuestion();
+            else if (tutorialOffer && !accountOpen && !updateQuestion) DrawTutorialOffer();
+            DrawTokenToast();
             DrawGameKeyboard();
             DrawFps(20f, 20f);
             return;
@@ -190,8 +193,10 @@ public partial class GameUI : MonoBehaviour
         DrawFps(20f, 268f);
         UseHeight(BaseHeight);   // menus and the phone's buttons keep their own size
         if (gm.BuyMenuOpen) DrawBuyMenu();
-        if (gm.State == MatchState.MatchOver) DrawMatchOver();
+        if (gm.State == MatchState.MatchOver && gm.Tutorial == null) DrawMatchOver();
         else if (GameInput.ScoresHeld) DrawScoreboard(170f);
+        if (gm.Tutorial != null && !gm.IsPaused) DrawTutorial();
+        DrawTokenToast();
         if (!gm.IsPaused && gm.State != MatchState.MatchOver && touch != null) touch.Draw();
         if (!gm.IsPaused) settingsOpen = crosshairOpen = touchLayoutOpen = languagesOpen = false;
         else if (settingsOpen && languagesOpen) DrawLanguages();
@@ -214,6 +219,8 @@ public partial class GameUI : MonoBehaviour
         Label(new Rect(x, top + 20f, w, 80f), "LOW STRIKE", 66, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, top + 95f, w, 30f), $"Terrorists vs SWAT on {gm.Map.Description}", 22, Dim, TextAnchor.MiddleCenter);
         DrawAccountBox(x + 24f, top + 22f);
+        if (Accounts.IsOnline && Online.Tokens >= 0)   // between the title and EXIT
+            Label(new Rect(x + w - 164f - 16f - 330f, top + 30f, 330f, 30f), $"Halloween Tokens: {Online.Tokens}", 20, Pumpkin, TextAnchor.MiddleRight);
         // iPhones close apps from the app switcher only (Apple's rules); everywhere else the game can quit itself.
         if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + w - 164f, top + 22f, 140f, 46f), "EXIT", false, true, 20))
         {
@@ -927,10 +934,17 @@ public partial class GameUI : MonoBehaviour
             return;
         }
 
+        if (buying != null)
+        {
+            DrawBuySkin();
+            return;
+        }
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = 1240f, h = 820f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
         Fill(new Rect(x, y, w, h), PanelColor);
         Label(new Rect(x, y + 15f, w, 60f), "INVENTORY", 48, Gold, TextAnchor.MiddleCenter);
+        if (Accounts.IsOnline && Online.Tokens >= 0)
+            Label(new Rect(x + w - 330f, y + 26f, 300f, 34f), $"Halloween Tokens: {Online.Tokens}", 22, Pumpkin, TextAnchor.MiddleRight);
         Label(new Rect(x, y + 68f, w, 30f), "Pick a skin for each weapon. Hover to preview, click to equip. Your choice is saved.", 20, Dim, TextAnchor.MiddleCenter);
 
         // Weapon list on the left.
@@ -965,18 +979,27 @@ public partial class GameUI : MonoBehaviour
             if (row.Contains(Event.current.mousePosition)) hovered = skin;
             bool isEquipped = skin == equipped;
             bool locked = !WeaponSkins.CanUse(skin);
+            bool forTokens = locked && skin.TokenPrice > 0;   // sold for Halloween Tokens, not bought yet
             if (locked && Event.current.type == EventType.MouseDown && row.Contains(Event.current.mousePosition))
             {
                 Event.current.Use();
-                OpenAccount($"Log in or sign up to use the {skin.Name} skin");
+                if (forTokens && Accounts.IsOnline)
+                {
+                    buying = skin;
+                    buyProblem = null;
+                }
+                else if (forTokens) OpenAccount("Log in online to buy skins with Halloween Tokens", online: true);
+                else OpenAccount($"Log in or sign up to use the {skin.Name} skin");
                 return;
             }
-            if (Button(row, isEquipped ? $"{skin.Name}\nEQUIPPED" : skin.Name, isEquipped, !locked, 20) && WeaponSkins.Equip(inventoryWeapon, skin))
+            string text = isEquipped ? $"{skin.Name}\nEQUIPPED"
+                        : forTokens ? $"{skin.Name}\n{Online.PriceOf(skin.WeaponId, skin.Id, skin.TokenPrice)} Halloween Tokens" : skin.Name;
+            if (Button(row, text, isEquipped, !locked, 20) && WeaponSkins.Equip(inventoryWeapon, skin))
             {
                 previewSkin = null;
                 SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
             }
-            if (locked) DrawLock(row.xMax - 32f, row.y + 18f, LockColor);
+            if (locked) DrawLock(row.xMax - 32f, row.y + 18f, forTokens ? Pumpkin : LockColor);
             DrawSwatch(new Rect(row.x + 10f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Main));
             DrawSwatch(new Rect(row.x + 40f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Grip));
             rowY += 64f;
@@ -1155,6 +1178,7 @@ public partial class GameUI : MonoBehaviour
                                                : Accounts.LogIn(accountName, accountPassword);
                 if (accountMessage == null)
                 {
+                    tutorialOffer = accountSignUp;   // a new account: offer the practice round
                     accountOpen = false;
                     accountPassword = accountRepeat = "";
                 }
@@ -1164,10 +1188,12 @@ public partial class GameUI : MonoBehaviour
             else
             {
                 accountMessage = null;
+                bool signingUp = accountSignUp;
                 Online.LogIn(accountName, accountPassword, accountSignUp, problem =>
                 {
                     accountMessage = problem;
                     if (problem != null) return;
+                    tutorialOffer = signingUp;   // a new account: offer the practice round
                     accountOpen = false;
                     accountPassword = accountRepeat = "";
                 });
@@ -1264,8 +1290,18 @@ public partial class GameUI : MonoBehaviour
                   : Accounts.HideStatus ? "Hidden: nobody sees when you are online, and you can't see when your friends are online either."
                   : "Visible: your friends see when you are online.", 16, Dim);
 
-        int count = GameInput.Touch ? 4 : 3;
+        bool tutorial = gm.State == MatchState.Menu && gm.Net.Role == NetSession.Mode.Off;
+        int count = (GameInput.Touch ? 4 : 3) + (tutorial ? 1 : 0);
         float bw = Mathf.Min(300f, (w - 80f - (count - 1) * 20f) / count), bx = x + (w - count * bw - (count - 1) * 20f) / 2f, by = top + height - 80f;
+        if (tutorial)
+        {
+            if (Button(new Rect(bx, by, bw, 56f), "TUTORIAL"))
+            {
+                settingsOpen = false;
+                gm.StartTutorial();
+            }
+            bx += bw + 20f;
+        }
         if (Button(new Rect(bx, by, bw, 56f), "CROSSHAIR")) crosshairOpen = true;
         bx += bw + 20f;
         if (Button(new Rect(bx, by, bw, 56f), "LANGUAGES")) languagesOpen = true;
@@ -1459,12 +1495,16 @@ public partial class GameUI : MonoBehaviour
             if (Button(new Rect(x + 40f, y, w - 80f, 56f), gm.Net.OnlineClient ? "LEAVE ROOM" : "LEAVE GAME")) LeaveGame();
             y += 70f;
         }
-        else
+        else if (gm.Tutorial == null)
         {
             if (Button(new Rect(x + 40f, y, w - 80f, 56f), "RESTART MATCH")) gm.StartMatch();
             y += 70f;
         }
-        if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) LeaveGame();
+        if (gm.Tutorial != null)
+        {
+            if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SKIP TUTORIAL")) gm.EndTutorial();
+        }
+        else if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) LeaveGame();
         y += 70f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SETTINGS")) settingsOpen = true;
         y += 70f;

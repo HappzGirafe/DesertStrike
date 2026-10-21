@@ -26,7 +26,7 @@ public class OnlineHost : MonoBehaviour
     const float MatchOverPause = 12f;   // the result stays on the players' screens this long
     const float EmptyMatchEnd = 30f;    // a match nobody is connected to ends after this long
 
-    [Serializable] class HostPlayer { public string user_id; public string team; public bool connected; }
+    [Serializable] class HostPlayer { public string user_id; public string team; public bool connected; public int kills; }
 
     [Serializable]
     class Report
@@ -132,6 +132,7 @@ public class OnlineHost : MonoBehaviour
                     user_id = peer.AccountId,
                     team = peer.Spectator ? "spectator" : peer.Team == Team.Swat ? "swat" : "t",
                     connected = !peer.Away,
+                    kills = peer.Player != null ? peer.Player.Self.Kills : 0,   // the API pays Halloween Tokens for them
                 });
 
         using (var request = new UnityWebRequest($"{ControlUrl}/internal/slots/{SlotId}/heartbeat", "POST"))

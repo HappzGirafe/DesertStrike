@@ -78,7 +78,7 @@ public class GameManager : MonoBehaviour
     /// off (the menu's "Whole map"); both are saved.</summary>
     public string ClosedSite = "B";
     public bool CloseHalf = true;
-    public string ActiveClosedSite => CloseHalf && TeamSize <= 3 ? ClosedSite : null;
+    public string ActiveClosedSite => Tutorial == null && CloseHalf && TeamSize <= 3 ? ClosedSite : null;
     const string ClosedSiteKey = "DesertStrike.closedSite", CloseHalfKey = "DesertStrike.closeHalf";
     const string TerroristCountKey = "DesertStrike.terrorists", SwatCountKey = "DesertStrike.swat";
 
@@ -128,7 +128,7 @@ public class GameManager : MonoBehaviour
     public bool ServerMode { get; private set; }
     public OnlineClient Online { get; private set; }
     public bool SpectatingNow => State != MatchState.Menu && (Player == null || !Player.Self.IsAlive);
-    public float BuyTimeLeft => Warmup ? StateEndsAt - Time.time : BuyTime - (Time.time - roundStartedAt);
+    public float BuyTimeLeft => Tutorial != null ? 99f : Warmup ? StateEndsAt - Time.time : BuyTime - (Time.time - roundStartedAt);
     public float SellTimeLeft => Warmup ? StateEndsAt - Time.time : SellTime - (Time.time - roundStartedAt);
 
     readonly List<BotController> bots = new List<BotController>();
@@ -149,6 +149,10 @@ public class GameManager : MonoBehaviour
     string radarFile;       // -ds-radar-png <file>: saves the map's radar picture (checking the map's orientation)
     string navMeshFile;     // -ds-navmesh-obj <file>: saves where bots can walk, as an .obj (finding cut-off places)
     string exportClosed;    // -ds-export-closed <folder>: writes the map and its closing walls for Blender, and quits (see MapExport)
+    bool startTutorial;     // -ds-tutorial
+    bool tutorialTest;      // -ds-tutorial-test: plays the tutorial through with pretend controls (GameInput.Fake), logging each step
+    Tutorial.Step testStep = (Tutorial.Step)(-1);
+    float testStepAt;
     string hideParts;       // -ds-hide <text>: map parts whose names contain it are not drawn (finding what costs time)
     bool poseGallery;       // -ds-pose-gallery: figures in every pose in a row above the map, seen from the side
     int sellTestStep = -1;  // -ds-sell-test: in round 1 the player buys, sells and opens the shop by itself (logged)
@@ -217,6 +221,7 @@ public class GameManager : MonoBehaviour
         if (autoHost) Net.StartHost();
         if (autoJoin != null) Net.Join(autoJoin);
         if (autoStart && !autoHost && autoJoin == null) StartMatch();
+        if (startTutorial) StartTutorial();
     }
 
     // ----------------------------------------------------------------- match flow
@@ -253,7 +258,8 @@ public class GameManager : MonoBehaviour
 
         foreach (var c in Combatants) c.Money = startMoney;
         Debug.Log($"[DesertStrike] Match started on {Map.Name}: {Side}, {TerroristCount}v{SwatCount}, {Difficulty}, first to {RoundsToWin}, friendly fire {(FriendlyFire ? "on" : "off")}, {Net.Peers.Count} remote players");
-        if (noWarmup) StartRound();
+        matchStartedAt = Time.time;
+        if (noWarmup || Tutorial != null) StartRound();
         else StartWarmup();
     }
 
@@ -316,6 +322,11 @@ public class GameManager : MonoBehaviour
 
     public void ReturnToMenu()
     {
+        if (Tutorial != null)
+        {
+            Tutorial = null;
+            (Side, TerroristCount, SwatCount, Difficulty, RoundsToWin, FriendlyFire) = beforeTutorial;
+        }
         ClearMatch();
         CloseSite(null);
         Net.Stop();
@@ -367,6 +378,54 @@ public class GameManager : MonoBehaviour
         Difficulty = difficulty;
         RoundsToWin = Mathf.Clamp(roundsToWin, 1, 16);
         FriendlyFire = friendlyFire;
+    }
+
+    // ----------------------------------------------------------------- Halloween Tokens and the tutorial
+
+    float matchStartedAt;
+
+    /// <summary>
+    /// The match is over: an online account is paid in Halloween Tokens for it (1 a kill, 5 for the win; the API
+    /// caps what a player's own games report at a few a day). An online room's game host reports its matches itself,
+    /// and the tutorial pays nothing.
+    /// </summary>
+    void OnMatchOver()
+    {
+        if (Tutorial != null || Net.OnlineClient || Net.OnlineHost || Player == null || Online == null || !Online.LoggedIn) return;
+        var me = Player.Self;
+        Team winner = TerroristWins >= RoundsToWin ? Team.Terrorists : Team.Swat;
+        Online.ReportMatch(me.Kills, me.Team == winner, Round, Time.time - matchStartedAt);
+    }
+
+    /// <summary>The tutorial running now (a practice round), or null.</summary>
+    public Tutorial Tutorial { get; private set; }
+
+    (PlayerSide side, int terrorists, int swat, BotDifficulty difficulty, int rounds, bool friendlyFire) beforeTutorial;
+
+    /// <summary>The practice round for new accounts (see <see cref="Tutorial"/>); the menu's settings come back after it.</summary>
+    public void StartTutorial()
+    {
+        if (Net.Role != NetSession.Mode.Off || State != MatchState.Menu) return;
+        beforeTutorial = (Side, TerroristCount, SwatCount, Difficulty, RoundsToWin, FriendlyFire);
+        Side = PlayerSide.Terrorists;
+        TerroristCount = SwatCount = 1;
+        Difficulty = BotDifficulty.Easy;
+        RoundsToWin = 1;
+        FriendlyFire = false;
+        Tutorial = new Tutorial();
+        LoadMap(Tutorial.MapId);
+        StartMatch();
+        foreach (var c in Combatants) c.Money = WarmupMoney;   // enough for anything in the shop
+        Debug.Log("[Tutorial] Started");
+    }
+
+    /// <summary>Ends the tutorial (finished or skipped): back to the menu and its settings.</summary>
+    public void EndTutorial()
+    {
+        if (Tutorial == null) return;
+        Debug.Log(Tutorial.Current == Tutorial.Step.Done ? "[Tutorial] Finished" : $"[Tutorial] Skipped at {Tutorial.Current}");
+        SetPaused(false);
+        ReturnToMenu();
     }
 
     // ----------------------------------------------------------------- maps
@@ -597,6 +656,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        Tutorial?.Update(this);
         HandleInput();
         if (!IsClient) RunRound();
         UpdateCursor();
@@ -638,6 +698,9 @@ public class GameManager : MonoBehaviour
                     }
                 }
                 break;
+            case MatchState.Live when Tutorial != null:
+                StateEndsAt = Mathf.Max(StateEndsAt, Time.time + 60f);   // the tutorial has no hurry
+                break;
             case MatchState.Live:
                 // Once the bomb is planted the round clock stops; the bomb decides.
                 if (Time.time >= StateEndsAt && Bomb.State != BombState.Planted) EndRound(Team.Swat, "TIME IS UP - SWAT WIN");
@@ -649,6 +712,7 @@ public class GameManager : MonoBehaviour
                     {
                         State = MatchState.MatchOver;
                         Debug.Log($"[DesertStrike] Match over: T {TerroristWins} - {SwatWins} SWAT");
+                        OnMatchOver();
                     }
                     else StartRound();
                 }
@@ -696,7 +760,7 @@ public class GameManager : MonoBehaviour
         (c.Team == Team.Terrorists ? Map.TerroristBuyZone : Map.SwatBuyZone).Contains(c.transform.position + Vector3.up * 0.5f);
 
     public bool CanBuy(Combatant c) =>
-        c != null && c.IsAlive && InBuyZone(c)
+        c != null && c.IsAlive && (InBuyZone(c) || Tutorial != null)   // the tutorial's shop step comes after walking away
         && (State == MatchState.Freeze || (State == MatchState.Live && BuyTimeLeft > 0f));
 
     public bool CanSell(Combatant c) =>
@@ -942,6 +1006,7 @@ public class GameManager : MonoBehaviour
     {
         ClearMatch();
         clientMatch = true;
+        matchStartedAt = Time.time;
         MenuNotice = null;
         Debug.Log("[Net] The host started the match");
     }
@@ -950,6 +1015,7 @@ public class GameManager : MonoBehaviour
     {
         if (match.Round != Round) Debug.Log($"[Net] Round {match.Round} (T {match.TerroristWins} - {match.SwatWins} SWAT)");
         if (match.State != State && match.State == MatchState.Freeze) SoundFX.Play(SoundFX.RoundStart, Vector3.zero, 0.4f, 1f, false);
+        bool over = match.State == MatchState.MatchOver && State != MatchState.MatchOver;
         State = match.State;
         Round = match.Round;
         TerroristWins = match.TerroristWins;
@@ -966,6 +1032,7 @@ public class GameManager : MonoBehaviour
         MessageUntil = Time.time + match.MessageLeft;
         PlayerAmmoResupply = string.IsNullOrEmpty(resupply) ? null : resupply;
         if (State == MatchState.MatchOver || State == MatchState.RoundEnd) BuyMenuOpen = false;
+        if (over) OnMatchOver();
     }
 
     public void ApplyNetCombatant(NetCombatantState s, int myId)
@@ -1130,7 +1197,8 @@ public class GameManager : MonoBehaviour
 
     void UpdateCursor()
     {
-        bool free = State == MatchState.Menu || State == MatchState.MatchOver || IsPaused || BuyMenuOpen || TouchControls.Active;
+        bool free = State == MatchState.Menu || State == MatchState.MatchOver || IsPaused || BuyMenuOpen || TouchControls.Active
+                    || Tutorial?.Current == Tutorial.Step.Done;
         Cursor.lockState = free ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = free;
     }
@@ -1248,6 +1316,13 @@ public class GameManager : MonoBehaviour
                     break;
                 case "-ds-export-closed" when hasValue:
                     exportClosed = args[++i];
+                    break;
+                case "-ds-tutorial":
+                    // -ds-tutorial: the practice round at once (tests)
+                    startTutorial = true;
+                    break;
+                case "-ds-tutorial-test":
+                    startTutorial = tutorialTest = true;
                     break;
                 case "-ds-skin-roundtrip" when i + 2 < args.Length:
                     // -ds-skin-roundtrip <weapon> <skin>: forgets the skin and reads its pack back, as if it had come
@@ -1434,6 +1509,67 @@ public class GameManager : MonoBehaviour
         views = new List<(Vector3, Vector3)> { (middle + new Vector3(0f, 0.6f, -15f), middle) };
     }
 
+    /// <summary>-ds-tutorial-test: does each step of the tutorial with pretend controls, the way a player would (only the
+    /// walk to the bombsite is a jump there), with a screenshot of each step (-ds-capture), and presses FINISH at the end.</summary>
+    void RunTutorialTest()
+    {
+        var fake = GameInput.Fake ??= new GameInput.Pretend();
+        var step = Tutorial.Current;
+        if (step != testStep)
+        {
+            Debug.Log($"[TutorialTest] {Time.time:0.0}s now: {step} ({State})");
+            testStep = step;
+            testStepAt = Time.time;
+            if (captureDirectory != null) nextCaptureAt = Time.realtimeSinceStartup + 0.4f;
+        }
+        fake.Move = fake.Look = Vector2.zero;
+        fake.Jump = fake.Crouch = fake.Fire = fake.Use = fake.Buy = false;
+        if (State != MatchState.Live && step != Tutorial.Step.Done) return;
+        float since = Time.time - testStepAt;
+        if (since < 1f) return;   // a moment to read it
+        var me = Player.Self;
+        switch (step)
+        {
+            case Tutorial.Step.Walk: fake.Move = new Vector2(0.3f, 1f); break;
+            case Tutorial.Step.Look: fake.Look = new Vector2(2f, 0f); break;
+            case Tutorial.Step.Jump: fake.Jump = Time.frameCount % 30 == 0; break;
+            case Tutorial.Step.Crouch: fake.Crouch = true; break;
+            case Tutorial.Step.Buy:
+                if (!BuyMenuOpen) fake.Buy = Time.frameCount % 30 == 0;   // B
+                else if (since > 2f) BuyWeapon(WeaponData.Ak47);          // the shop's own button
+                break;
+            case Tutorial.Step.Shoot:
+                if (BuyMenuOpen) { fake.Buy = Time.frameCount % 30 == 0; break; }
+                Combatant target = null;
+                foreach (var c in Combatants) if (c.Team != me.Team) target = c;
+                if (target == null) break;
+                var eye = Camera.main.transform;
+                Vector3 to = target.transform.position + Vector3.up * 1.2f - eye.position;
+                float yawOff = Mathf.DeltaAngle(eye.eulerAngles.y, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg);
+                float pitchOff = Mathf.DeltaAngle(eye.eulerAngles.x, -Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg);
+                fake.Look = new Vector2(yawOff, -pitchOff) * 0.5f;   // degrees (pretend looking is not scaled)
+                fake.Fire = Mathf.Abs(yawOff) < 1.5f && Mathf.Abs(pitchOff) < 1.5f && Time.frameCount % 8 < 4;
+                break;
+            case Tutorial.Step.Plant:
+                if (Map.SiteAt(Player.transform.position) == null)
+                {
+                    Player.Respawn(Map.SitePoint(true), Player.transform.eulerAngles.y);
+                    Debug.Log($"[TutorialTest] Went to site {Map.SiteAt(Player.transform.position)}, carrying the bomb: {Bomb.Carrier == me}");
+                }
+                fake.Use = true;   // E held
+                break;
+            case Tutorial.Step.Done:
+                if (since > 3f)
+                {
+                    tutorialTest = false;
+                    GameInput.Fake = null;
+                    EndTutorial();   // FINISH
+                    Debug.Log($"[TutorialTest] Finished: {State}, map {MapId}, side {Side}, {TerroristCount}v{SwatCount}, {Difficulty}, rounds {RoundsToWin}");
+                }
+                break;
+        }
+    }
+
     /// <summary>-ds-sell-test (with -ds-money 5000): buy an AK-47 and sell it back (full price), then after buy time
     /// sell the pistol and check that selling stops after <see cref="SellTime"/>. Goes through the shop's own calls, so
     /// on a LAN client it asks the host; every step is logged, with screenshots of the shop.</summary>
@@ -1523,6 +1659,7 @@ public class GameManager : MonoBehaviour
             Player.Self.Equip(giveWeapon.Slot, instant: true);
         }
         if (sellTestStep >= 0 && Player != null && Round == 1) RunSellTest();
+        if (tutorialTest && Tutorial != null && Player != null) RunTutorialTest();
         if (teleportTest && IsClient && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTeleport)
         {
             nextTeleport = now + 3f;

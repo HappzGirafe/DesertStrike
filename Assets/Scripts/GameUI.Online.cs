@@ -39,6 +39,7 @@ public partial class GameUI
         }
         if (testScreen == "" || testScreen == "link") return;
         if (testScreen == "login") OpenAccount(null, online: true);
+        else if (testScreen == "tutorial") tutorialOffer = true;
         else if (!Online.LoggedIn) return;
         else if (testScreen == "rooms" || testScreen == "create")
         {
@@ -47,6 +48,14 @@ public partial class GameUI
         }
         else if (testScreen == "friends") friendsOpen = true;
         else if (testScreen == "account") onlineAccountOpen = true;
+        else if (testScreen == "inventory" || testScreen == "buy")
+        {
+            // The AK-47 page of the inventory; "buy": asking to buy its Halloween skin (once the tokens are known).
+            if (Online.Tokens < 0) return;
+            inventoryOpen = true;
+            inventoryWeapon = WeaponData.Find("ak47");
+            if (testScreen == "buy") buying = WeaponSkins.Find(inventoryWeapon, "Halloween");
+        }
         testScreen = "";
     }
     static readonly Color InMatchColor = new Color(1f, 0.78f, 0.35f);

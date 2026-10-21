@@ -79,6 +79,32 @@ unique everywhere, and its skins and crosshair and voice settings are saved on t
 offers to bring this computer's skins and settings along. **ACCOUNT** (main menu, when logged in online) changes the
 password or deletes the account and everything the server keeps about it.
 
+### Tutorial
+
+A new account is offered a **tutorial**: a short practice round on Village as a Terrorist, with a training bot that
+stands in front of you, does not shoot and cannot die. Seven steps on screen, each ticked off as you do it: walk, look
+around, jump, crouch, buy a rifle (the shop opens anywhere during the tutorial), hit the bot 3 times, and plant the
+bomb on a site. The round clock does not run out meanwhile; **FINISH** (or Esc / pause: **SKIP TUTORIAL**) goes back
+to the menu with your own match settings. **Settings > TUTORIAL** plays it again at any time.
+
+### Halloween Tokens
+
+**Halloween Tokens** are the game's money for skins, kept on your **online account** (the balance shows next to EXIT in
+the main menu and in the inventory). You earn **1 for every kill** and **5 for every match you win**: online-room
+matches pay everyone in them (the room's game server reports the result), and matches against bots on your own game
+pay up to **40 tokens a day** (the server also checks that the match could have happened). They buy the Halloween
+skins in the **INVENTORY**:
+
+| Skin | Price |
+| --- | --- |
+| AK-47 Halloween | 40 |
+| M4A1 Halloween | 40 |
+| Knife: Classic Halloween | 60 |
+
+A skin bought is yours for good, on every computer and phone you log in on. Until then it shows its price and a
+padlock. A skin is sold for tokens when its `skin.json` has `"tokens": <price>` (the price shown until the server's is
+known); what it really costs is set by `SHOP` in `online-server/tokens.py`, which must list it too.
+
 ### Friends
 
 **FRIENDS** in the main menu (it needs an account): type a friend's nickname and click **SEND REQUEST**; on their
@@ -438,6 +464,7 @@ All in `Assets/Scripts`:
 | `GameUI.cs` | Menus, HUD, buy menu, scoreboard (IMGUI) |
 | `Rocket.cs` | RPG rocket flight and explosion damage |
 | `WeaponSkins.cs`, `SkinPreview.cs` | Pistol skins, the equipped choice, and the inventory's 3D preview |
+| `Tutorial.cs`, `GameUI.Halloween.cs` | The tutorial's steps and training bot; its panel, the tutorial offer, buying skins with Halloween Tokens |
 | `Ballistics.cs`, `Effects.cs`, `SoundFX.cs`, `WeaponModels.cs` | Hitscan, visuals, generated sounds, gun models |
 | `GameSettings.cs` | Graphics quality, frame limit, FPS counter, sensitivity (saved) |
 | `Accounts.cs` | Accounts on this computer: sign up, log in (hashed passwords), each account's skins and friends |
@@ -468,7 +495,9 @@ when its window is not in front. Tests skip the log-in screen
 (`-ds-account-screen [signup]` shows it); `-ds-login <nickname> <password>` logs in (signing up when there is no such
 account), and `-ds-accounts-file <file>` keeps test accounts out of the real `accounts.json`.
 `-ds-difficulty <easy|normal|hard|extreme>` sets the bots, `-ds-players <1-5>` the players per team, and
-`-ds-attack <a|b>` sends the Terrorist bots to that site every round. On a Blender map the log says how far it is to
+`-ds-attack <a|b>` sends the Terrorist bots to that site every round. `-ds-tutorial` starts the tutorial at once, and
+`-ds-tutorial-test` plays it through by itself with pretend controls (logging each step, a screenshot of each with
+`-ds-capture`) and presses FINISH. On a Blender map the log says how far it is to
 walk from each spawn to each site ("no way" means the bots cannot get there), `-ds-navmesh-obj <file>` saves
 where bots can walk as an `.obj`, and `-ds-hide <text>` stops drawing the map parts whose names contain it (with
 `-ds-perf`, to find what costs frame time).

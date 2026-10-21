@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
     public bool IsScoped { get; private set; }
     public float CurrentSpread { get; private set; }
     public bool UseHeld { get; private set; }   // E: plant or defuse
+    public int Jumps { get; private set; }      // how many times the player has jumped (the tutorial asks for one)
 
     CharacterController controller;
     Transform head;
@@ -194,7 +195,11 @@ public class PlayerController : MonoBehaviour, ICombatantController
         if (grounded)
         {
             if (velocity.y < 0f) velocity.y = -2f;
-            if (canMove && GameInput.JumpDown) velocity.y = JumpSpeed;
+            if (canMove && GameInput.JumpDown)
+            {
+                velocity.y = JumpSpeed;
+                Jumps++;
+            }
         }
         velocity.y += Gravity * dt;
         velocity = new Vector3(horizontal.x, velocity.y, horizontal.z);

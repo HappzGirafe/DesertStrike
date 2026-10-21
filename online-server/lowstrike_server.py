@@ -47,6 +47,7 @@ import uvicorn
 import bot_knowledge
 import living_world
 import reviews
+import tokens
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -306,6 +307,7 @@ MIGRATIONS = [
     ALTER TABLE rooms ADD COLUMN terrorists INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE rooms ADD COLUMN swat INTEGER NOT NULL DEFAULT 0;
     """,
+    tokens.SCHEMA,          # 8: Halloween Tokens and the skins bought with them
 ]
 
 
@@ -1204,6 +1206,7 @@ class HostPlayer(BaseModel):
     user_id: str = ""
     team: str = ""
     connected: bool = False
+    kills: int = 0          # in the match that just ended (state "over"): Halloween Tokens
 
 
 class Heartbeat(BaseModel):
@@ -1250,9 +1253,11 @@ def heartbeat(slot_id: str, body: Heartbeat, request: Request):
                 con.execute("UPDATE rooms SET status = 'waiting', updated_at = ? WHERE id = ?", (now(), room["id"]))
             if body.state == "over" and body.match_number > 0:
                 players = json.dumps([p.user_id for p in body.players])
-                con.execute("INSERT OR IGNORE INTO match_results VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            (str(uuid.uuid4()), room["id"], body.match_number, body.map or room["map"], body.terrorist_wins,
-                             body.swat_wins, players, now()))
+                saved = con.execute("INSERT OR IGNORE INTO match_results VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                    (str(uuid.uuid4()), room["id"], body.match_number, body.map or room["map"], body.terrorist_wins,
+                                     body.swat_wins, players, now()))
+                if saved.rowcount == 1:   # reported the first time: the players are paid in Halloween Tokens
+                    TOKENS["room_match_over"](con, body.players, body.terrorist_wins, body.swat_wins)
             room = open_room(con, room["id"])
         members = members_of(con, room["id"])
         return {"has_room": True, "room": {
@@ -1428,6 +1433,7 @@ async def serve():
 WORLD = {}
 KNOWLEDGE = {}
 REVIEWS = {}
+TOKENS = {}
 
 
 def command_line() -> bool:
@@ -1537,6 +1543,7 @@ def main():
     WORLD.update(living_world.install(app, internal, sys.modules[__name__]))
     KNOWLEDGE.update(bot_knowledge.install(app, internal, sys.modules[__name__]))
     REVIEWS.update(reviews.install(app, sys.modules[__name__]))
+    TOKENS.update(tokens.install(app, sys.modules[__name__]))
     print(f"[api] database {CONFIG.database_path}")
     print(f"[api] public API on http://{CONFIG.api_host}:{CONFIG.api_port} (the tunnel's target), "
           f"game hosts report to http://127.0.0.1:{CONFIG.internal_port}")

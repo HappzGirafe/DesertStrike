@@ -96,7 +96,8 @@ def beat(room_id="", state="lobby", players=(), key=None, match=0):
     internal_key = key or hmac.new(JOIN_SECRET.encode(), b"lowstrike-internal", hashlib.sha256).hexdigest()
     return call("POST", "/internal/slots/room-1/heartbeat", {
         "room_id": room_id, "state": state, "protocol": 5, "version": "1.19", "match_number": match, "terrorist_wins": 8,
-        "swat_wins": 3, "map": "dune", "players": [{"user_id": u, "team": t, "connected": True} for u, t in players]},
+        "swat_wins": 3, "map": "dune",
+        "players": [{"user_id": p[0], "team": p[1], "connected": True, "kills": p[2] if len(p) > 2 else 0} for p in players]},
         base=CONTROL, headers={"X-Internal-Key": internal_key})
 
 
@@ -208,7 +209,8 @@ def run(join_secret):
     check("start is not repeated", answer["room"]["start"] is False, answer)
     status, presence = call("GET", "/presence", token=b)
     check("Alice shows In match", presence["friends"][0]["status"] == "in_match", presence)
-    beat(room["id"], state="over", players=[(a_id, "t"), (b_id, "swat")], match=1)
+    beat(room["id"], state="over", players=[(a_id, "t", 7), (b_id, "swat", 2)], match=1)
+    beat(room["id"], state="over", players=[(a_id, "t", 7), (b_id, "swat", 2)], match=1)   # reported twice: paid once
     beat(room["id"], state="lobby", players=[(a_id, "t"), (b_id, "swat")])
     status, details = call("GET", f"/rooms/{room['id']}", token=a)
     check("after the match: waiting again", details["status"] == "waiting", details)
@@ -323,6 +325,25 @@ def run(join_secret):
           and "POST" in headers.get("access-control-allow-methods", ""), headers)
     status, headers = headers_of("OPTIONS", "/reviews", {"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"})
     check("other websites may not (CORS)", "access-control-allow-origin" not in headers, headers)
+
+    print("halloween tokens")
+    status, mine = call("GET", "/tokens", token=a)
+    check("a room's match pays its players once: Alice's 7 kills and the win", status == 200 and mine["tokens"] == 12
+          and mine["owned"] == [] and len(mine["shop"]) == 3, mine)
+    check("bob_2 lost: his 2 kills", call("GET", "/tokens", token=b)[1]["tokens"] == 2)
+    match = {"kills": 10, "won": True, "rounds": 8, "seconds": 600}
+    check("a match too short to be real is refused", call("POST", "/tokens/match", dict(match, seconds=30), a)[0] == 422)
+    status, paid = call("POST", "/tokens/match", match, a)
+    check("own match against bots: 10 kills and the win", status == 200 and paid["earned"] == 15 and paid["tokens"] == 27
+          and paid["today"] == 15, paid)
+    status, paid = call("POST", "/tokens/match", dict(match, kills=40), a)
+    check("own matches stop at the day's limit", paid["earned"] == 25 and paid["tokens"] == 52 and paid["today"] == 40, paid)
+    check("nothing more today", call("POST", "/tokens/match", match, a)[1]["earned"] == 0)
+    check("a skin that is not for sale", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Gold"}, a)[0] == 404)
+    status, bought = call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, a)
+    check("Alice buys the Halloween AK-47", status == 200 and bought["tokens"] == 12 and bought["owned"] == ["ak47/Halloween"], bought)
+    check("buying it again costs nothing", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, a)[1]["tokens"] == 12)
+    check("not enough for the M4A1", call("POST", "/tokens/buy", {"weapon": "m4a1", "skin": "Halloween"}, a)[0] == 409)
 
     print("passwords, logout, deletion, limits")
     check("change password needs the old one", call("POST", "/me/password", {"old_password": "x", "new_password": "new-secret-pass"}, a)[0] == 401)
