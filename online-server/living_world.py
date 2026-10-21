@@ -331,11 +331,24 @@ def install(app, internal, s, record_start=True):
         row = con.execute("SELECT nick FROM users WHERE id = ?", (player_id,)).fetchone()
         return row["nick"] if row else "a former player"
 
+    def snapshot(con):
+        """A checkable picture of the world's state at its current revision (kept with each backup)."""
+        world = ensure_world(con)
+        objects = [dict(r) for r in con.execute("SELECT object_id, state, owner_id, revision, last_mutation_id FROM world_objects "
+                                                 "WHERE world_id = ? ORDER BY object_id", (world_id,))]
+        data = json.dumps({"world_id": world_id, "revision": world["revision"], "objects": objects}, sort_keys=True)
+        checksum = hashlib.sha256(data.encode()).hexdigest()
+        con.execute("INSERT INTO world_snapshots (world_id, up_to_revision, schema_version, created_at, checksum, data) VALUES (?, ?, ?, ?, ?, ?)",
+                    (world_id, world["revision"], WORLD_SCHEMA_VERSION, s.now(), checksum, data))
+        con.execute("DELETE FROM world_snapshots WHERE world_id = ? AND id NOT IN (SELECT id FROM world_snapshots WHERE world_id = ? "
+                    "ORDER BY id DESC LIMIT 50)", (world_id, world_id))
+        return world["revision"], checksum
+
     # Startup: a session that did not end with SHUTDOWN ended unexpectedly; say so instead of inventing when.
     with s.Transaction() as con:
         world = ensure_world(con)
         if not record_start:
-            return {"forget_player": None, "status": None, "snapshot": lambda c: snapshot(c), "world_id": world_id,
+            return {"forget_player": None, "status": None, "snapshot": snapshot, "world_id": world_id,
                     "host_alive": lambda: False}
         last = con.execute("SELECT kind FROM world_lifecycle WHERE world_id = ? AND kind IN ('START', 'SHUTDOWN', 'FOUNDED') "
                            "ORDER BY id DESC LIMIT 1", (world_id,)).fetchone()
@@ -1171,19 +1184,6 @@ def install(app, internal, s, record_start=True):
         con.execute("UPDATE world_mutations SET player_nick = 'a former player' WHERE player_id = ?", (player_id,))
         con.execute("UPDATE legend_roles SET player_nick = 'a former player' WHERE player_id = ?", (player_id,))
         con.execute("UPDATE world_objects SET owner_label = 'a former player' WHERE owner_id = ?", (player_id,))
-
-    def snapshot(con):
-        """A checkable picture of the world's state at its current revision (kept with each backup)."""
-        world = ensure_world(con)
-        objects = [dict(r) for r in con.execute("SELECT object_id, state, owner_id, revision, last_mutation_id FROM world_objects "
-                                                 "WHERE world_id = ? ORDER BY object_id", (world_id,))]
-        data = json.dumps({"world_id": world_id, "revision": world["revision"], "objects": objects}, sort_keys=True)
-        checksum = hashlib.sha256(data.encode()).hexdigest()
-        con.execute("INSERT INTO world_snapshots (world_id, up_to_revision, schema_version, created_at, checksum, data) VALUES (?, ?, ?, ?, ?, ?)",
-                    (world_id, world["revision"], WORLD_SCHEMA_VERSION, s.now(), checksum, data))
-        con.execute("DELETE FROM world_snapshots WHERE world_id = ? AND id NOT IN (SELECT id FROM world_snapshots WHERE world_id = ? "
-                    "ORDER BY id DESC LIMIT 50)", (world_id, world_id))
-        return world["revision"], checksum
 
     return {"forget_player": forget_player, "status": lambda: status_view(db()), "snapshot": snapshot, "world_id": world_id,
             "host_alive": lambda: time.monotonic() - host_state["at"] < 10}
