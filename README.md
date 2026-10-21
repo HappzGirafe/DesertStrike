@@ -124,9 +124,11 @@ the console. **/cheats on** turns the cheats on and shows their switches: **AIMB
 the nearest enemy in sight), **FLY** (no gravity; Space or JUMP up, Ctrl or CROUCH down), **INFINITE AMMO** (full
 magazines, 999 in reserve), **WALL HACK** (a box, name, health and distance round every enemy, through walls),
 **INFINITE MONEY** ($16000) and **INFINITE HEALTH** (hit, never hurt). **/cheats off** turns them all off; **/help**
-lists the commands. They work only for admin accounts: against bots, in LAN games you host, and in online rooms (not as
-a LAN guest). In an online room its game server carries out fly, ammo, money and health only for a player whose join
-ticket the online server marked as an admin's; aimbot and wall hack happen in the player's own game.
+lists the commands. They work only for admin accounts, in every match but the tutorial: against bots, in LAN games
+(hosting or joining) and in online rooms. Whoever runs the match carries out fly, ammo, money and health, and only for a
+player the online server vouches for: in an online room by the join ticket's admin mark, in a LAN game by an admin's
+pass (`/admin/lan-pass`) that the LAN host checks online (so a LAN host needs internet for a guest's cheats). Aimbot
+and wall hack happen in the player's own game.
 
 ### Friends
 

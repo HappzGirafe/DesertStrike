@@ -162,7 +162,7 @@ public class RemotePlayerController : MonoBehaviour, ICombatantController
             case NetAction.DropWeapon: gm.Drops.Drop(Self, (WeaponSlot)Mathf.Clamp(argument, 0, 2)); break;
             case NetAction.PickUp: gm.Drops.PickUp(Self, argument); break;
             case NetAction.Cheats:
-                // Only an admin's ticket allows cheats (Cheats); anyone else's are ignored.
+                // Only an admin's (a ticket or LAN pass the online server vouched for) cheats are carried out (Cheats).
                 int flags = Peer.IsAdmin ? argument & Cheats.AllFlags : 0;
                 if (flags != Self.CheatFlags)
                     Debug.Log(Peer.IsAdmin ? $"[Net] {Peer.Name} (admin): cheats {flags}" : $"[Net] {Peer.Name} asked for cheats and is no admin: refused");

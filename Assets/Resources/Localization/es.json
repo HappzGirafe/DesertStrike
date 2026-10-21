@@ -583,6 +583,7 @@
  "Commands: /cheats on, /cheats off (admins only)": "Comandos: /cheats on, /cheats off (solo admins)",
  "Only admins can turn on cheats.": "Solo los admins pueden activar las trampas.",
  "Cheats work against bots, in LAN games you host and in online rooms.": "Las trampas funcionan contra bots, en partidas LAN que alojas y en salas online.",
+ "No cheats in the tutorial.": "No hay trampas en el tutorial.",
  "Cheats on: pick them below.": "Trampas activadas: elígelas abajo.",
  "Cheats are off.": "Las trampas están desactivadas.",
  "Cheats off.": "Trampas desactivadas.",

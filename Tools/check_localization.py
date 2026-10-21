@@ -30,7 +30,7 @@ IGNORE = {
     "No skins found in Assets/Resources/Skins.", "was sent away:", "did not come back", "timed out", "(culling off)",
     "Viper", "Jackal", "Cobra", "Scorpion", "Raven", "Wolf", "Dagger", "Ghost", "Hawk", "Falcon", "Ranger", "Bishop", "Echo",
     "Titan", "Sentinel", "Patriot", "Mamba", "Hyena", "Fang", "Shadow", "Eagle", "Knight", "Shield", "Arrow",
-    "loaded in {0} ms", "OFF", "Halloween",
+    "loaded in {0} ms", "OFF", "Halloween", "[Net] {0} brought a LAN pass that is no admin's (or the online server could not be asked)",
 }
 # Joined with the next line in the code, or only a piece of what is shown (the translation files hold the whole text,
 # or a template for it), or text for tests and logs.

@@ -119,6 +119,9 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class AdminTokensBody { public string nick; public int amount; }
     [Serializable] class AdminSkinBody { public string nick, weapon, skin; public bool owned; }
     [Serializable] class AdminLogAnswer { public List<AdminLogEntry> entries = new List<AdminLogEntry>(); }
+    [Serializable] class LanPassAnswer { public string pass; public int seconds; }
+    [Serializable] class LanPassCheck { public bool admin; public string nick; }
+    [Serializable] class PassBody { public string pass; }
 
     public Service State { get; private set; } = Service.Checking;
     public string ApiUrl { get; private set; }
@@ -254,6 +257,27 @@ public class OnlineClient : MonoBehaviour
 
     /// <summary>The server lists this account as an admin (it checks every admin request itself).</summary>
     public bool IsAdmin => LoggedIn && User.admin;
+
+    /// <summary>An admin's pass for LAN games (online-server/admin.py, an hour): this game gives it to the LAN host it
+    /// joins, which asks the online server whose it is before it carries out this player's cheats (NetSession).</summary>
+    public string LanPass => IsAdmin ? lanPass : null;
+    string lanPass;
+    float lanPassAt = -1e9f;
+
+    void KeepLanPass(float now)
+    {
+        if (!IsAdmin || now - lanPassAt < (lanPass == null ? 30f : 1800f)) return;
+        lanPassAt = now;
+        Ask("lan-pass", "POST", "/admin/lan-pass", null, text => lanPass = JsonUtility.FromJson<LanPassAnswer>(text).pass);
+    }
+
+    /// <summary>LAN host: whether a guest's pass is an admin's (and whose); false when the online server cannot be reached.</summary>
+    public void CheckLanPass(string pass, Action<bool, string> done) =>
+        Ask(null, "POST", "/admin/lan-pass/check", new PassBody { pass = pass }, text =>
+        {
+            var answer = JsonUtility.FromJson<LanPassCheck>(text);
+            done(answer.admin, answer.nick);
+        }, (code, message) => done(false, null), withToken: false);
     /// <summary>What admins did lately, newest first.</summary>
     public List<AdminLogEntry> AdminLog { get; private set; } = new List<AdminLogEntry>();
 
@@ -452,6 +476,7 @@ public class OnlineClient : MonoBehaviour
             });
         }
         AskPlayed(now);
+        KeepLanPass(now);
         WatchRoomMatchTokens(now);
         if ((WantRooms || testAction == "join") && Room == null && now >= nextRooms)
         {

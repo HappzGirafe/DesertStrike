@@ -583,6 +583,7 @@
  "Commands: /cheats on, /cheats off (admins only)": "Команди: /cheats on, /cheats off (лише для адмінів)",
  "Only admins can turn on cheats.": "Увімкнути чити можуть лише адміни.",
  "Cheats work against bots, in LAN games you host and in online rooms.": "Чити працюють проти ботів, у LAN-іграх, які ви створили, і в онлайн-кімнатах.",
+ "No cheats in the tutorial.": "У навчанні читів немає.",
  "Cheats on: pick them below.": "Чити увімкнено: виберіть їх нижче.",
  "Cheats are off.": "Чити вимкнено.",
  "Cheats off.": "Чити вимкнено.",

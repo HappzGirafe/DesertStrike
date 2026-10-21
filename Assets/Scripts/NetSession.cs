@@ -60,7 +60,8 @@ public partial class NetSession : MonoBehaviour
         public Team Team;
         public bool Spectator;          // watches without a player (online rooms)
         public string AccountId;        // online: the account its ticket was for; null in LAN games
-        public bool IsAdmin;            // online: its ticket says the account is an admin (may use Cheats)
+        public bool IsAdmin;            // may use Cheats: online, its ticket says so; LAN, its pass was checked online
+        internal string LanPassChecked; // LAN: the pass its Hello brought, once asked about
         public Dictionary<string, string> SkinChoices;
         public float LastHeard;
         public float AwaySince = -1f;   // online: when its connection dropped (its player waits for it)
@@ -98,6 +99,7 @@ public partial class NetSession : MonoBehaviour
     // Online player: the ticket sent with every Hello, and how the last game ended.
     string ticket;
     public bool OnlineClient => !string.IsNullOrEmpty(ticket);
+    string lanPassSent;   // LAN: the admin's pass the host has had in a Hello
     public bool PreferSpectator;              // online rooms: watch instead of playing
     public float PingMs { get; private set; } = -1f;
     public bool LastEndWasDrop { get; private set; }   // the connection was lost (not: left, kicked or the room closed)
@@ -204,6 +206,7 @@ public partial class NetSession : MonoBehaviour
     {
         Stop();
         ticket = joinTicket;
+        lanPassSent = null;
         LastEndWasDrop = false;
         PingMs = -1f;
         if (IPAddress.TryParse(host, out var ip))
@@ -626,12 +629,27 @@ public partial class NetSession : MonoBehaviour
         }
         peer.LastHeard = Time.unscaledTime;
         peer.AwaySince = -1f;
+        if (!OnlineHost && ticketText.Length > 0 && ticketText.Length <= 64 && peer.LanPassChecked != ticketText) CheckLanAdmin(peer, ticketText);
         Send(Packet(w =>
         {
             w.Write((byte)Msg.Welcome);
             w.Write(HostName);
             w.Write(sentAt);   // back to the player, who measures the ping with it
         }), from);
+    }
+
+    // LAN: a guest's game may bring an admin's pass (online-server/admin.py). The online server says whether it is one;
+    // only then does this host carry out the guest's cheats (RemotePlayerController). No internet here: no cheats.
+    void CheckLanAdmin(Peer peer, string pass)
+    {
+        peer.LanPassChecked = pass;
+        if (gm.Online == null) return;
+        gm.Online.CheckLanPass(pass, (admin, nick) =>
+        {
+            peer.IsAdmin = admin;
+            Debug.Log(admin ? $"[Net] {peer.Name} is the admin {nick} (LAN pass checked online): their cheats are carried out"
+                            : $"[Net] {peer.Name} brought a LAN pass that is no admin's (or the online server could not be asked)");
+        });
     }
 
     // A team change in the lobby; online, only into a team with a free place.
@@ -1207,6 +1225,13 @@ public partial class NetSession : MonoBehaviour
         }
 
         var player = gm.IsClient ? gm.Player : null;
+        // LAN: an admin's pass that came after joining (logged in just before) goes to the host in one more Hello.
+        string pass = OnlineClient || gm.Online == null ? null : gm.Online.LanPass;
+        if (pass != null && pass != lanPassSent)
+        {
+            lanPassSent = pass;
+            SendHello();
+        }
         if (player != null)
         {
             if (now >= nextInput)
@@ -1232,7 +1257,10 @@ public partial class NetSession : MonoBehaviour
             w.Write(PlayerName);
             w.Write((byte)(PreferSpectator && OnlineClient ? 2 : (int)PreferredTeam));
             w.Write(WeaponSkins.EncodeChoices(WeaponSkins.EquippedChoices()));
-            w.Write(ticket ?? "");
+            // Online, the room's ticket; in a LAN game, an admin's pass (or nothing), which the host checks online.
+            string lanPass = gm.Online != null ? gm.Online.LanPass : null;
+            if (string.IsNullOrEmpty(ticket)) lanPassSent = lanPass;
+            w.Write(!string.IsNullOrEmpty(ticket) ? ticket : lanPass ?? "");
             w.Write(Time.unscaledTime);
         }), hostEndPoint);
     }

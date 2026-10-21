@@ -4,11 +4,12 @@ using UnityEngine;
 /// The admins' cheats. In a match, ` (or CONSOLE in the pause menu, on a phone) opens the console; "/cheats on" there
 /// turns them on and shows their switches: aimbot, fly, infinite ammo (999), wall hack, infinite money and infinite
 /// health; "/cheats off" turns them all off. Only for admin accounts (the online server says who: OnlineClient.IsAdmin),
-/// in matches against bots, LAN games this game hosts, and online rooms; not as a LAN guest (that host cannot tell).
+/// in every match but the tutorial: against bots, in LAN games (hosted or joined) and in online rooms.
 ///
 /// Aimbot and wall hack happen in the player's own game. Fly, ammo, money and health are carried out where the match
-/// runs: in the player's own game, or in an online room by its game host, which takes them only from a player whose
-/// ticket the online server marked as an admin's (<see cref="JoinTicket"/>), as <see cref="Combatant.CheatFlags"/>.
+/// runs: in the player's own game, or by the host, which takes them only from a player the online server vouched for:
+/// online by the room ticket's admin mark (<see cref="JoinTicket"/>), in a LAN game by an admin's pass the host checked
+/// (OnlineClient.LanPass), as <see cref="Combatant.CheatFlags"/>.
 /// </summary>
 public static class Cheats
 {
@@ -19,8 +20,7 @@ public static class Cheats
     public static bool Aimbot, Fly, InfiniteAmmo, WallHack, InfiniteMoney, InfiniteHealth;
 
     /// <summary>Whether cheats may be used in this game right now.</summary>
-    public static bool Allowed(GameManager gm) =>
-        gm.Online != null && gm.Online.IsAdmin && gm.Tutorial == null && (!gm.IsClient || gm.Net.OnlineClient);
+    public static bool Allowed(GameManager gm) => gm.Online != null && gm.Online.IsAdmin && gm.Tutorial == null;
 
     public static bool AimbotOn => On && Aimbot;
     public static bool FlyOn => On && Fly;
@@ -46,7 +46,7 @@ public static class Cheats
                 return "Commands: /cheats on, /cheats off (admins only)";
             case "/cheats on":
                 if (gm.Online == null || !gm.Online.IsAdmin) return "Only admins can turn on cheats.";
-                if (!Allowed(gm)) return "Cheats work against bots, in LAN games you host and in online rooms.";
+                if (!Allowed(gm)) return "No cheats in the tutorial.";
                 On = true;
                 Debug.Log("[Cheats] On");
                 return "Cheats on: pick them below.";
@@ -66,7 +66,7 @@ public static class Cheats
     }
 
     /// <summary>Every frame of a match in the player's game: cheats off where they are not allowed (a LAN guest,
-    /// after logging out), and the switches handed to whoever runs the match: this game, or the online room's host
+    /// after logging out), and the switches handed to whoever runs the match: this game, or the host (online or LAN)
     /// (sent when they change, and again every few seconds in case a packet was lost).</summary>
     public static void Update(GameManager gm)
     {
@@ -78,7 +78,7 @@ public static class Cheats
             if (me != null) me.CheatFlags = flags;
             sentFlags = -1;
         }
-        else if (gm.Net.OnlineClient)
+        else
         {
             if (flags != sentFlags || (flags != 0 && Time.unscaledTime - sentAt > 3f))
             {

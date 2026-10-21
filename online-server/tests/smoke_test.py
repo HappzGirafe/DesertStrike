@@ -413,6 +413,14 @@ def run_admin():
         f"+100 tokens ({had} -> {had + 100})"] and all(e["admin"] == "Alice" and e["target"] == "carol" for e in log["entries"]), log)
     check("not an admin cannot read the log", call("GET", "/admin/log", token=c)[0] == 403)
 
+    print("LAN pass (an admin's cheats as a LAN guest)")
+    status, lan = call("POST", "/admin/lan-pass", token=a)
+    check("an admin gets a LAN pass", status == 200 and len(lan["pass"]) > 20 and lan["seconds"] == 3600, lan)
+    status, checked = call("POST", "/admin/lan-pass/check", {"pass": lan["pass"]})
+    check("a LAN host checks it (no login needed): Alice, an admin", status == 200 and checked == {"admin": True, "nick": "Alice"}, checked)
+    check("a made-up pass is no admin", call("POST", "/admin/lan-pass/check", {"pass": "made-up"})[1]["admin"] is False)
+    check("not an admin: no pass", call("POST", "/admin/lan-pass", token=c)[0] == 403)
+
     print("buying skins")
     call("POST", "/admin/tokens", {"nick": "carol", "amount": 1000}, a)
     status, bought = call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, c)

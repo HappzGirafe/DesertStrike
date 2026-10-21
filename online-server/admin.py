@@ -8,8 +8,13 @@ to create such an account, take its name off the list first, sign up, and put it
     POST /admin/tokens         {nick, amount}: gives tokens (a negative amount takes them; never below 0)
     POST /admin/skins          {nick, weapon, skin, owned}: gives a skin of the shop, or takes it back
     GET  /admin/log            the last 40 things admins did
+    POST /admin/lan-pass       an admin's pass for LAN games (an hour): their game gives it to the LAN host it joins
+    POST /admin/lan-pass/check {pass}: {admin, nick}; the LAN host asks before it carries out a guest's cheats
 Everything an admin does is kept in admin_log (who, to whom, what, when) and printed in the server log.
 """
+import secrets
+import time
+
 from fastapi import Depends, HTTPException, Request
 from pydantic import BaseModel
 
@@ -25,6 +30,7 @@ CREATE TABLE IF NOT EXISTS admin_log (
 
 DEFAULT_ADMINS = "001,pups183,pups183mobile"
 MAX_AMOUNT = 100000     # tokens given or taken at a time
+LAN_PASS_SECONDS = 3600
 
 
 class TokensBody(BaseModel):
@@ -100,6 +106,31 @@ def install(app, s, tokens_module, token_view):
                              (row["id"], body.weapon, body.skin)).rowcount:
                 log(con, user, row, f"took {body.weapon}/{body.skin}")
             return player(con, row)
+
+    # LAN passes live in memory only: a restarted server forgets them, and the games simply ask for new ones.
+    passes = {}   # pass -> (nick, expires)
+
+    @app.post("/admin/lan-pass")
+    def lan_pass(user=Depends(admin)):
+        now = time.time()
+        for old in [p for p, (_, expires) in passes.items() if expires < now]:
+            del passes[old]
+        code = secrets.token_urlsafe(18)
+        passes[code] = (user["nick"], now + LAN_PASS_SECONDS)
+        return {"pass": code, "seconds": LAN_PASS_SECONDS}
+
+    @app.post("/admin/lan-pass/check")
+    async def lan_pass_check(request: Request):
+        # No login needed (the LAN host may play as a guest), but limited: a pass cannot be guessed by trying.
+        s.limit(request, "lan-pass-check", 120, 3600)
+        try:
+            code = str((await request.json()).get("pass", ""))[:64]
+        except Exception:
+            code = ""
+        found = passes.get(code)
+        if found is None or found[1] < time.time():
+            return {"admin": False, "nick": ""}
+        return {"admin": True, "nick": found[0]}
 
     @app.get("/admin/log")
     def get_log(user=Depends(admin)):
