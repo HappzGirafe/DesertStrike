@@ -728,28 +728,6 @@
         },
         {
             "weapon": "knife",
-            "id": "Classic",
-            "folder": "Skins/Knife/Classic",
-            "hasModel": true,
-            "hasMain": false,
-            "hasGrip": false,
-            "hasDetail": false,
-            "hasProjectile": false,
-            "info": {
-                "name": "Classic",
-                "main": "",
-                "grip": "",
-                "detail": "",
-                "smoothness": 0.20000000298023225,
-                "metallic": 0.0,
-                "rotation": [],
-                "projectileRotation": [],
-                "locked": false,
-                "tokens": 0
-            }
-        },
-        {
-            "weapon": "knife",
             "id": "Classic Halloween",
             "folder": "Skins/Knife/Classic Halloween",
             "hasModel": true,
@@ -2379,6 +2357,10 @@
         {
             "weapon": "glock",
             "path": "Models/Glock-18/model"
+        },
+        {
+            "weapon": "knife",
+            "path": "Models/Knife/model"
         },
         {
             "weapon": "m1911",

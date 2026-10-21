@@ -624,8 +624,8 @@ public partial class GameUI
         float w = 760f, h = 830f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
         Fill(new Rect(x, y, w, h), PanelColor);
         Label(new Rect(x, y + 18f, w, 60f), "ONLINE ACCOUNT", 46, Gold, TextAnchor.MiddleCenter);
-        Label(new Rect(x, y + 76f, w, 30f), $"{online.User.nick}  ·  since {online.User.created_at?.Substring(0, Mathf.Min(10, online.User.created_at.Length))}",
-              20, Dim, TextAnchor.MiddleCenter);
+        Label(new Rect(x, y + 76f, w, 30f), $"{online.User.nick}  ·  since {online.User.created_at?.Substring(0, Mathf.Min(10, online.User.created_at.Length))}"
+              + (online.User.played >= 0 ? $"  ·  Time in the game: {PlayedText(online.User.played)}" : ""), 20, Dim, TextAnchor.MiddleCenter);
         float fx = x + 60f, fw = w - 120f, cy = y + 130f;
 
         Label(new Rect(fx, cy, fw, 30f), "Change the password", 22, Color.white);

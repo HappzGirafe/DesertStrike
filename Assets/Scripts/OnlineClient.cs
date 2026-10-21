@@ -23,6 +23,7 @@ public class OnlineUser
 {
     public string id, nick, created_at;
     public bool hide_status, linked_local, admin;
+    public int played = -1;   // seconds online in the game since the account was made (-1: an older API)
     public OnlineProfile profile = new OnlineProfile();
 }
 
@@ -98,7 +99,7 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class AuthAnswer { public string token; public OnlineUser user; }
     [Serializable] class Error { public string detail; }
     [Serializable] class PlayedAnswer { public List<PlayedInfo> players = new List<PlayedInfo>(); }
-    [Serializable] class PresenceAnswer { public List<FriendInfo> friends = new List<FriendInfo>(); public bool hidden; public int requests, invites; public string room_id; }
+    [Serializable] class PresenceAnswer { public List<FriendInfo> friends = new List<FriendInfo>(); public bool hidden; public int requests, invites, played = -1; public string room_id; }
     [Serializable] class FriendsAnswer { public List<FriendInfo> friends = new List<FriendInfo>(); public List<RequestInfo> incoming = new List<RequestInfo>(), outgoing = new List<RequestInfo>(); }
     [Serializable] class RoomsAnswer { public List<RoomInfo> rooms = new List<RoomInfo>(); public int servers, rooms_free; }
     [Serializable] class JoinAnswer { public RoomInfo room; public string udp_host, join_ticket; public int udp_port, protocol; }
@@ -438,11 +439,12 @@ public class OnlineClient : MonoBehaviour
         if (now >= nextPresence)
         {
             nextPresence = now + (State == Service.Online ? 4f : RetryDelay());
-            // In a match (playing, not watching), the time counts as played for the account.
+            // The API counts the time between these asks as the account's time online in the game.
             bool playing = gm.State != MatchState.Menu && gm.State != MatchState.MatchOver && gm.Side != PlayerSide.Spectate;
             Ask("presence", "GET", playing ? "/presence?playing=1" : "/presence", null, text =>
             {
                 var answer = JsonUtility.FromJson<PresenceAnswer>(text);
+                if (answer.played >= 0 && User != null) User.played = answer.played;   // the account's time online, kept fresh
                 Friends = answer.friends;
                 RequestCount = answer.requests;
                 InviteCount = answer.invites;

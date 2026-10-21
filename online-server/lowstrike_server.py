@@ -65,7 +65,7 @@ ONLINE_SECONDS = 15           # the game asks every 4 s while it is open; silent
 SLOT_ALIVE_SECONDS = 10       # a game host reports every second
 SLOT_LOST_SECONDS = 45        # a room whose host has been silent this long is closed
 INVITE_SECONDS = 30 * 60
-PLAYED_GAP = 20               # seconds between two presence asks that still count as played
+PLAYED_GAP = 20               # seconds between two presence asks that still count as time in the game
 TICKET_SECONDS = 120
 MAPS = ("dune", "village", "halloween", "industrial", "bone")
 DIFFICULTIES = ("Easy", "Normal", "Hard", "Extreme")
@@ -493,7 +493,7 @@ def me_view(con, user) -> dict:
     return {"id": user["id"], "nick": user["nick"], "hide_status": bool(user["hide_status"]),
             "created_at": user["created_at"], "profile": json.loads(profile["data"]) if profile else {},
             "linked_local": bool(profile["linked_local"]) if profile else False,
-            "admin": user["nick_key"] in CONFIG.admin_nicks}
+            "admin": user["nick_key"] in CONFIG.admin_nicks, "played": int(user["played_seconds"])}
 
 
 # ----------------------------------------------------------------- friends and presence
@@ -958,15 +958,17 @@ def remove_friend(friend_id: str, user=Depends(current_user)):
 @app.get("/presence")
 def presence(playing: int = 0, user=Depends(current_user)):
     t = now()
+    played = user["played_seconds"]
     with DB_LOCK:
-        # The game asks every few seconds; while it is in a match, the time between two asks counts as played (a
-        # longer gap means the game was closed or lost its connection meanwhile: that time does not count).
-        if playing:
-            gap = t - user["played_at"]
-            if 0 < gap <= PLAYED_GAP:
-                DB.execute("UPDATE users SET played_seconds = played_seconds + ?, played_at = ? WHERE id = ?", (gap, t, user["id"]))
-            else:
-                DB.execute("UPDATE users SET played_at = ? WHERE id = ?", (t, user["id"]))
+        # The game asks every few seconds while it is open and logged in (in the menus too, and whatever "playing"
+        # says): the time between two asks counts as time online in the game, for as long as the account exists. A
+        # longer gap means the game was closed or lost its connection meanwhile: that time does not count.
+        gap = t - user["played_at"]
+        if 0 < gap <= PLAYED_GAP:
+            played += gap
+            DB.execute("UPDATE users SET played_seconds = played_seconds + ?, played_at = ? WHERE id = ?", (gap, t, user["id"]))
+        else:
+            DB.execute("UPDATE users SET played_at = ? WHERE id = ?", (t, user["id"]))
         friends = friends_view(DB, user)
         pending = DB.execute("SELECT COUNT(*) AS n FROM friend_requests WHERE to_id = ?", (user["id"],)).fetchone()["n"]
         invites = DB.execute("SELECT COUNT(*) AS n FROM invites WHERE to_id = ? AND status = 'pending' AND expires_at > ?",
@@ -974,7 +976,7 @@ def presence(playing: int = 0, user=Depends(current_user)):
         room = DB.execute("SELECT r.id FROM room_members m JOIN rooms r ON r.id = m.room_id WHERE m.user_id = ? AND r.status != 'closed'",
                           (user["id"],)).fetchone()
     return {"friends": friends, "hidden": bool(user["hide_status"]), "requests": pending, "invites": invites,
-            "room_id": room["id"] if room else ""}
+            "room_id": room["id"] if room else "", "played": int(played)}
 
 
 @app.get("/players/played")

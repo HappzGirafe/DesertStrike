@@ -110,7 +110,8 @@ public partial class GameUI
             Fill(new Rect(lx, cy, lw, 132f), new Color(1f, 1f, 1f, 0.05f));
             Label(new Rect(lx + 20f, cy + 10f, lw - 40f, 44f), player.nick, 34, Color.white);
             string since = player.created_at?.Substring(0, Mathf.Min(10, player.created_at.Length));
-            Label(new Rect(lx + 20f, cy + 10f, lw - 40f, 44f), $"Account since {since}", 18, Dim, TextAnchor.MiddleRight);
+            Label(new Rect(lx + 20f, cy + 10f, lw - 40f, 44f), $"Account since {since}  ·  Time in the game: {PlayedText(player.played)}", 18, Dim,
+                  TextAnchor.MiddleRight);
             Label(new Rect(lx + 20f, cy + 66f, lw - 40f, 44f), $"Halloween Tokens: {player.tokens}", 30, Pumpkin);
             Label(new Rect(lx + 20f, cy + 66f, lw - 40f, 44f), $"Today from own matches: {player.today} / {player.day_limit}", 18, Dim,
                   TextAnchor.MiddleRight);

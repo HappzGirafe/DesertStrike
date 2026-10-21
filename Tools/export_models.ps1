@@ -13,7 +13,7 @@ $models = @(
     @("mp5.blend", "Assets/Resources/Models/MP5/model.fbx", "--roles", "Main=Cube.006,Cube.003,Cube.005;Grip=Cube.008,Cube.004", "--copy-textures"),
     @("M4A1.blend", "Assets/Resources/Models/M4A1/model.fbx", "--roles", "Main=Cube.002,Cube.001;Grip=Cube.006,Cube.008", "--copy-textures"),
     @("ak47.blend", "Assets/Resources/Models/AK-47/model.fbx", "--roles", "Main=Cube.003,Cylinder.001;Grip=Cube.001,Cube.002,Cube.004", "--copy-textures"),
-    @("AWP.blend", "Assets/Resources/Models/AWP/model.fbx", "--roles", "Main=Cube,Cube.001", "--copy-textures"),
+    @("AWP.blend", "Assets/Resources/Models/AWP/model.fbx", "--roles", "Main=Cube.001,Cube.008,Cube.003,Cube.005;Grip=Cube.012,Cube.006,Cube.007", "--copy-textures"),
     @("digle.blend", "Assets/Resources/Models/Desert Eagle/model.fbx", "--roles", "Main=Cube.007,Cube.001;Grip=Cube.003,Cube.004", "--copy-textures"),
     @("pumpshotgun.blend", "Assets/Resources/Models/Pump Shotgun/model.fbx", "--roles", "Main=Cube.002,Cylinder,Cylinder.001;Grip=Cube.010,Cube.001,Cube.004", "--copy-textures"),
     @("Usi.blend", "Assets/Resources/Models/Uzi/model.fbx", "--roles", "Main=Cube.002;Grip=Cube", "--copy-textures"),
@@ -25,12 +25,12 @@ $models = @(
     # The RPG's Web skin and the net it fires (projectile.fbx: what the skin shoots instead of the rocket)
     @("rpg_web_launcher.blend", "Assets/Resources/Skins/RPG/Web/model.fbx", "--roles", "Main=RPG_Web_tube,RPG_Web_black;Grip=RPG_Web_wood", "--copy-textures"),
     @("rpg_web_net.blend", "Assets/Resources/Skins/RPG/Web/projectile.fbx", "--copy-textures"),
-    # Halloween skins and the classic knife, made on another computer (their pictures were in a folder "текстури"):
+    # The classic knife (the knife's default model since 1.20) and the Halloween skins, made on another computer (their pictures were in a folder "текстури"):
     # "--stand-ins" exports a copy whose pictures are found by name in Art/Textures, and any picture still missing is
     # a plain colour (Tools/stand_in_textures.py).
     @("ak47hellovin.blend", "Assets/Resources/Skins/AK-47/Halloween/model.fbx", "--roles", "Main=Cube.003,Cube.004;Grip=Cube.001,Cube.005", "--copy-textures", "--stand-ins"),
     @("M4A1hellovin.blend", "Assets/Resources/Skins/M4A1/Halloween/model.fbx", "--roles", "Main=Cube.002,Cube.001;Grip=Cube.008,Cube.006", "--copy-textures", "--stand-ins"),
-    @("klasiknogen.blend", "Assets/Resources/Skins/Knife/Classic/model.fbx", "--roles", "Blade=Cube.001;Grip=Cube.002", "--copy-textures", "--stand-ins"),
+    @("klasiknogen.blend", "Assets/Resources/Models/Knife/model.fbx", "--roles", "Blade=Cube.001;Grip=Cube.002", "--copy-textures", "--stand-ins"),
     @("hellovinklasiknogen.blend", "Assets/Resources/Skins/Knife/Classic Halloween/model.fbx", "--roles", "Blade=Cube.001;Grip=Cube.002", "--copy-textures", "--stand-ins")
 )
 foreach ($model in $models) {
@@ -45,6 +45,6 @@ foreach ($model in $models) {
             ForEach-Object { "$_" } | Select-String "stand-ins" | ForEach-Object { $_.Line }
         $blend = $copy
     }
-    & $blender -b $blend --python (Join-Path $PSScriptRoot "export_gun_fbx.py") -- $output @extra 2>&1 |
+    & $blender -b -Y $blend --python (Join-Path $PSScriptRoot "export_gun_fbx.py") -- $output @extra 2>&1 |
         ForEach-Object { "$_" } | Select-String "Exported|Wrote parts|Error|Traceback" | ForEach-Object { $_.Line }
 }

@@ -178,6 +178,10 @@ Terrorists, SWAT or Watch, invite friends, and its owner presses **START MATCH**
 match everyone is back in the room. If the connection drops, the game joins again by itself and gets its player back
 (within a minute). Voice chat works as in LAN games; the pause menu and the room's player list can **MUTE** a player.
 
+**Time in the game:** the server counts how long each online account has the game open and logged in (menus and
+matches), for as long as the account exists (counted from 1.20 on). **ACCOUNT** shows your own; the friends list,
+the scoreboard (Tab) and the admin panel show other players'.
+
 **FRIENDS** with an online account are friends over the internet: find players by nickname, requests, invitations to
 rooms (kept on the server while a friend is offline), and Online / In match / Offline. The LAN friends are still there.
 
@@ -272,9 +276,10 @@ Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
 Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
 nogektestskin and karambit (knife) and digle (Desert Eagle).
 
-The Glock-18, USP, TEC-DC9, M1911, Desert Eagle (`digle_default.blend`), MP5, M4A1, AK-47 and AWP use Blender
-models. Their **Default** skin is the model's own look from Blender; the other skins ("wraps") paint over it.
-Weapons without a model (Pump Shotgun, RPG, knife) are built from boxes.
+The Glock-18, USP, TEC-DC9, M1911, Desert Eagle (`digle_default.blend`), Uzi, MP5, Pump Shotgun, M4A1, AK-47, SVD,
+AWP (since 1.20 the green one with scope and bipod) and knife (since 1.20 the Classic knife, `klasiknogen.blend`)
+use Blender models. Their **Default** skin is the model's own look from Blender; the other skins ("wraps") paint
+over it. The RPG is built from boxes.
 
 ### Skin folders
 
