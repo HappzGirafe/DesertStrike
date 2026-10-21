@@ -309,7 +309,7 @@ MIGRATIONS = [
     ALTER TABLE rooms ADD COLUMN terrorists INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE rooms ADD COLUMN swat INTEGER NOT NULL DEFAULT 0;
     """,
-    tokens.SCHEMA,          # 8: Halloween Tokens and the skins bought with them
+    tokens.SCHEMA,          # 8: Tokens and the skins bought with them
     admin.SCHEMA,           # 9: what admins did (the admin panel)
 ]
 
@@ -1212,7 +1212,7 @@ class HostPlayer(BaseModel):
     user_id: str = ""
     team: str = ""
     connected: bool = False
-    kills: int = 0          # in the match that just ended (state "over"): Halloween Tokens
+    kills: int = 0          # in the match that just ended (state "over"): Tokens
 
 
 class Heartbeat(BaseModel):
@@ -1262,7 +1262,7 @@ def heartbeat(slot_id: str, body: Heartbeat, request: Request):
                 saved = con.execute("INSERT OR IGNORE INTO match_results VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                     (str(uuid.uuid4()), room["id"], body.match_number, body.map or room["map"], body.terrorist_wins,
                                      body.swat_wins, players, now()))
-                if saved.rowcount == 1:   # reported the first time: the players are paid in Halloween Tokens
+                if saved.rowcount == 1:   # reported the first time: the players are paid in Tokens
                     TOKENS["room_match_over"](con, body.players, body.terrorist_wins, body.swat_wins)
             room = open_room(con, room["id"])
         members = members_of(con, room["id"])

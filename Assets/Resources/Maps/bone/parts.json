@@ -760,17 +760,6 @@
       "cutoff": 0.5
     },
     {
-      "name": "Decal_B",
-      "texture": "",
-      "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.2,
-      "emission": "",
-      "emissionTexture": "",
-      "alpha": "OPAQUE",
-      "cutoff": 0.5
-    },
-    {
       "name": "Plane",
       "texture": "Plane",
       "color": "",
@@ -816,6 +805,50 @@
     },
     {
       "name": "Ramp_4",
+      "texture": "teg9",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Ramp_5",
+      "texture": "teg9",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Ramp_6",
+      "texture": "teg9",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Ramp_7",
+      "texture": "teg9",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Ramp_8",
       "texture": "teg9",
       "color": "",
       "metallic": 0.0,

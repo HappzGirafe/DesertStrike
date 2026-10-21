@@ -27,6 +27,8 @@ public static class MapCatalog
         public string Id, Name, Description;
         public MapLighting Lighting;
         public bool AccountOnly;   // only a logged-in player can choose it (see Accounts)
+        public float Scale = 1f;   // the Blender model's size in the game (people and guns keep theirs)
+        public bool OneSite;       // a single bombsite (the model marks only Decal_A); "Site in play" does nothing
     }
 
     public const string DefaultId = "dune";
@@ -42,7 +44,7 @@ public static class MapCatalog
     {
         new Entry
         {
-            Id = "dune", Name = "Dune", Description = "de_dune, a Dust-style desert map",
+            Id = "dune", Name = "Dune", Description = "de_dune, a Dust-style desert map", Scale = 2f / 3f,
             Lighting = new MapLighting
             {
                 Sun = new Color(1f, 0.93f, 0.8f), SunIntensity = 0.95f, SunAngles = new Vector3(52f, -35f, 0f),
@@ -73,7 +75,8 @@ public static class MapCatalog
         },
         new Entry
         {
-            Id = "bone", Name = "Bone", Description = "a bone yard: two fenced bases, giant pumpkins and a ribcage in the middle",
+            Id = "bone", Name = "Bone", Description = "a bone yard: two fenced bases, giant pumpkins, and the bombsite under the ribcage in the middle",
+            Scale = 2f / 3f, OneSite = true,
             Lighting = new MapLighting
             {
                 Sun = new Color(1f, 0.82f, 0.62f), SunIntensity = 0.85f, SunAngles = new Vector3(38f, 60f, 0f),
@@ -118,6 +121,7 @@ public static class MapCatalog
         map.Name = entry.Name;
         map.Description = entry.Description;
         map.Lighting = entry.Lighting;
+        map.Scale = GameMap.KeepMeshesApart ? 1f : entry.Scale;   // -ds-export-closed lines its walls up with the .blend
         return map;
     }
 }
@@ -133,6 +137,10 @@ public abstract class GameMap
     public string Name { get; set; }
     public string Description { get; set; }
     public MapLighting Lighting { get; set; }
+    /// <summary>How big the Blender model is made in the game (2/3: everything a third smaller).</summary>
+    public float Scale { get; set; } = 1f;
+    /// <summary>The map has one bombsite: <see cref="SiteA"/> and <see cref="SiteB"/> are the same place.</summary>
+    public bool OneSite { get; protected set; }
 
     /// <summary>Leaves the map's parts unmerged (static batching merges them for drawing): -ds-export-closed reads them.</summary>
     public static bool KeepMeshesApart;

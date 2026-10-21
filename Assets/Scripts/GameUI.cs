@@ -221,7 +221,7 @@ public partial class GameUI : MonoBehaviour
         Label(new Rect(x, top + 95f, w, 30f), $"Terrorists vs SWAT on {gm.Map.Description}", 22, Dim, TextAnchor.MiddleCenter);
         DrawAccountBox(x + 24f, top + 22f);
         if (Accounts.IsOnline && Online.Tokens >= 0)   // between the title and EXIT
-            Label(new Rect(x + w - 164f - 16f - 330f, top + 30f, 330f, 30f), $"Halloween Tokens: {Online.Tokens}", 20, Pumpkin, TextAnchor.MiddleRight);
+            Label(new Rect(x + w - 164f - 16f - 330f, top + 30f, 330f, 30f), $"Tokens: {Online.Tokens}", 20, Pumpkin, TextAnchor.MiddleRight);
         // iPhones close apps from the app switcher only (Apple's rules); everywhere else the game can quit itself.
         if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + w - 164f, top + 22f, 140f, 46f), "EXIT", false, true, 20))
         {
@@ -404,7 +404,16 @@ public partial class GameUI : MonoBehaviour
     {
         float half = (rowWidth - 20f) / 2f;
         OptionRow(x, y, "Friendly fire", new[] { "Off", "On" }, gm.FriendlyFire ? 1 : 0, i => gm.FriendlyFire = i == 1, half);
+        if (MapCatalog.Find(gm.MapId)?.OneSite == true) return OneSiteRow(x + half + 20f, y, half);
         return ClosedSiteRow(x + half + 20f, y, half, gm.TeamSize, gm.CloseHalf ? gm.ClosedSite : null, gm.SetClosedSite);
+    }
+
+    /// <summary>"Site in play" on a map with one bombsite (Bone): nothing to choose.</summary>
+    float OneSiteRow(float x, float y, float rowWidth)
+    {
+        Label(new Rect(x + 40f, y, rowWidth, 34f), "Site in play", 22, Color.white);
+        Label(new Rect(x + 40f, y + 38f, rowWidth - 40f, 48f), "One bombsite, in the middle", 20, Dim);
+        return y + 105f;
     }
 
     /// <summary>
@@ -947,7 +956,7 @@ public partial class GameUI : MonoBehaviour
         Fill(new Rect(x, y, w, h), PanelColor);
         Label(new Rect(x, y + 15f, w, 60f), "INVENTORY", 48, Gold, TextAnchor.MiddleCenter);
         if (Accounts.IsOnline && Online.Tokens >= 0)
-            Label(new Rect(x + w - 330f, y + 26f, 300f, 34f), $"Halloween Tokens: {Online.Tokens}", 22, Pumpkin, TextAnchor.MiddleRight);
+            Label(new Rect(x + w - 330f, y + 26f, 300f, 34f), $"Tokens: {Online.Tokens}", 22, Pumpkin, TextAnchor.MiddleRight);
         Label(new Rect(x, y + 68f, w, 30f), "Pick a skin for each weapon. Hover to preview, click to equip. Your choice is saved.", 20, Dim, TextAnchor.MiddleCenter);
 
         // Weapon list on the left.
@@ -982,7 +991,7 @@ public partial class GameUI : MonoBehaviour
             if (row.Contains(Event.current.mousePosition)) hovered = skin;
             bool isEquipped = skin == equipped;
             bool locked = !WeaponSkins.CanUse(skin);
-            bool forTokens = locked && skin.TokenPrice > 0;   // sold for Halloween Tokens, not bought yet
+            bool forTokens = locked && skin.TokenPrice > 0;   // sold for Tokens, not bought yet
             if (locked && Event.current.type == EventType.MouseDown && row.Contains(Event.current.mousePosition))
             {
                 Event.current.Use();
@@ -991,12 +1000,12 @@ public partial class GameUI : MonoBehaviour
                     buying = skin;
                     buyProblem = null;
                 }
-                else if (forTokens) OpenAccount("Log in online to buy skins with Halloween Tokens", online: true);
+                else if (forTokens) OpenAccount("Log in online to buy skins with Tokens", online: true);
                 else OpenAccount($"Log in or sign up to use the {skin.Name} skin");
                 return;
             }
             string text = isEquipped ? $"{skin.Name}\nEQUIPPED"
-                        : forTokens ? $"{skin.Name}\n{Online.PriceOf(skin.WeaponId, skin.Id, skin.TokenPrice)} Halloween Tokens" : skin.Name;
+                        : forTokens ? $"{skin.Name}\n{Online.PriceOf(skin.WeaponId, skin.Id, skin.TokenPrice)} Tokens" : skin.Name;
             if (Button(row, text, isEquipped, !locked, 20) && WeaponSkins.Equip(inventoryWeapon, skin))
             {
                 previewSkin = null;
@@ -1817,7 +1826,8 @@ public partial class GameUI : MonoBehaviour
         if (bomb.State == BombState.Carried && bomb.Carrier == me)
         {
             string site = gm.Map.SiteAt(me.transform.position);
-            string sites = gm.Map.ClosedSite == null ? "site A or B" : gm.Map.ClosedSite == "A" ? "site B (A is closed)" : "site A (B is closed)";
+            string sites = gm.Map.OneSite ? "the bombsite in the middle" : gm.Map.ClosedSite == null ? "site A or B"
+                         : gm.Map.ClosedSite == "A" ? "site B (A is closed)" : "site A (B is closed)";
             hint = site != null ? $"Hold {GameInput.UseName} to plant the bomb on {site}" : $"You have the bomb: plant it on {sites}   (knife in hand + {GameInput.DropName}: drop it)";
             color = TerroristColor;
         }

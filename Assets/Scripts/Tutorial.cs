@@ -121,7 +121,7 @@ public class Tutorial
                                           : "Shoot the training bot in front of you: hit it 3 times (left mouse button)";
             case Step.Plant: return touch ? "You carry the bomb: walk to a bombsite (A or B on the map in the corner) and tap PLANT there"
                                           : "You carry the bomb: walk to a bombsite (A or B on the map in the corner) and hold E there";
-            default: return "Well done! You know the basics. Every kill and every match won earns Halloween Tokens.";
+            default: return "Well done! You know the basics. Every kill and every match won earns Tokens.";
         }
     }
 }

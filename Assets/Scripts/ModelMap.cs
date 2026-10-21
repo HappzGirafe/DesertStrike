@@ -41,7 +41,7 @@ public class ModelMap : GameMap
     // Turned round and exported, the map's x and z are Blender's x and y, less the centre it was moved by.
     Vector2 blenderCentre;
 
-    protected override string Where(Vector3 p) => $"Blender ({p.x + blenderCentre.x:0}, {p.z + blenderCentre.y:0})";
+    protected override string Where(Vector3 p) => $"Blender ({(p.x + blenderCentre.x) / Scale:0}, {(p.z + blenderCentre.y) / Scale:0})";
 
     protected override bool ClosedByModel(string site) => site != null && site == closedVersion;
 
@@ -64,6 +64,7 @@ public class ModelMap : GameMap
         {
             var model = Object.Instantiate(prefab, Root, false).transform;
             model.name = "Model";
+            model.localScale *= Scale;   // smaller maps (MapCatalog): spawns, sites, routes and radar follow
             // Blender's top view, north up: the FBX export turns the map half round, so turn it back
             // (then the painted letters read the right way up on the radar).
             model.localRotation = Quaternion.Euler(0f, 180f, 0f) * model.localRotation;
@@ -168,10 +169,20 @@ public class ModelMap : GameMap
         AddTriangles(Find(model, "Site_Tiles"), tiles);
         var letterA = Find(model, "Decal_A");
         var letterB = Find(model, "Decal_B");
-        if (tiles.Count == 0 || letterA == null || letterB == null)
+        if (tiles.Count == 0 || letterA == null)
         {
             Debug.LogWarning($"[Map] {Name} has no Site_Tiles / Decal_A / Decal_B; using the map's sides as bombsites.");
             MarkFallbackSites();
+            return;
+        }
+        if (letterB == null)
+        {
+            // Only Decal_A: one bombsite (Bone's, in the middle). A and B are the same place, so bots go there
+            // whichever site their plan picks, and the site is called A.
+            OneSite = true;
+            SiteA = SiteB = Zone(BoundsOf(tiles), 0f);
+            siteTilesA.AddRange(tiles);
+            siteTilesB.AddRange(tiles);
             return;
         }
         Vector3 a = letterA.GetComponent<Renderer>().bounds.center, b = letterB.GetComponent<Renderer>().bounds.center;

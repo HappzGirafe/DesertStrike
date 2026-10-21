@@ -1,4 +1,4 @@
-"""Halloween Tokens: the game's money, kept on the online account, for buying the Halloween skins.
+"""Tokens: the game's money, kept on the online account, for buying the Halloween skins.
 
     GET  /tokens          {tokens, owned: ["ak47/Halloween", ...], shop: [{weapon, skin, price}], today, day_limit}
     POST /tokens/match    a match the player's own game ran (against bots, or a LAN game): {kills, won, rounds, seconds}
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS token_days (
 );
 """
 
-# (weapon id, skin folder) -> price in Halloween Tokens. Skins not listed are free.
+# (weapon id, skin folder) -> price in Tokens. Skins not listed are free.
 SHOP = {
     ("ak47", "Halloween"): 40,
     ("m4a1", "Halloween"): 40,
@@ -111,7 +111,7 @@ def install(app, s):
                 return view(con, user["id"])
             tokens = con.execute("SELECT halloween_tokens FROM users WHERE id = ?", (user["id"],)).fetchone()["halloween_tokens"]
             if tokens < price:
-                raise HTTPException(409, "Not enough Halloween Tokens.")
+                raise HTTPException(409, "Not enough Tokens.")
             con.execute("UPDATE users SET halloween_tokens = halloween_tokens - ? WHERE id = ?", (price, user["id"]))
             con.execute("INSERT INTO owned_skins (user_id, weapon, skin, price, bought_at) VALUES (?, ?, ?, ?, ?)",
                         (user["id"], body.weapon, body.skin, price, s.now()))

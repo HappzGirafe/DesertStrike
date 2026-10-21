@@ -1,15 +1,20 @@
 {
-  "about": "The bone map (Art/Blender/bone_map.blend): the Terrorists start in the fenced base in the south-west corner, SWAT in the one in the north-east; site A is the open ground in the north-west corner, B in the south-east. The bases stand 1.2 m above the ground: a ramp in each gap between the bone trees lets bots in and out.",
+  "about": "The bone map (Art/Blender/bone_map.blend): the Terrorists start in the fenced base in the south-west corner, SWAT in the one in the north-east; the one bombsite is the platform under the ribcage in the middle (only Decal_A: ModelMap makes it a single site), with a ramp on each side. The bases stand 1.1 m above the ground: a ramp in each gap between the bone trees lets bots in and out. The pumpkins (Circle...) are settled onto the ground or a platform under their middle.",
   "areas": {
     "TSpawn_Tiles": [[-84.0, -89.0, -52.0, -57.0, -3.0]],
     "CTSpawn_Tiles": [[71.0, 60.0, 99.5, 90.0, -3.0]],
-    "Site_Tiles": [[-84.0, 66.0, -62.0, 90.0, -4.2], [62.0, -89.0, 100.0, -64.0, -4.2]]
+    "Site_Tiles": [[-12.0, -16.3, 25.1, 21.8, -3.05]]
   },
-  "letters": {"Decal_A": [-73.0, 78.0, -4.2], "Decal_B": [81.0, -76.5, -4.2]},
+  "letters": {"Decal_A": [6.5, 2.75, -3.05]},
   "ramps": [
     {"top": [-76.2, -54.5, -3.0], "bottom": [-76.2, -50.5, -4.2], "width": 3.2, "look": "Cube.025"},
     {"top": [-49.2, -80.8, -3.0], "bottom": [-45.2, -80.8, -4.2], "width": 2.8, "look": "Cube.025"},
     {"top": [95.1, 57.4, -3.0], "bottom": [95.1, 53.4, -4.2], "width": 2.8, "look": "Cube.026"},
-    {"top": [68.5, 84.7, -3.0], "bottom": [64.5, 84.7, -4.2], "width": 2.8, "look": "Cube.026"}
-  ]
+    {"top": [68.5, 84.7, -3.0], "bottom": [64.5, 84.7, -4.2], "width": 2.8, "look": "Cube.026"},
+    {"top": [6.5, 22.0, -3.05], "bottom": [6.5, 26.0, -4.16], "width": 4.0, "look": "Cube.022"},
+    {"top": [6.5, -16.5, -3.05], "bottom": [6.5, -20.5, -4.16], "width": 4.0, "look": "Cube.022"},
+    {"top": [25.3, 8.45, -3.05], "bottom": [29.3, 8.45, -4.16], "width": 2.6, "look": "Cube.022"},
+    {"top": [-12.2, 8.9, -3.05], "bottom": [-16.2, 8.9, -4.16], "width": 3.0, "look": "Cube.022"}
+  ],
+  "settle": {"objects": "Circle", "on": ["Plane", "Cube.022", "Cube.025", "Cube.026"]}
 }

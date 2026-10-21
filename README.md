@@ -87,9 +87,9 @@ around, jump, crouch, buy a rifle (the shop opens anywhere during the tutorial),
 bomb on a site. The round clock does not run out meanwhile; **FINISH** (or Esc / pause: **SKIP TUTORIAL**) goes back
 to the menu with your own match settings. **Settings > TUTORIAL** plays it again at any time.
 
-### Halloween Tokens
+### Tokens
 
-**Halloween Tokens** are the game's money for skins, kept on your **online account** (the balance shows next to EXIT in
+**Tokens** are the game's money for skins, kept on your **online account** (the balance shows next to EXIT in
 the main menu and in the inventory). You earn **1 for every kill** and **5 for every match you win**: online-room
 matches pay everyone in them (the room's game server reports the result), and matches against bots on your own game
 pay up to **40 tokens a day** (the server also checks that the match could have happened). They buy the Halloween
@@ -108,7 +108,7 @@ known); what it really costs is set by `SHOP` in `online-server/tokens.py`, whic
 ### Admin panel
 
 Admin accounts (online: **001**, **pups183** and **pups183mobile**) have an **ADMIN** button next to ACCOUNT in the
-main menu. The panel finds any player by nickname (**ME** shows your own account) and shows their Halloween Tokens and
+main menu. The panel finds any player by nickname (**ME** shows your own account) and shows their Tokens and
 Halloween skins. **GIVE** / **TAKE AWAY** gives or takes the amount typed (or **+10** ... **+1000**; never below 0), and
 each skin can be given or taken back. The right side lists what admins did lately. The server decides who is an admin
 (`ADMIN_NICKS` in its `.env`), checks every request, and logs everything done in the panel.
@@ -478,7 +478,7 @@ All in `Assets/Scripts`:
 | `Rocket.cs` | RPG rocket flight and explosion damage |
 | `WeaponSkins.cs`, `SkinPreview.cs` | Pistol skins, the equipped choice, and the inventory's 3D preview |
 | `GameUI.Admin.cs` | The admin panel (admin accounts only; the server's side is `online-server/admin.py`) |
-| `Tutorial.cs`, `GameUI.Halloween.cs` | The tutorial's steps and training bot; its panel, the tutorial offer, buying skins with Halloween Tokens |
+| `Tutorial.cs`, `GameUI.Halloween.cs` | The tutorial's steps and training bot; its panel, the tutorial offer, buying skins with Tokens |
 | `Ballistics.cs`, `Effects.cs`, `SoundFX.cs`, `WeaponModels.cs` | Hitscan, visuals, generated sounds, gun models |
 | `GameSettings.cs` | Graphics quality, frame limit, FPS counter, sensitivity (saved) |
 | `Accounts.cs` | Accounts on this computer: sign up, log in (hashed passwords), each account's skins and friends |

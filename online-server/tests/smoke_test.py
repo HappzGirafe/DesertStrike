@@ -1,5 +1,5 @@
 """Starts the online server with a throw-away database and checks the whole API over HTTP: accounts, friends,
-presence, rooms, tickets, invites, the game hosts' reports, the bots' knowledge, reviews, Halloween Tokens, the admin
+presence, rooms, tickets, invites, the game hosts' reports, the bots' knowledge, reviews, Tokens, the admin
 panel, limits and account deletion.
 
 Run:  python tests/smoke_test.py      (from online-server/, with the requirements installed)
@@ -343,7 +343,7 @@ def run(join_secret):
     status, headers = headers_of("OPTIONS", "/reviews", {"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"})
     check("other websites may not (CORS)", "access-control-allow-origin" not in headers, headers)
 
-    print("halloween tokens")
+    print("tokens")
     status, mine = call("GET", "/tokens", token=a)
     check("a room's match pays its players once: Alice's 7 kills and the win", status == 200 and mine["tokens"] == 12
           and mine["owned"] == [] and len(mine["shop"]) == 3, mine)

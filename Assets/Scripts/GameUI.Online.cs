@@ -409,8 +409,9 @@ public partial class GameUI
         y = OptionRow(x - 40f, y, "Rounds to win", new[] { "3", "5", "8", "16" }, Array.IndexOf(rounds, room.rounds), i => Change(s => s.rounds = rounds[i]), column);
         float half = (column - 20f) / 2f;
         OptionRow(x - 40f, y, "Friendly fire", new[] { "Off", "On" }, room.friendly_fire ? 1 : 0, i => Change(s => s.friendly_fire = i == 1), half);
-        y = ClosedSiteRow(x - 20f + half, y, half, Math.Max(room.Terrorists, room.Swat), room.closed_site == "OFF" ? null : room.closed_site,
-                          site => Change(s => s.closed_site = site ?? "OFF"));
+        y = MapCatalog.Find(room.map)?.OneSite == true ? OneSiteRow(x - 20f + half, y, half)
+            : ClosedSiteRow(x - 20f + half, y, half, Math.Max(room.Terrorists, room.Swat), room.closed_site == "OFF" ? null : room.closed_site,
+                            site => Change(s => s.closed_site = site ?? "OFF"));
         y = OptionRow(x - 40f, y, "Who can join", new[] { "Everyone", "With the code" }, room.@private ? 1 : 0, i => Change(s => s.@private = i == 1), column);
         if (Button(new Rect(x, y, 200f, 42f), "DONE", true, true, 18)) roomEditing = false;
         return y + 56f;

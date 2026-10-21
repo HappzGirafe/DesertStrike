@@ -7,8 +7,10 @@ as flat tiles 2 cm under the floor where nobody sees them, and ramps where bots 
 Tools/maps/<map>.json, in the .blend's own coordinates (metres, z up):
     {"areas": {"TSpawn_Tiles": [[x0, y0, x1, y1, z]], "CTSpawn_Tiles": [...], "Site_Tiles": [[...], [...]]},
      "letters": {"Decal_A": [x, y, z], "Decal_B": [x, y, z]},
-     "ramps": [{"top": [x, y, z], "bottom": [x, y, z], "width": w, "look": "<object whose material it takes>"}]}
-An area's rectangle is a spawn (its tiles hold the spawn points) or a bombsite; each site belongs to the nearer letter.
+     "ramps": [{"top": [x, y, z], "bottom": [x, y, z], "width": w, "look": "<object whose material it takes>"}],
+     "settle": {"objects": "<name prefix>", "on": ["<ground or platform object>", ...]}}
+An area's rectangle is a spawn (its tiles hold the spawn points) or a bombsite; each site belongs to the nearer letter
+(only Decal_A: one bombsite). "settle" puts things that float or sink (Bone's pumpkins) onto the ground under them.
 """
 import json
 import os
@@ -69,5 +71,34 @@ if spec_path:
         for loop in thing.data.loops:
             v = thing.data.vertices[loop.vertex_index].co
             uv.data[loop.index].uv = (v.x / 4.0, v.y / 4.0)
+    # Things that float above the ground or sink into it (Bone's pumpkins): each is moved up or down until its lowest
+    # point rests on the highest of the "on" objects under its middle. Only those standing over one are moved.
+    settle = spec.get("settle")
+    moved = []
+    if settle:
+        supports = [bpy.data.objects[name] for name in settle["on"] if name in bpy.data.objects]
+        prefix = settle["objects"]
+        for thing in [o for o in bpy.data.objects if o.type == "MESH" and (o.name == prefix or o.name.startswith(prefix + "."))]:
+            points = [thing.matrix_world @ v.co for v in thing.data.vertices]
+            if not points:
+                continue
+            middle = sum(points, Vector()) / len(points)
+            lowest = min(p.z for p in points)
+            heights = []
+            for support in supports:
+                # A ray straight down through the middle, in the support's own space.
+                inverse = support.matrix_world.inverted()
+                start = inverse @ Vector((middle.x, middle.y, max(p.z for p in points) + 100.0))
+                direction = (inverse.to_3x3() @ Vector((0.0, 0.0, -1.0))).normalized()
+                hit, location, _, _ = support.ray_cast(start, direction)
+                if hit:
+                    heights.append((support.matrix_world @ location).z)
+            if not heights:
+                continue
+            lift = max(heights) - lowest
+            if abs(lift) > 0.01:
+                thing.matrix_world.translation.z += lift
+                moved.append(f"{thing.name} {lift:+.2f} m")
     print(f"map markers: {len(spec.get('areas', {}))} areas, {len(spec.get('letters', {}))} letters, "
-          f"{len(spec.get('ramps', []))} ramps from {os.path.basename(spec_path)}")
+          f"{len(spec.get('ramps', []))} ramps from {os.path.basename(spec_path)}"
+          + (f"; settled {', '.join(moved)}" if moved else ""))

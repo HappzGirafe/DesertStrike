@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Halloween Tokens on screen (the balance, buying a skin with them, "+5 Halloween Tokens" after a match) and the
+/// Tokens on screen (the balance, buying a skin with them, "+5 Tokens" after a match) and the
 /// tutorial: the offer after signing up and the steps during the practice round.
 /// </summary>
 public partial class GameUI
@@ -12,16 +12,16 @@ public partial class GameUI
     string buyProblem;
     bool tutorialOffer;    // a new account: offer the practice round
 
-    /// <summary>"+15 Halloween Tokens" for a few seconds after a match paid some.</summary>
+    /// <summary>"+15 Tokens" for a few seconds after a match paid some.</summary>
     void DrawTokenToast()
     {
         if (Online == null || Time.unscaledTime - Online.LastEarnedAt > 8f) return;
         var rect = new Rect(width / 2f - 300f, 150f, 600f, 60f);
         Fill(rect, new Color(0.08f, 0.04f, 0.0f, 0.85f));
-        Label(rect, $"+{Online.LastEarned} Halloween Tokens", 32, Pumpkin, TextAnchor.MiddleCenter);
+        Label(rect, $"+{Online.LastEarned} Tokens", 32, Pumpkin, TextAnchor.MiddleCenter);
     }
 
-    /// <summary>Inventory: buy the skin for Halloween Tokens? (The server checks the price and the balance.)</summary>
+    /// <summary>Inventory: buy the skin for Tokens? (The server checks the price and the balance.)</summary>
     void DrawBuySkin()
     {
         var online = Online;
@@ -39,7 +39,7 @@ public partial class GameUI
             GUI.DrawTexture(previewRect, preview.Texture);
         }
         float ty = previewRect.yMax + 16f;
-        Label(new Rect(x, ty, w, 36f), $"{price} Halloween Tokens", 30, Pumpkin, TextAnchor.MiddleCenter);
+        Label(new Rect(x, ty, w, 36f), $"{price} Tokens", 30, Pumpkin, TextAnchor.MiddleCenter);
         Label(new Rect(x, ty + 40f, w, 30f), $"You have {Mathf.Max(0, online.Tokens)}", 21, Color.white, TextAnchor.MiddleCenter);
         string note = buyProblem ?? (enough ? null : $"Earn more in matches: 1 for every kill and 5 for every match won (up to {online.TokenDayLimit} a day against bots).");
         if (note != null) WrapLabel(new Rect(x + 50f, ty + 74f, w - 100f, 54f), note, 18, buyProblem != null ? Danger : Dim);

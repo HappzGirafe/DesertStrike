@@ -157,9 +157,9 @@ public class OnlineClient : MonoBehaviour
     bool leaving;
     bool testApi;   // -ds-api: a test run, whose login is not saved (it would replace the player's own)
 
-    // ----------------------------------------------------------------- Halloween Tokens
+    // ----------------------------------------------------------------- Tokens
 
-    /// <summary>The online account's Halloween Tokens (-1 until known; see online-server/tokens.py).</summary>
+    /// <summary>The online account's Tokens (-1 until known; see online-server/tokens.py).</summary>
     public int Tokens { get; private set; } = -1;
     /// <summary>Tokens earned today from the player's own matches, and the most a day gives.</summary>
     public int TokensToday { get; private set; }
@@ -173,10 +173,10 @@ public class OnlineClient : MonoBehaviour
     float roomMatchTokensAt = -1f;
     bool wasInRoomMatch;
 
-    /// <summary>Whether the account has bought this skin with Halloween Tokens.</summary>
+    /// <summary>Whether the account has bought this skin with Tokens.</summary>
     public bool Owns(string weapon, string skin) => ownedSkins.Contains(weapon + "/" + skin);
 
-    /// <summary>A skin's price in Halloween Tokens (the server's, else <paramref name="fallback"/>, skin.json's).</summary>
+    /// <summary>A skin's price in Tokens (the server's, else <paramref name="fallback"/>, skin.json's).</summary>
     public int PriceOf(string weapon, string skin, int fallback) => skinPrices.TryGetValue(weapon + "/" + skin, out int price) ? price : fallback;
 
     void UseTokens(string text)
@@ -196,7 +196,7 @@ public class OnlineClient : MonoBehaviour
         if (amount <= 0) return;
         LastEarned = amount;
         LastEarnedAt = Time.unscaledTime;
-        Debug.Log($"[Online] +{amount} Halloween Tokens (now {Tokens})");
+        Debug.Log($"[Online] +{amount} Tokens (now {Tokens})");
     }
 
     public void RefreshTokens()
@@ -208,7 +208,7 @@ public class OnlineClient : MonoBehaviour
     public void ReportMatch(int kills, bool won, int rounds, float seconds)
     {
         if (!LoggedIn) return;
-        Debug.Log($"[Online] Match over ({kills} kills, {(won ? "won" : "lost")}): asking for Halloween Tokens");
+        Debug.Log($"[Online] Match over ({kills} kills, {(won ? "won" : "lost")}): asking for Tokens");
         Ask(null, "POST", "/tokens/match", new MatchBody { kills = kills, won = won, rounds = rounds, seconds = seconds }, text =>
         {
             UseTokens(text);
@@ -216,7 +216,7 @@ public class OnlineClient : MonoBehaviour
         });
     }
 
-    /// <summary>Buys a skin with Halloween Tokens; <paramref name="done"/> gets what went wrong, or null.</summary>
+    /// <summary>Buys a skin with Tokens; <paramref name="done"/> gets what went wrong, or null.</summary>
     public void BuySkin(string weapon, string skin, Action<string> done)
     {
         busy++;
@@ -261,7 +261,7 @@ public class OnlineClient : MonoBehaviour
     public void AdminFind(string nick, Action<AdminPlayer, string> done) =>
         AdminAsk("GET", "/admin/player?nick=" + UnityWebRequest.EscapeURL(nick.Trim()), null, done);
 
-    /// <summary>Gives a player Halloween Tokens (a negative amount takes them).</summary>
+    /// <summary>Gives a player Tokens (a negative amount takes them).</summary>
     public void AdminTokens(string nick, int amount, Action<AdminPlayer, string> done) =>
         AdminAsk("POST", "/admin/tokens", new AdminTokensBody { nick = nick, amount = amount }, done);
 
@@ -283,7 +283,7 @@ public class OnlineClient : MonoBehaviour
             var player = JsonUtility.FromJson<AdminPlayer>(text);
             if (method == "POST")
             {
-                Debug.Log($"[Admin] {player.nick} now has {player.tokens} Halloween Tokens and {string.Join(", ", player.owned)}");
+                Debug.Log($"[Admin] {player.nick} now has {player.tokens} Tokens and {string.Join(", ", player.owned)}");
                 RefreshAdminLog();
                 if (User != null && string.Equals(player.nick, User.nick, StringComparison.OrdinalIgnoreCase)) RefreshTokens();   // their own
             }

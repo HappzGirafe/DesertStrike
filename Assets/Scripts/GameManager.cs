@@ -78,7 +78,7 @@ public class GameManager : MonoBehaviour
     /// off (the menu's "Whole map"); both are saved.</summary>
     public string ClosedSite = "B";
     public bool CloseHalf = true;
-    public string ActiveClosedSite => Tutorial == null && CloseHalf && TeamSize <= 3 ? ClosedSite : null;
+    public string ActiveClosedSite => Tutorial == null && CloseHalf && TeamSize <= 3 && MapCatalog.Find(MapId)?.OneSite != true ? ClosedSite : null;
     const string ClosedSiteKey = "DesertStrike.closedSite", CloseHalfKey = "DesertStrike.closeHalf";
     const string TerroristCountKey = "DesertStrike.terrorists", SwatCountKey = "DesertStrike.swat";
 
@@ -380,12 +380,12 @@ public class GameManager : MonoBehaviour
         FriendlyFire = friendlyFire;
     }
 
-    // ----------------------------------------------------------------- Halloween Tokens and the tutorial
+    // ----------------------------------------------------------------- Tokens and the tutorial
 
     float matchStartedAt;
 
     /// <summary>
-    /// The match is over: an online account is paid in Halloween Tokens for it (1 a kill, 5 for the win; the API
+    /// The match is over: an online account is paid in Tokens for it (1 a kill, 5 for the win; the API
     /// caps what a player's own games report at a few a day). An online room's game host reports its matches itself,
     /// and the tutorial pays nothing.
     /// </summary>

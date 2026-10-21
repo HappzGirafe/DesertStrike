@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// The admin panel (ADMIN in the main menu, for the accounts on the server's ADMIN_NICKS list): find a player by
-/// nickname, give or take Halloween Tokens, give or take back the shop's skins, and see what admins did lately. The
+/// nickname, give or take Tokens, give or take back the shop's skins, and see what admins did lately. The
 /// server decides who is an admin and checks every request (online-server/admin.py); it logs everything done here.
 /// </summary>
 public partial class GameUI
@@ -50,7 +50,7 @@ public partial class GameUI
                 return;
             }
             adminPlayer = player;
-            AdminSay($"{player.nick} now has {player.tokens} Halloween Tokens.", false);
+            AdminSay($"{player.nick} now has {player.tokens} Tokens.", false);
         });
     }
 
@@ -112,7 +112,7 @@ public partial class GameUI
             string since = player.created_at?.Substring(0, Mathf.Min(10, player.created_at.Length));
             Label(new Rect(lx + 20f, cy + 10f, lw - 40f, 44f), $"Account since {since}  ·  Time in the game: {PlayedText(player.played)}", 18, Dim,
                   TextAnchor.MiddleRight);
-            Label(new Rect(lx + 20f, cy + 66f, lw - 40f, 44f), $"Halloween Tokens: {player.tokens}", 30, Pumpkin);
+            Label(new Rect(lx + 20f, cy + 66f, lw - 40f, 44f), $"Tokens: {player.tokens}", 30, Pumpkin);
             Label(new Rect(lx + 20f, cy + 66f, lw - 40f, 44f), $"Today from own matches: {player.today} / {player.day_limit}", 18, Dim,
                   TextAnchor.MiddleRight);
             cy += 152f;
@@ -141,7 +141,7 @@ public partial class GameUI
                 var row = new Rect(lx, cy, lw, 56f);
                 Fill(row, new Color(1f, 1f, 1f, owned ? 0.08f : 0.04f));
                 Label(new Rect(lx + 20f, cy, lw * 0.45f, 56f), $"{WeaponData.Find(item.weapon)?.Name ?? item.weapon} | {item.skin}", 21, Color.white);
-                Label(new Rect(lx + lw * 0.45f, cy, lw * 0.25f, 56f), owned ? "OWNED" : $"{item.price} Halloween Tokens", 18,
+                Label(new Rect(lx + lw * 0.45f, cy, lw * 0.25f, 56f), owned ? "OWNED" : $"{item.price} Tokens", 18,
                       owned ? Gold : Dim);
                 if (Button(new Rect(lx + lw - 210f, cy + 6f, 200f, 44f), owned ? "TAKE BACK" : "GIVE", false, !online.Busy, 19))
                     AdminChangeSkin(player.nick, item, !owned);

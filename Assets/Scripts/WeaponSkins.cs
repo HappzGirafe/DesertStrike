@@ -15,7 +15,7 @@ public class SkinInfo
     public float[] rotation;          // [x, y, z] degrees: turns a skin's model (a pistol or knife around its grip)
     public float[] projectileRotation; // [x, y, z] degrees: turns the skin's projectile (projectile.fbx) in flight
     public bool locked;               // true: only a logged-in player can use it (see Accounts)
-    public int tokens;                // its price in Halloween Tokens (online-server/tokens.py has the real one); 0: free
+    public int tokens;                // its price in Tokens (online-server/tokens.py has the real one); 0: free
 }
 
 /// <summary>One skin folder, as listed in Skins/index.json (written by the editor, see SkinIndexBuilder).</summary>
@@ -109,7 +109,7 @@ public class WeaponSkin
     public string Projectile;                              // Resources path of the skin's own projectile model, or null
     public Vector3 ProjectileRotation;
     public bool Locked;                                    // only with an account (skin.json "locked": true)
-    public int TokenPrice;                                 // bought with Halloween Tokens (skin.json "tokens"); 0: free
+    public int TokenPrice;                                 // bought with Tokens (skin.json "tokens"); 0: free
     public string Folder;                                  // Resources path of the skin folder ("Skins/AK-47/Jungle")
 
     // A skin another player's game sent (see SkinPack): its pictures and models, made at runtime. It only shows on
@@ -172,12 +172,12 @@ public static class WeaponSkins
         return skin != null && CanUse(skin) ? skin : DefaultFor(weapon);
     }
 
-    /// <summary>False for a skin that needs an account while nobody is logged in, or one sold for Halloween Tokens
+    /// <summary>False for a skin that needs an account while nobody is logged in, or one sold for Tokens
     /// that the online account has not bought.</summary>
     public static bool CanUse(WeaponSkin skin) =>
         skin == null || ((!skin.Locked || Accounts.LoggedIn) && (skin.TokenPrice <= 0 || (Bought != null && Bought(skin))));
 
-    /// <summary>Whether the online account has bought a skin sold for Halloween Tokens (set by OnlineClient).</summary>
+    /// <summary>Whether the online account has bought a skin sold for Tokens (set by OnlineClient).</summary>
     public static Func<WeaponSkin, bool> Bought;
 
     /// <summary>The guest's equipped skins (weapon id -> skin id), which a new account starts with.</summary>
