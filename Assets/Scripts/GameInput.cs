@@ -27,6 +27,10 @@ public static class GameInput
     public static bool AltFireDown => Touch ? TouchControls.Down(TouchButton.Scope) : Input.GetMouseButtonDown(1);
 
     public static bool JumpDown => Fake != null ? Fake.Jump : Touch ? TouchControls.Down(TouchButton.Jump) : Input.GetKeyDown(KeyCode.Space);
+    /// <summary>Jump held (flying up, Cheats).</summary>
+    public static bool JumpHeld => Fake != null ? Fake.Jump : Touch ? TouchControls.Held(TouchButton.Jump) : Input.GetKey(KeyCode.Space);
+    /// <summary>` (the key left of 1): the console in a match (on a phone: CONSOLE in the pause menu).</summary>
+    public static bool ConsoleDown => Input.GetKeyDown(KeyCode.BackQuote);
     public static bool CrouchHeld => Fake != null ? Fake.Crouch : Touch ? TouchControls.Crouched : Input.GetKey(KeyCode.LeftControl);
     public static bool WalkHeld => !Touch && Input.GetKey(KeyCode.LeftShift);
     public static bool ReloadDown => Touch ? TouchControls.Down(TouchButton.Reload) : Input.GetKeyDown(KeyCode.R);

@@ -112,6 +112,8 @@ public class GameManager : MonoBehaviour
     public Team? LastWinner { get; private set; }
     public float StateEndsAt { get; private set; }
     public bool IsPaused { get; private set; }
+    /// <summary>The console is open (` in a match): typing there, not playing (see Cheats).</summary>
+    public bool ConsoleOpen { get; set; }
     public bool BuyMenuOpen { get; private set; }
     public float HitMarkerTime { get; private set; } = -1f;
     public bool HitMarkerHeadshot { get; private set; }
@@ -150,6 +152,8 @@ public class GameManager : MonoBehaviour
     string navMeshFile;     // -ds-navmesh-obj <file>: saves where bots can walk, as an .obj (finding cut-off places)
     string exportClosed;    // -ds-export-closed <folder>: writes the map and its closing walls for Blender, and quits (see MapExport)
     bool startTutorial;     // -ds-tutorial
+    bool cheatsTest;        // -ds-cheats-test (logged in as an admin): every cheat on, flies up firing, logs what each did
+    float cheatsTestAt = -1f;
     bool tutorialTest;      // -ds-tutorial-test: plays the tutorial through with pretend controls (GameInput.Fake), logging each step
     Tutorial.Step testStep = (Tutorial.Step)(-1);
     float testStepAt;
@@ -657,6 +661,8 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         Tutorial?.Update(this);
+        if (State != MatchState.Menu) Cheats.Update(this);
+        else ConsoleOpen = false;
         HandleInput();
         if (!IsClient) RunRound();
         UpdateCursor();
@@ -730,6 +736,16 @@ public class GameManager : MonoBehaviour
     void HandleInput()
     {
         if (State == MatchState.Menu || State == MatchState.MatchOver) return;
+        if (GameInput.ConsoleDown && !IsPaused)
+        {
+            ConsoleOpen = !ConsoleOpen;
+            if (ConsoleOpen) BuyMenuOpen = false;
+        }
+        if (ConsoleOpen && GameInput.PauseDown)
+        {
+            ConsoleOpen = false;   // Esc closes the console, it does not pause
+            return;
+        }
         if (GameInput.PauseDown)
         {
             if (BuyMenuOpen) BuyMenuOpen = false;
@@ -1197,7 +1213,7 @@ public class GameManager : MonoBehaviour
 
     void UpdateCursor()
     {
-        bool free = State == MatchState.Menu || State == MatchState.MatchOver || IsPaused || BuyMenuOpen || TouchControls.Active
+        bool free = State == MatchState.Menu || State == MatchState.MatchOver || IsPaused || BuyMenuOpen || ConsoleOpen || TouchControls.Active
                     || Tutorial?.Current == Tutorial.Step.Done;
         Cursor.lockState = free ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = free;
@@ -1320,6 +1336,9 @@ public class GameManager : MonoBehaviour
                 case "-ds-tutorial":
                     // -ds-tutorial: the practice round at once (tests)
                     startTutorial = true;
+                    break;
+                case "-ds-cheats-test":
+                    cheatsTest = true;
                     break;
                 case "-ds-tutorial-test":
                     startTutorial = tutorialTest = true;
@@ -1509,6 +1528,39 @@ public class GameManager : MonoBehaviour
         views = new List<(Vector3, Vector3)> { (middle + new Vector3(0f, 0.6f, -15f), middle) };
     }
 
+    /// <summary>-ds-cheats-test: the console's "/cheats on" and every switch, then 2 s flying up while firing (aimbot,
+    /// infinite ammo) until two kills or 40 s, with screenshots (-ds-capture); logs height, ammo, money and kills, then "/cheats off".</summary>
+    void RunCheatsTest()
+    {
+        if (State != MatchState.Live || !Player.Self.IsAlive) return;
+        var me = Player.Self;
+        var fake = GameInput.Fake ??= new GameInput.Pretend();
+        fake.Move = fake.Look = Vector2.zero;
+        fake.Jump = fake.Fire = false;
+        if (cheatsTestAt < 0f)
+        {
+            cheatsTestAt = Time.time;
+            ConsoleOpen = true;
+            Debug.Log($"[CheatsTest] /cheats on: {Cheats.Command(this, "/cheats on")}");
+            Cheats.Aimbot = Cheats.Fly = Cheats.InfiniteAmmo = Cheats.WallHack = Cheats.InfiniteMoney = true;
+            Debug.Log($"[CheatsTest] start: height {Player.transform.position.y:0.0} m, ${me.Money}, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}");
+            if (captureDirectory != null) nextCaptureAt = Time.realtimeSinceStartup + 1f;
+            return;
+        }
+        float t = Time.time - cheatsTestAt;
+        if (t > 2f) ConsoleOpen = false;
+        if (t > 2f && t < 2.5f) fake.Jump = true;   // fly up a little
+        if (t > 3f && t < 40f) fake.Fire = true;   // the aimbot aims at whoever comes into sight
+        if (captureDirectory != null && Mathf.Abs(t - 3.5f) < Time.deltaTime) nextCaptureAt = Time.realtimeSinceStartup;
+        if ((t > 40f || me.Kills >= 2) && Cheats.On)
+        {
+            Debug.Log($"[CheatsTest] after: height {Player.transform.position.y:0.0} m, ${me.Money}, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}, kills {me.Kills}");
+            Debug.Log($"[CheatsTest] /cheats off: {Cheats.Command(this, "/cheats off")}; on now: {Cheats.On}");
+            GameInput.Fake = null;
+            cheatsTest = false;
+        }
+    }
+
     /// <summary>-ds-tutorial-test: does each step of the tutorial with pretend controls, the way a player would (only the
     /// walk to the bombsite is a jump there), with a screenshot of each step (-ds-capture), and presses FINISH at the end.</summary>
     void RunTutorialTest()
@@ -1660,6 +1712,7 @@ public class GameManager : MonoBehaviour
         }
         if (sellTestStep >= 0 && Player != null && Round == 1) RunSellTest();
         if (tutorialTest && Tutorial != null && Player != null) RunTutorialTest();
+        if (cheatsTest && Player != null) RunCheatsTest();
         if (teleportTest && IsClient && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTeleport)
         {
             nextTeleport = now + 3f;

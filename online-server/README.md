@@ -143,6 +143,20 @@ API: хости онлайн-кімнат через внутрішній пор
 (`[admin] хто -> кому: що`). Ніхто не може зареєструвати нік зі списку, якого ще немає: щоб створити такий акаунт,
 приберіть нік зі списку, зареєструйтеся, поверніть нік і перезапустіть сервер.
 
+## Сервер на Linux (з 1.20)
+
+Той самий сервер працює й на Linux (64-bit x86). Пакет: `powershell -ExecutionPolicy Bypass -File
+Tools\make_server_package.ps1 -Linux` → `Builds\LowStrike-Server-Linux.tar.gz` (у `game/` — безголова збірка гри для
+серверів, **Low Strike > Build Linux Server**). На сервері:
+
+    tar -xzf LowStrike-Server-Linux.tar.gz && sudo mv LowStrike-Server /opt/lowstrike
+    sh /opt/lowstrike/online-server/scripts/linux/setup.sh      (.venv, пакети, .env із секретами)
+    sh /opt/lowstrike/online-server/scripts/linux/start.sh      (у фоні; stop.sh, status.sh)
+
+Потрібен Python 3.10+ з модулем venv (`sudo apt install python3 python3-venv`). Щоб сервер стартував разом із
+машиною: `scripts/linux/lowstrike.service` (systemd; у ньому вказати користувача й шляхи). Кроки 2–6 (playit.gg,
+Cloudflare Tunnel, `.env`, сайт) такі самі; cloudflared і playit на Linux працюють як свої служби.
+
 ## Нова версія гри
 
 `stop.ps1` → замініть папку `game\` новою збіркою Windows → `GAME_BUILD_VERSION` у `.env` → `start.ps1`. Гравцям зі

@@ -35,6 +35,8 @@ Both files are in the [`Builds`](Builds) folder of this repository, and every ve
 - **Android** phones and tablets: copy `LowStrike-Android.apk` to the phone and open it. Android asks to allow installing
   apps from that source (the file manager or browser): allow it, then **Install**. If Play Protect warns about an
   unknown app, choose to install anyway.
+- **Linux** (64-bit x86): download `LowStrike-Linux.tar.gz`, unpack it (`tar -xzf LowStrike-Linux.tar.gz`) and run
+  `./LowStrike-Linux/LowStrike.x86_64` (if it does not start: `chmod +x LowStrike-Linux/LowStrike.x86_64` once).
 - **iPhone / iPad:** Apple only lets apps onto an iPhone through Xcode on a Mac or the App Store. On a Mac with
   Xcode: open `Builds/iOS/Unity-iPhone.xcodeproj`, under **Signing & Capabilities** tick *Automatically manage
   signing* and pick your Apple ID as the team, plug in the iPhone (Developer Mode on: Settings > Privacy & Security),
@@ -112,6 +114,13 @@ main menu. The panel finds any player by nickname (**ME** shows your own account
 Halloween skins. **GIVE** / **TAKE AWAY** gives or takes the amount typed (or **+10** ... **+1000**; never below 0), and
 each skin can be given or taken back. The right side lists what admins did lately. The server decides who is an admin
 (`ADMIN_NICKS` in its `.env`), checks every request, and logs everything done in the panel.
+
+**Console and cheats (admins):** in a match, **`** (the key left of 1; on a phone **CONSOLE** in the pause menu) opens
+the console. **/cheats on** turns the cheats on and shows their switches: **AIMBOT** (the view locks onto the head of
+the nearest enemy in sight), **FLY** (no gravity; Space or JUMP up, Ctrl or CROUCH down), **INFINITE AMMO** (full
+magazines, 999 in reserve), **WALL HACK** (a box, name, health and distance round every enemy, through walls) and
+**INFINITE MONEY** ($16000). **/cheats off** turns them all off; **/help** lists the commands. They work only for admin
+accounts, and only in matches against bots and in LAN games you host: never in an online room or as a LAN guest.
 
 ### Friends
 
@@ -223,6 +232,9 @@ While in a LAN game the game keeps running when its window is not in front, so t
 - Removing the "unidentified developer" warning completely needs an Apple Developer ID ($99/year) and notarization.
 - Unity menu **Low Strike > Build Android Game** (needs Unity's Android Build Support module with SDK, NDK and
   OpenJDK) → `Builds/Android/LowStrike-Android.apk`
+- Unity menu **Low Strike > Build Linux Game** (needs Unity's Linux Build Support (Mono) module) →
+  `Builds/Linux/LowStrike.x86_64`; **Low Strike > Build Linux Server** (Linux Dedicated Server Build Support) →
+  `Builds/LinuxServer/`, the headless game host for a Linux online server (`Tools/make_server_package.ps1 -Linux`)
 - Unity menu **Low Strike > Build iOS Xcode Project** (needs Unity's iOS Build Support module) → `Builds/iOS/`,
   which Xcode on a Mac builds and installs (see Play above)
 
@@ -510,7 +522,8 @@ when its window is not in front. Tests skip the log-in screen
 account), and `-ds-accounts-file <file>` keeps test accounts out of the real `accounts.json`.
 `-ds-difficulty <easy|normal|hard|extreme>` sets the bots, `-ds-players <1-5>` the players per team, and
 `-ds-attack <a|b>` sends the Terrorist bots to that site every round. `-ds-tutorial` starts the tutorial at once, and
-`-ds-tutorial-test` plays it through by itself with pretend controls (logging each step, a screenshot of each with
+`-ds-cheats-test` (logged in as an admin) turns every cheat on with the console, flies up and
+shoots with the aimbot, and logs what each cheat did. `-ds-tutorial-test` plays it through by itself with pretend controls (logging each step, a screenshot of each with
 `-ds-capture`) and presses FINISH. On a Blender map the log says how far it is to
 walk from each spawn to each site ("no way" means the bots cannot get there), `-ds-navmesh-obj <file>` saves
 where bots can walk as an `.obj`, and `-ds-hide <text>` stops drawing the map parts whose names contain it (with

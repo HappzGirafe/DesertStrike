@@ -10,3 +10,7 @@
 *.asset text eol=lf
 *.mat text eol=lf
 *.meta text eol=lf
+
+# Linux scripts and services: LF everywhere (a CR at the end of a line breaks them)
+*.sh text eol=lf
+*.service text eol=lf

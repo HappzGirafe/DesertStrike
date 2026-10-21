@@ -139,7 +139,7 @@ public partial class GameUI : MonoBehaviour
         // IMGUI runs OnGUI once for every input event as well as for drawing, and a Mac sends many mouse-move
         // events per frame. The HUD has nothing to click, so during play only the drawing pass does any work.
         bool interactive = gm.State == MatchState.Menu || gm.State == MatchState.MatchOver || gm.BuyMenuOpen || gm.IsPaused
-                           || gm.Tutorial?.Current == Tutorial.Step.Done;
+                           || gm.Tutorial?.Current == Tutorial.Step.Done || gm.ConsoleOpen;
         if (Event.current.type != EventType.Repaint && !interactive) return;
         if (Event.current.type == EventType.Repaint) RenderScaler.Present();
         if (gm.ShowingViews) return;
@@ -197,6 +197,9 @@ public partial class GameUI : MonoBehaviour
         if (gm.State == MatchState.MatchOver && gm.Tutorial == null) DrawMatchOver();
         else if (GameInput.ScoresHeld) DrawScoreboard(170f);
         if (gm.Tutorial != null && !gm.IsPaused) DrawTutorial();
+        DrawCheatsHud();
+        if (gm.ConsoleOpen && !gm.IsPaused) DrawConsole();
+        else consoleOpenedFrame = -1;   // focus the line again next time
         DrawTokenToast();
         if (!gm.IsPaused && gm.State != MatchState.MatchOver && touch != null) touch.Draw();
         if (!gm.IsPaused) settingsOpen = crosshairOpen = touchLayoutOpen = languagesOpen = false;
@@ -1516,6 +1519,15 @@ public partial class GameUI : MonoBehaviour
         if (gm.Tutorial != null)
         {
             if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SKIP TUTORIAL")) gm.EndTutorial();
+        }
+        else if (Online.IsAdmin && Cheats.Allowed(gm))
+        {
+            // Admins: the console without a keyboard's ` key (phones). It goes under QUIT GAME, inside the panel.
+            if (Button(new Rect(x + 40f, y + 210f, w - 80f, 56f), "CONSOLE"))
+            {
+                gm.SetPaused(false);
+                gm.ConsoleOpen = true;
+            }
         }
         else if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) LeaveGame();
         y += 70f;

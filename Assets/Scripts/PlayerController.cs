@@ -107,7 +107,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
         if (gm.IsPaused) return;
 
         bool inRound = gm.State == MatchState.Freeze || gm.State == MatchState.Live || gm.State == MatchState.RoundEnd;
-        bool hasControl = inRound && !gm.BuyMenuOpen;
+        bool hasControl = inRound && !gm.BuyMenuOpen && !gm.ConsoleOpen;
         bool canAct = hasControl && gm.State != MatchState.Freeze;
 
         if (hasControl) Look();
@@ -167,6 +167,15 @@ public class PlayerController : MonoBehaviour, ICombatantController
         Vector2 look = GameInput.Look(sensitivity);
         yaw += look.x;
         pitch = Mathf.Clamp(pitch - look.y, -85f, 85f);
+        // Aimbot (Cheats): the view swings onto the head of the nearest enemy in sight.
+        if (Cheats.AimbotOn && Cheats.AimbotTarget(GameManager.Instance, Self, cam.transform.position, cam.transform.forward) is Vector3 head)
+        {
+            Vector3 to = head - cam.transform.position;
+            float wantPitch = -Mathf.Atan2(to.y, new Vector2(to.x, to.z).magnitude) * Mathf.Rad2Deg;
+            float t = 1f - Mathf.Exp(-25f * Time.deltaTime);
+            yaw = Mathf.LerpAngle(yaw, Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg, t);
+            pitch = Mathf.Clamp(Mathf.Lerp(pitch, wantPitch + recoil, t), -85f, 85f);   // the view is pitch - recoil
+        }
     }
 
     void ApplyView()
@@ -183,6 +192,17 @@ public class PlayerController : MonoBehaviour, ICombatantController
         Vector2 stick = GameInput.Move;
         Vector3 input = canMove ? new Vector3(stick.x, 0f, stick.y) : Vector3.zero;
         input = Vector3.ClampMagnitude(input, 1f);
+        if (Cheats.FlyOn)
+        {
+            // Fly (Cheats): no gravity, twice as fast; jump goes up, crouch goes down.
+            Vector3 flying = transform.rotation * input * Self.Current.Data.MoveSpeed * 2f;
+            float up = canMove ? (GameInput.JumpHeld ? 1f : 0f) - (GameInput.CrouchHeld ? 1f : 0f) : 0f;
+            velocity = Vector3.Lerp(velocity, new Vector3(flying.x, up * 9f, flying.z), 1f - Mathf.Exp(-8f * dt));
+            crouching = false;
+            controller.Move(velocity * dt);
+            SetHeight(Mathf.MoveTowards(controller.height, StandHeight, 5f * dt));
+            return;
+        }
         crouching = canMove && GameInput.CrouchHeld;
         bool walking = canMove && GameInput.WalkHeld;
 

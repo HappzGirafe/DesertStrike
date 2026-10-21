@@ -1,0 +1,21 @@
+# The Low Strike online server as a systemd service on Linux: starts with the machine and again if it stops.
+# Put the server package somewhere that stays (e.g. /opt/lowstrike), run scripts/linux/setup.sh there, change
+# User= and the two paths below if yours differ, then:
+#   sudo cp online-server/scripts/linux/lowstrike.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now lowstrike
+#   journalctl -u lowstrike -f            (what it writes; also online-server/logs/)
+[Unit]
+Description=Low Strike online server (API and game hosts)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=lowstrike
+WorkingDirectory=/opt/lowstrike/online-server
+ExecStart=/opt/lowstrike/online-server/.venv/bin/python lowstrike_server.py
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
