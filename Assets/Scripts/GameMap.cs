@@ -28,6 +28,7 @@ public static class MapCatalog
         public MapLighting Lighting;
         public bool AccountOnly;   // only a logged-in player can choose it (see Accounts)
         public float Scale = 1f;   // the Blender model's size in the game (people and guns keep theirs)
+        public float? ClosedScale; // the same for its closed versions, when they were made at another size
         public bool OneSite;       // a single bombsite (the model marks only Decal_A); "Site in play" does nothing
     }
 
@@ -44,7 +45,8 @@ public static class MapCatalog
     {
         new Entry
         {
-            Id = "dune", Name = "Dune", Description = "de_dune, a Dust-style desert map", Scale = 2f / 3f,
+            // dunenorm.blend is at its old big size; dune_closedA/B were remade 0.40038 times that in Blender.
+            Id = "dune", Name = "Dune", Description = "de_dune, a Dust-style desert map", Scale = 0.40038f, ClosedScale = 1f,
             Lighting = new MapLighting
             {
                 Sun = new Color(1f, 0.93f, 0.8f), SunIntensity = 0.95f, SunAngles = new Vector3(52f, -35f, 0f),
@@ -76,7 +78,7 @@ public static class MapCatalog
         new Entry
         {
             Id = "bone", Name = "Bone", Description = "a bone yard: two fenced bases, giant pumpkins, and the bombsite under the ribcage in the middle",
-            Scale = 2f / 3f, OneSite = true,
+            OneSite = true,   // remade smaller in Blender, with the ribcage in the middle
             Lighting = new MapLighting
             {
                 Sun = new Color(1f, 0.82f, 0.62f), SunIntensity = 0.85f, SunAngles = new Vector3(38f, 60f, 0f),
@@ -121,7 +123,8 @@ public static class MapCatalog
         map.Name = entry.Name;
         map.Description = entry.Description;
         map.Lighting = entry.Lighting;
-        map.Scale = GameMap.KeepMeshesApart ? 1f : entry.Scale;   // -ds-export-closed lines its walls up with the .blend
+        bool closedVersion = map is ModelMap model && model.ClosedVersion != null;
+        map.Scale = GameMap.KeepMeshesApart ? 1f : closedVersion ? entry.ClosedScale ?? entry.Scale : entry.Scale;   // -ds-export-closed: as in the .blend
         return map;
     }
 }

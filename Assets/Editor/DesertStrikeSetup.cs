@@ -55,6 +55,17 @@ public static class DesertStrikeSetup
     [MenuItem("Low Strike/Build Windows Game")]
     public static void BuildWindows() => Build(BuildTarget.StandaloneWindows64, "Builds/Windows/LowStrike.exe");
 
+    /// <summary>Linux (x86-64) for players: Builds/Linux/LowStrike.x86_64 next to LowStrike_Data (needs Unity's
+    /// "Linux Build Support (Mono)" module). Players make it runnable once: chmod +x LowStrike.x86_64.</summary>
+    [MenuItem("Low Strike/Build Linux Game")]
+    public static void BuildLinux() => Build(BuildTarget.StandaloneLinux64, "Builds/Linux/LowStrike.x86_64");
+
+    /// <summary>The online rooms' game host for a Linux server: a dedicated-server build (no window, graphics or sound;
+    /// needs "Linux Dedicated Server Build Support"). It hosts rooms like the Windows game started with -ds-server.</summary>
+    [MenuItem("Low Strike/Build Linux Server")]
+    public static void BuildLinuxServer() =>
+        Build(BuildTarget.StandaloneLinux64, "Builds/LinuxServer/LowStrikeServer.x86_64", BuildOptions.None, StandaloneBuildSubtarget.Server);
+
     /// <summary>A development build for measuring where frame time goes (see ProfileReport).</summary>
     public static void BuildWindowsProfiling() =>
         Build(BuildTarget.StandaloneWindows64, "Builds/WindowsProfiling/LowStrike.exe", BuildOptions.Development);
@@ -124,7 +135,8 @@ public static class DesertStrikeSetup
         PlayerSettings.allowedAutorotateToLandscapeRight = true;
     }
 
-    static void Build(BuildTarget target, string path, BuildOptions options = BuildOptions.None)
+    static void Build(BuildTarget target, string path, BuildOptions options = BuildOptions.None,
+                      StandaloneBuildSubtarget subtarget = StandaloneBuildSubtarget.Player)
     {
         PlayerSettings.productName = GameName;
         PlayerSettings.bundleVersion = GameVersion;
@@ -143,6 +155,7 @@ public static class DesertStrikeSetup
             scenes = new[] { ScenePath },
             locationPathName = path,
             target = target,
+            subtarget = (int)subtarget,
             options = options,
         });
         Debug.Log("[DesertStrike] Build " + report.summary.result + ": " + report.summary.outputPath);

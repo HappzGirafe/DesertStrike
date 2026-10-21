@@ -1,11 +1,44 @@
 {
   "parts": [
     {
+      "name": "Circle",
+      "texture": "Circle",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.53,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
       "name": "CTSpawn_Tiles",
       "texture": "",
       "color": "",
       "metallic": 0.0,
       "smoothness": 0.2,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Cube.023",
+      "texture": "\u0430\u043b\u044f \u043f\u043e\u0440\u0435\u0437",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.51,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Cube.024",
+      "texture": "\u0430\u043b\u044f \u043f\u043e\u0440\u0435\u0437",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.51,
       "emission": "",
       "emissionTexture": "",
       "alpha": "OPAQUE",
@@ -1871,40 +1904,40 @@
       "cutoff": 0.5
     },
     {
-      "name": "Cube_212.001",
-      "texture": "tex0_Palette",
-      "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.0,
-      "emission": "",
-      "emissionTexture": "",
-      "alpha": "OPAQUE",
-      "cutoff": 0.5
-    },
-    {
-      "name": "Cube_212.002",
-      "texture": "tex0_Palette",
-      "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.0,
-      "emission": "",
-      "emissionTexture": "",
-      "alpha": "OPAQUE",
-      "cutoff": 0.5
-    },
-    {
-      "name": "Cube_212.003",
-      "texture": "tex0_Palette",
-      "color": "",
-      "metallic": 0.0,
-      "smoothness": 0.0,
-      "emission": "",
-      "emissionTexture": "",
-      "alpha": "OPAQUE",
-      "cutoff": 0.5
-    },
-    {
       "name": "Cube_213",
+      "texture": "tex0_Palette",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Cube_213.001",
+      "texture": "tex0_Palette",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Cube_213.002",
+      "texture": "tex0_Palette",
+      "color": "",
+      "metallic": 0.0,
+      "smoothness": 0.0,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Cube_213.003",
       "texture": "tex0_Palette",
       "color": "",
       "metallic": 0.0,
@@ -2993,6 +3026,17 @@
       "cutoff": 0.5
     },
     {
+      "name": "Cylinder.007",
+      "texture": "Cylinder.007",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
       "name": "Cylinder_200",
       "texture": "tex0_Palette",
       "color": "",
@@ -3086,6 +3130,17 @@
       "color": "",
       "metallic": 0.0,
       "smoothness": 0.2,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Circle.001",
+      "texture": "Circle.001",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
       "emission": "",
       "emissionTexture": "",
       "alpha": "OPAQUE",

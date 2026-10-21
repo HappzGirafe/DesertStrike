@@ -15,8 +15,8 @@ $maps = @(
     @("industrial", "", "industrialnorm.blend", ""),
     @("industrial", "closedB", "industrial_closedB.blend", ""),
     @("dune", "", "dunenorm.blend", "dune"),
-    @("dune", "closedA", "dune_closedA.blend", "dune"),
-    @("dune", "closedB", "dune_closedB.blend", "dune"),
+    @("dune", "closedA", "dune_closedA.blend", "dune_closed"),
+    @("dune", "closedB", "dune_closedB.blend", "dune_closed"),
     @("bone", "", "bone_map.blend", "bone")
 )
 foreach ($map in $maps) {
