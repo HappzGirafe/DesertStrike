@@ -88,7 +88,7 @@ public partial class GameUI
         bool enter = e.type == EventType.KeyDown && (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter)
                      && GUI.GetNameOfFocusedControl() == "admin-nick";
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.55f));
-        float w = Mathf.Min(1440f, width - 40f), h = 900f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        float w = Mathf.Min(1440f, width - 40f), h = 1040f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;   // tall enough for the shop's skins
         Fill(new Rect(x, y, w, h), PanelColor);
         Label(new Rect(x, y + 18f, w, 60f), "ADMIN PANEL", 46, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 76f, w, 28f), "Only admins see this. Everything done here is kept in the server's log.", 18, Dim,
@@ -133,19 +133,19 @@ public partial class GameUI
             cy += 72f;
 
             // The shop's skins: give one, or take it back.
-            Label(new Rect(lx, cy, lw, 34f), "Halloween skins", 24, Gold);
+            Label(new Rect(lx, cy, lw, 34f), "Skins for Tokens", 24, Gold);
             cy += 42f;
             foreach (var item in player.shop)
             {
                 bool owned = player.owned.Contains(item.weapon + "/" + item.skin);
-                var row = new Rect(lx, cy, lw, 56f);
+                var row = new Rect(lx, cy, lw, 42f);
                 Fill(row, new Color(1f, 1f, 1f, owned ? 0.08f : 0.04f));
-                Label(new Rect(lx + 20f, cy, lw * 0.45f, 56f), $"{WeaponData.Find(item.weapon)?.Name ?? item.weapon} | {item.skin}", 21, Color.white);
-                Label(new Rect(lx + lw * 0.45f, cy, lw * 0.25f, 56f), owned ? "OWNED" : $"{item.price} Tokens", 18,
+                Label(new Rect(lx + 20f, cy, lw * 0.5f, 42f), $"{WeaponData.Find(item.weapon)?.Name ?? item.weapon} | {item.skin}", 19, Color.white);
+                Label(new Rect(lx + lw * 0.5f, cy, lw * 0.25f, 42f), owned ? "OWNED" : $"{item.price} Tokens", 17,
                       owned ? Gold : Dim);
-                if (Button(new Rect(lx + lw - 210f, cy + 6f, 200f, 44f), owned ? "TAKE BACK" : "GIVE", false, !online.Busy, 19))
+                if (Button(new Rect(lx + lw - 190f, cy + 4f, 180f, 34f), owned ? "TAKE BACK" : "GIVE", false, !online.Busy, 17))
                     AdminChangeSkin(player.nick, item, !owned);
-                cy += 64f;
+                cy += 46f;
             }
         }
 

@@ -179,6 +179,7 @@ def run(join_secret):
     check("ticket is signed with GAME_JOIN_SECRET", hmac.compare_digest(signature, expected))
     check("ticket names the room, Alice and her team", fields[1] == room["id"] and fields[3] == a_id and fields[4] == "Alice"
           and fields[5] == "t" and int(fields[6]) > time.time(), fields)
+    check("ticket version 2, Alice not marked as an admin (no cheats)", fields[0] == "2" and len(fields) == 9 and fields[8] == "0", fields)
     status, answer = beat()
     check("host gets the room's settings", answer["has_room"] and answer["room"]["team_size"] == 2 and answer["room"]["difficulty"] == "Hard"
           and answer["room"]["members"] == [{"user_id": a_id, "nick": "Alice", "team": "t"}], answer)
@@ -346,7 +347,7 @@ def run(join_secret):
     print("tokens")
     status, mine = call("GET", "/tokens", token=a)
     check("a room's match pays its players once: Alice's 7 kills and the win", status == 200 and mine["tokens"] == 12
-          and mine["owned"] == [] and len(mine["shop"]) == 3, mine)
+          and mine["owned"] == [] and len(mine["shop"]) == 7, mine)
     check("bob_2 lost: his 2 kills", call("GET", "/tokens", token=b)[1]["tokens"] == 2)
     match = {"kills": 10, "won": True, "rounds": 8, "seconds": 600}
     check("a match too short to be real is refused", call("POST", "/tokens/match", dict(match, seconds=30), a)[0] == 422)
@@ -357,10 +358,8 @@ def run(join_secret):
     check("own matches stop at the day's limit", paid["earned"] == 25 and paid["tokens"] == 52 and paid["today"] == 40, paid)
     check("nothing more today", call("POST", "/tokens/match", match, a)[1]["earned"] == 0)
     check("a skin that is not for sale", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Gold"}, a)[0] == 404)
-    status, bought = call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, a)
-    check("Alice buys the Halloween AK-47", status == 200 and bought["tokens"] == 12 and bought["owned"] == ["ak47/Halloween"], bought)
-    check("buying it again costs nothing", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, a)[1]["tokens"] == 12)
-    check("not enough for the M4A1", call("POST", "/tokens/buy", {"weapon": "m4a1", "skin": "Halloween"}, a)[0] == 409)
+    check("52 tokens are not enough for the Halloween AK-47 (100)",
+          call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, a)[0] == 409)
 
 
     print("passwords, logout, deletion, limits")
@@ -393,7 +392,7 @@ def run_admin():
     check("not an admin cannot give tokens", call("POST", "/admin/tokens", {"nick": "carol", "amount": 500}, c)[0] == 403)
     status, found = call("GET", "/admin/player?nick=CAROL", token=a)
     check("find a player (any case)", status == 200 and found["nick"] == "carol" and found["owned"] == []
-          and len(found["shop"]) == 3 and "created_at" in found, found)
+          and len(found["shop"]) == 7 and "created_at" in found, found)
     had = found["tokens"]
     check("no such player: 404", call("GET", "/admin/player?nick=nobody_here", token=a)[0] == 404)
     status, given = call("POST", "/admin/tokens", {"nick": "carol", "amount": 100}, a)
@@ -413,6 +412,19 @@ def run_admin():
         "took knife/Classic Halloween", "gave knife/Classic Halloween", f"-100000 tokens ({had + 100} -> 0)",
         f"+100 tokens ({had} -> {had + 100})"] and all(e["admin"] == "Alice" and e["target"] == "carol" for e in log["entries"]), log)
     check("not an admin cannot read the log", call("GET", "/admin/log", token=c)[0] == 403)
+
+    print("buying skins")
+    call("POST", "/admin/tokens", {"nick": "carol", "amount": 1000}, a)
+    status, bought = call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, c)
+    check("carol buys the Halloween AK-47 for 100", status == 200 and bought["tokens"] == 900 and bought["owned"] == ["ak47/Halloween"], bought)
+    check("buying it again costs nothing", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, c)[1]["tokens"] == 900)
+    status, bought = call("POST", "/tokens/buy", {"weapon": "deagle", "skin": "digle"}, c)
+    check("and the digle Desert Eagle for 750", status == 200 and bought["tokens"] == 150, bought)
+    check("150 are not enough for nogektestskin (1000)", call("POST", "/tokens/buy", {"weapon": "knife", "skin": "nogektestskin"}, c)[0] == 409)
+    prices = {(i["weapon"], i["skin"]): i["price"] for i in bought["shop"]}
+    check("the shop's prices", prices == {("ak47", "Halloween"): 100, ("m4a1", "Halloween"): 150, ("knife", "Classic Halloween"): 500,
+                                          ("knife", "karambit"): 400, ("knife", "nogektestskin"): 1000, ("deagle", "digle"): 750,
+                                          ("rpg", "Web"): 400}, prices)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Tokens: the game's money, kept on the online account, for buying the Halloween skins.
+"""Tokens: the game's money, kept on the online account, for buying the skins in SHOP below.
 
     GET  /tokens          {tokens, owned: ["ak47/Halloween", ...], shop: [{weapon, skin, price}], today, day_limit}
     POST /tokens/match    a match the player's own game ran (against bots, or a LAN game): {kills, won, rounds, seconds}
@@ -34,9 +34,13 @@ CREATE TABLE IF NOT EXISTS token_days (
 
 # (weapon id, skin folder) -> price in Tokens. Skins not listed are free.
 SHOP = {
-    ("ak47", "Halloween"): 40,
-    ("m4a1", "Halloween"): 40,
-    ("knife", "Classic Halloween"): 60,
+    ("ak47", "Halloween"): 100,
+    ("m4a1", "Halloween"): 150,
+    ("knife", "Classic Halloween"): 500,
+    ("knife", "karambit"): 400,
+    ("knife", "nogektestskin"): 1000,
+    ("deagle", "digle"): 750,
+    ("rpg", "Web"): 400,
 }
 PER_KILL = 1
 PER_WIN = 5

@@ -70,6 +70,7 @@ public class Combatant : MonoBehaviour
     public bool Scoped;            // looking through a scope right now (for "noscope" in the kill feed)
     public string LastResupply;    // free ammo given at the start of this round
     public bool Dummy;             // the tutorial's training bot: hits count, but it never gets hurt
+    public int CheatFlags;         // host side: an admin's cheats the host carries out (Cheats.FlyFlag...)
     public Transform Eye;
     public Transform Muzzle;
 
@@ -325,6 +326,11 @@ public class Combatant : MonoBehaviour
 
     HitResult ApplyDamage(Combatant attacker, WeaponData weapon, float damage, bool headshot)
     {
+        if ((CheatFlags & Cheats.HealthFlag) != 0)
+        {
+            Damaged?.Invoke(attacker, 0);   // infinite health (Cheats): hit, never hurt
+            return HitResult.Hit;
+        }
         if (Dummy)
         {
             Damaged?.Invoke(attacker, 0);

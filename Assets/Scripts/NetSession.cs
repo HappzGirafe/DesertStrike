@@ -32,8 +32,9 @@ public partial class NetSession : MonoBehaviour
     // 2: the map is part of the lobby and of every snapshot; 3: selling guns; 4: the Uzi; 5: online rooms (a ticket in
     // Hello, spectators, Reject); 6: a walled-off bombsite in small matches; 7: guns on the ground; 8: every gun's
     // skin, and skins sent to the games that do not have them; 9: the Bone map, Dune made in Blender, maps' own
-    // closed versions (both games must have the same maps); 10: Dune and Bone remade smaller, Bone with one bombsite
-    const int ProtocolVersion = 10;
+    // closed versions (both games must have the same maps); 10: Dune and Bone remade smaller, Bone with one bombsite;
+    // 11: admins' cheats in online rooms (NetAction.Cheats, the ticket's admin mark)
+    const int ProtocolVersion = 11;
     public static int Protocol => ProtocolVersion;
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
@@ -59,6 +60,7 @@ public partial class NetSession : MonoBehaviour
         public Team Team;
         public bool Spectator;          // watches without a player (online rooms)
         public string AccountId;        // online: the account its ticket was for; null in LAN games
+        public bool IsAdmin;            // online: its ticket says the account is an admin (may use Cheats)
         public Dictionary<string, string> SkinChoices;
         public float LastHeard;
         public float AwaySince = -1f;   // online: when its connection dropped (its player waits for it)
@@ -561,6 +563,7 @@ public partial class NetSession : MonoBehaviour
         if (peer == null)
         {
             string accountId = null;
+            bool admin = false;
             if (OnlineHost)
             {
                 if (!JoinTicket.TryRead(ticketText, joinSecret, out var t))
@@ -579,6 +582,7 @@ public partial class NetSession : MonoBehaviour
                 if (usedTickets.ContainsKey(t.Nonce)) return;   // a copy of a ticket that was used already
                 usedTickets[t.Nonce] = t.Expires;
                 accountId = t.AccountId;
+                admin = t.Admin;
                 name = CleanName(t.Nick);
                 spectator = t.Team == "spectator";
                 team = t.Team == "swat" ? Team.Swat : Team.Terrorists;
@@ -590,6 +594,7 @@ public partial class NetSession : MonoBehaviour
                     Debug.Log($"[Net] {peer.Name} is back (from {from})");
                     peer.EndPoint = from;
                     peer.AwaySince = -1f;
+                    peer.IsAdmin = admin;
                     if (gm.State == MatchState.Menu) SetSide(peer, spectator, team);
                 }
             }
@@ -608,7 +613,7 @@ public partial class NetSession : MonoBehaviour
                 peer = new Peer
                 {
                     EndPoint = from, Name = UniqueName(name), Team = team, Spectator = spectator, AccountId = accountId,
-                    SkinChoices = WeaponSkins.DecodeChoices(skins),
+                    IsAdmin = admin, SkinChoices = WeaponSkins.DecodeChoices(skins),
                 };
                 Peers.Add(peer);
                 Debug.Log($"[Net] {peer.Name} joined from {from} ({(spectator ? "watching" : TeamName(team))})");

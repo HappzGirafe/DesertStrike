@@ -57,7 +57,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 HERE = Path(__file__).resolve().parent
-PROTOCOL_VERSION = 10         # NetSession.ProtocolVersion of the game build these hosts run (10: Dune and Bone resized)
+PROTOCOL_VERSION = 11         # NetSession.ProtocolVersion of the game build these hosts run (11: admins' cheats online)
 MAX_BODY = 16 * 1024          # bytes in one request
 MAX_PROFILE = 8 * 1024        # bytes of saved skins and settings per account
 MAX_FRIENDS = 100
@@ -588,7 +588,8 @@ def room_view(con, room, me_id: str, details: bool = False) -> dict:
 
 def make_ticket(room, user, team: str) -> str:
     expires = int(now()) + TICKET_SECONDS
-    payload = f"1|{room['id']}|{room['slot_id']}|{user['id']}|{user['nick']}|{team}|{expires}|{secrets.token_urlsafe(12)}"
+    admin = "1" if user["nick_key"] in CONFIG.admin_nicks else "0"   # admins may use cheats in the room (admin.py)
+    payload = f"2|{room['id']}|{room['slot_id']}|{user['id']}|{user['nick']}|{team}|{expires}|{secrets.token_urlsafe(12)}|{admin}"
     body = base64.urlsafe_b64encode(payload.encode()).decode().rstrip("=")
     signature = base64.urlsafe_b64encode(hmac.new(CONFIG.join_secret.encode(), body.encode(), hashlib.sha256).digest()).decode().rstrip("=")
     return f"{body}.{signature}"

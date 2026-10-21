@@ -102,6 +102,14 @@ public static class DesertStrikeSetup
         PlayerSettings.Android.bundleVersionCode = MobileVersionCode;
         PlayerSettings.Android.forceInternetPermission = true;   // LAN games and friends
         EditorUserBuildSettings.buildAppBundle = false;           // an .apk, not a Play Store bundle
+        // Pictures compressed as ASTC (every phone since about 2015). Set every time: after building for other
+        // platforms this saved choice was once found on PVRTC, which Unity 6 no longer supports, so every picture
+        // went into the .apk uncompressed (134 MB instead of 48).
+        EditorUserBuildSettings.androidBuildSubtarget = MobileTextureSubtarget.ASTC;
+        PlayerSettings.Android.textureCompressionFormats = new[] { TextureCompressionFormat.ASTC };
+        var probe = AssetImporter.GetAtPath("Assets/Resources/Skins/AK-47/Pink Scribble/grip.png") as TextureImporter;
+        Debug.Log($"[DesertStrike] Android pictures: {string.Join(", ", PlayerSettings.Android.textureCompressionFormats)}, " +
+                  $"subtarget {EditorUserBuildSettings.androidBuildSubtarget}, a skin picture as {probe?.GetAutomaticFormat("Android")}");
         Build(BuildTarget.Android, "Builds/Android/LowStrike-Android.apk");
     }
 
@@ -147,6 +155,12 @@ public static class DesertStrikeSetup
         PlayerSettings.enableFrameTimingStats = true;
         // Settings > Display > Window: the window can be resized by dragging its edges.
         PlayerSettings.resizableWindow = true;
+        // Build Settings' "Asset Import Overrides" are for quick test builds: a release never forces pictures
+        // uncompressed or smaller. (Found forced uncompressed once after building for Linux: a 128 MB .apk.)
+        if (EditorUserBuildSettings.overrideTextureCompression != OverrideTextureCompression.NoOverride || EditorUserBuildSettings.overrideMaxTextureSize != 0)
+            Debug.Log($"[DesertStrike] Import overrides were {EditorUserBuildSettings.overrideTextureCompression}, max size {EditorUserBuildSettings.overrideMaxTextureSize}: cleared");
+        EditorUserBuildSettings.overrideTextureCompression = OverrideTextureCompression.NoOverride;
+        EditorUserBuildSettings.overrideMaxTextureSize = 0;
         if (!File.Exists(ScenePath)) CreateScene();
         EnsureMaterials();
         SkinIndexBuilder.Build();

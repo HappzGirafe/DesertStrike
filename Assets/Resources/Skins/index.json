@@ -107,7 +107,7 @@
                 "rotation": [],
                 "projectileRotation": [],
                 "locked": false,
-                "tokens": 40
+                "tokens": 100
             }
         },
         {
@@ -437,7 +437,7 @@
                 "rotation": [],
                 "projectileRotation": [],
                 "locked": false,
-                "tokens": 0
+                "tokens": 750
             }
         },
         {
@@ -745,7 +745,7 @@
                 "rotation": [],
                 "projectileRotation": [],
                 "locked": false,
-                "tokens": 60
+                "tokens": 500
             }
         },
         {
@@ -837,7 +837,7 @@
                 ],
                 "projectileRotation": [],
                 "locked": false,
-                "tokens": 0
+                "tokens": 400
             }
         },
         {
@@ -859,7 +859,7 @@
                 "rotation": [],
                 "projectileRotation": [],
                 "locked": false,
-                "tokens": 0
+                "tokens": 1000
             }
         },
         {
@@ -1167,7 +1167,7 @@
                 "rotation": [],
                 "projectileRotation": [],
                 "locked": false,
-                "tokens": 40
+                "tokens": 150
             }
         },
         {
@@ -1721,7 +1721,7 @@
                 ],
                 "projectileRotation": [],
                 "locked": true,
-                "tokens": 0
+                "tokens": 400
             }
         },
         {

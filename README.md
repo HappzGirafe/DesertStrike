@@ -94,14 +94,18 @@ to the menu with your own match settings. **Settings > TUTORIAL** plays it again
 **Tokens** are the game's money for skins, kept on your **online account** (the balance shows next to EXIT in
 the main menu and in the inventory). You earn **1 for every kill** and **5 for every match you win**: online-room
 matches pay everyone in them (the room's game server reports the result), and matches against bots on your own game
-pay up to **40 tokens a day** (the server also checks that the match could have happened). They buy the Halloween
-skins in the **INVENTORY**:
+pay up to **40 tokens a day** (the server also checks that the match could have happened). They buy these skins in
+the **INVENTORY**:
 
 | Skin | Price |
 | --- | --- |
-| AK-47 Halloween | 40 |
-| M4A1 Halloween | 40 |
-| Knife: Classic Halloween | 60 |
+| AK-47 Halloween | 100 |
+| M4A1 Halloween | 150 |
+| Knife: Classic Halloween | 500 |
+| Knife: karambit | 400 |
+| Knife: nogektestskin | 1000 |
+| Desert Eagle: digle | 750 |
+| RPG: Web | 400 |
 
 A skin bought is yours for good, on every computer and phone you log in on. Until then it shows its price and a
 padlock. A skin is sold for tokens when its `skin.json` has `"tokens": <price>` (the price shown until the server's is
@@ -118,9 +122,11 @@ each skin can be given or taken back. The right side lists what admins did latel
 **Console and cheats (admins):** in a match, **`** (the key left of 1; on a phone **CONSOLE** in the pause menu) opens
 the console. **/cheats on** turns the cheats on and shows their switches: **AIMBOT** (the view locks onto the head of
 the nearest enemy in sight), **FLY** (no gravity; Space or JUMP up, Ctrl or CROUCH down), **INFINITE AMMO** (full
-magazines, 999 in reserve), **WALL HACK** (a box, name, health and distance round every enemy, through walls) and
-**INFINITE MONEY** ($16000). **/cheats off** turns them all off; **/help** lists the commands. They work only for admin
-accounts, and only in matches against bots and in LAN games you host: never in an online room or as a LAN guest.
+magazines, 999 in reserve), **WALL HACK** (a box, name, health and distance round every enemy, through walls),
+**INFINITE MONEY** ($16000) and **INFINITE HEALTH** (hit, never hurt). **/cheats off** turns them all off; **/help**
+lists the commands. They work only for admin accounts: against bots, in LAN games you host, and in online rooms (not as
+a LAN guest). In an online room its game server carries out fly, ammo, money and health only for a player whose join
+ticket the online server marked as an admin's; aimbot and wall hack happen in the player's own game.
 
 ### Friends
 

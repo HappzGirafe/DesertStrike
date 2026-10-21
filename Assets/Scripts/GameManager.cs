@@ -661,7 +661,11 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         Tutorial?.Update(this);
-        if (State != MatchState.Menu) Cheats.Update(this);
+        if (State != MatchState.Menu)
+        {
+            Cheats.Update(this);
+            if (!IsClient) Cheats.ApplyOnHost(this);
+        }
         else ConsoleOpen = false;
         HandleInput();
         if (!IsClient) RunRound();
@@ -1532,7 +1536,7 @@ public class GameManager : MonoBehaviour
     /// infinite ammo) until two kills or 40 s, with screenshots (-ds-capture); logs height, ammo, money and kills, then "/cheats off".</summary>
     void RunCheatsTest()
     {
-        if (State != MatchState.Live || !Player.Self.IsAlive) return;
+        if (State != MatchState.Live || Warmup || !Player.Self.IsAlive) return;   // after warmup (online rooms have one)
         var me = Player.Self;
         var fake = GameInput.Fake ??= new GameInput.Pretend();
         fake.Move = fake.Look = Vector2.zero;
@@ -1542,7 +1546,7 @@ public class GameManager : MonoBehaviour
             cheatsTestAt = Time.time;
             ConsoleOpen = true;
             Debug.Log($"[CheatsTest] /cheats on: {Cheats.Command(this, "/cheats on")}");
-            Cheats.Aimbot = Cheats.Fly = Cheats.InfiniteAmmo = Cheats.WallHack = Cheats.InfiniteMoney = true;
+            Cheats.Aimbot = Cheats.Fly = Cheats.InfiniteAmmo = Cheats.WallHack = Cheats.InfiniteMoney = Cheats.InfiniteHealth = true;
             Debug.Log($"[CheatsTest] start: height {Player.transform.position.y:0.0} m, ${me.Money}, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}");
             if (captureDirectory != null) nextCaptureAt = Time.realtimeSinceStartup + 1f;
             return;
@@ -1550,11 +1554,13 @@ public class GameManager : MonoBehaviour
         float t = Time.time - cheatsTestAt;
         if (t > 2f) ConsoleOpen = false;
         if (t > 2f && t < 2.5f) fake.Jump = true;   // fly up a little
+        if (t > 3.5f && t - Time.deltaTime <= 3.5f)
+            Debug.Log($"[CheatsTest] flying: height {Player.transform.position.y:0.0} m, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}");
         if (t > 3f && t < 40f) fake.Fire = true;   // the aimbot aims at whoever comes into sight
         if (captureDirectory != null && Mathf.Abs(t - 3.5f) < Time.deltaTime) nextCaptureAt = Time.realtimeSinceStartup;
         if ((t > 40f || me.Kills >= 2) && Cheats.On)
         {
-            Debug.Log($"[CheatsTest] after: height {Player.transform.position.y:0.0} m, ${me.Money}, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}, kills {me.Kills}");
+            Debug.Log($"[CheatsTest] after: height {Player.transform.position.y:0.0} m, ${me.Money}, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}, kills {me.Kills}, health {me.Health}, deaths {me.Deaths}");
             Debug.Log($"[CheatsTest] /cheats off: {Cheats.Command(this, "/cheats off")}; on now: {Cheats.On}");
             GameInput.Fake = null;
             cheatsTest = false;

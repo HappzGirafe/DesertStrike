@@ -3,7 +3,7 @@ using System.IO;
 using UnityEngine;
 
 /// <summary>Things a client asks the host to do for its player.</summary>
-public enum NetAction : byte { Reload = 1, Equip, AutoMode, BuyWeapon, BuyArmor, BuyDefuseKit, DropBomb, SellWeapon, DropWeapon, PickUp }
+public enum NetAction : byte { Reload = 1, Equip, AutoMode, BuyWeapon, BuyArmor, BuyDefuseKit, DropBomb, SellWeapon, DropWeapon, PickUp, Cheats }
 
 /// <summary>One combatant as the host describes it in a snapshot.</summary>
 public struct NetCombatantState

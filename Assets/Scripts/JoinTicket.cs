@@ -3,14 +3,16 @@ using System.Security.Cryptography;
 using System.Text;
 
 /// <summary>
-/// The ticket the online API gives a player for one room: "1|room|slot|account|nickname|team|expires|nonce" in
-/// Base64url, a dot, and its HMAC-SHA256 made with GAME_JOIN_SECRET. Only the game hosts the API starts know that
+/// The ticket the online API gives a player for one room: "2|room|slot|account|nickname|team|expires|nonce|admin"
+/// (admin: "1" for an admin account, who may use Cheats; version 1 had no admin mark) in Base64url, a dot, and its
+/// HMAC-SHA256 made with GAME_JOIN_SECRET. Only the game hosts the API starts know that
 /// secret, so only they can check a ticket; the player's game just passes it on in its Hello.
 /// </summary>
 public struct JoinTicket
 {
     public string RoomId, SlotId, AccountId, Nick, Team, Nonce;
     public long Expires;   // Unix time, seconds
+    public bool Admin;
 
     public static bool TryRead(string text, string secret, out JoinTicket ticket)
     {
@@ -24,10 +26,12 @@ public struct JoinTicket
         byte[] payload = FromBase64Url(body);
         if (payload == null) return false;
         string[] parts = Encoding.UTF8.GetString(payload).Split('|');
-        if (parts.Length != 8 || parts[0] != "1" || !long.TryParse(parts[6], out long expires)) return false;
+        bool v1 = parts.Length == 8 && parts[0] == "1", v2 = parts.Length == 9 && parts[0] == "2";
+        if (!(v1 || v2) || !long.TryParse(parts[6], out long expires)) return false;
         ticket = new JoinTicket
         {
             RoomId = parts[1], SlotId = parts[2], AccountId = parts[3], Nick = parts[4], Team = parts[5], Expires = expires, Nonce = parts[7],
+            Admin = v2 && parts[8] == "1",
         };
         return true;
     }
