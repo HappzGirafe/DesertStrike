@@ -136,7 +136,7 @@ public class WeaponData
 
     public static readonly WeaponData Awp = new WeaponData
     {
-        Id = "awp", Name = "AWP", RoundAmmoBonus = 5, Slot = WeaponSlot.Primary, Price = 4750, Damage = 115,
+        Id = "awp", Name = "AWP", RoundAmmoBonus = 10, Slot = WeaponSlot.Primary, Price = 4750, Damage = 115,
         FireInterval = 1.45f, MagSize = 5, ReserveAmmo = 15, ReloadTime = 3.7f, Spread = 0.05f,
         MoveSpread = 6f, Recoil = 5f, ZoomFov = 20f, ArmorPenetration = 0.97f, MoveSpeed = 5f,
         KillReward = 100, ShotPitch = 0.6f,

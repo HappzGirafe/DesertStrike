@@ -1528,21 +1528,19 @@ public partial class GameUI : MonoBehaviour
         {
             if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SKIP TUTORIAL")) gm.EndTutorial();
         }
-        else if (Online.IsAdmin && Cheats.Allowed(gm))
-        {
-            // Admins: the console without a keyboard's ` key (phones). It goes under QUIT GAME, inside the panel.
-            if (Button(new Rect(x + 40f, y + 210f, w - 80f, 56f), "CONSOLE"))
-            {
-                gm.SetPaused(false);
-                gm.ConsoleOpen = true;
-            }
-        }
         else if (Button(new Rect(x + 40f, y, w - 80f, 56f), online && !gm.IsClient ? "END LAN GAME" : "MAIN MENU")) LeaveGame();
         y += 70f;
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SETTINGS")) settingsOpen = true;
         y += 70f;
         // iPhones and iPads close apps from the app switcher, not from inside the app.
         if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
+        y += 70f;
+        // Admins: the console without a keyboard's ` key (phones), last, inside the panel.
+        if (Online.IsAdmin && Cheats.Allowed(gm) && Button(new Rect(x + 40f, y, w - 80f, 56f), "CONSOLE"))
+        {
+            gm.SetPaused(false);
+            gm.ConsoleOpen = true;
+        }
     }
 
     void DrawMatchOver()

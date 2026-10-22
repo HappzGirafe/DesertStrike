@@ -474,7 +474,7 @@ a line in `MapCatalog` (`GameMap.cs`) with its name, description and lighting (H
   (a smaller target, head included), tuck up in a jump, and on death the knees give way and the body falls away
   from whoever shot it, arms and gun over its head. Bots sometimes crouch while holding an angle.
 - Free ammo at the start of every round (from round 2): pistols +20, Uzi +48, MP5 / AK-47 / M4A1 +40, pump shotgun +8,
-  AWP and RPG +5 reserve ammo (set per weapon by `RoundAmmoBonus` in `WeaponData.cs`).
+  AWP +10, SVD +15, RPG +5 reserve ammo (set per weapon by `RoundAmmoBonus` in `WeaponData.cs`).
 
 ## Code
 
