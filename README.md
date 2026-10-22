@@ -130,6 +130,12 @@ player the online server vouches for: in an online room by the join ticket's adm
 pass (`/admin/lan-pass`) that the LAN host checks online (so a LAN host needs internet for a guest's cheats). Aimbot
 and wall hack happen in the player's own game.
 
+**Cheats for everyone (admins switch it):** **/cheats everyone on** (or the console's **CHEATS FOR EVERYONE** button)
+lets every player in that match use the console's cheats, admin or not; **/cheats everyone off** (or the button
+again) takes them away at once from everyone but the admins. It works in online rooms, LAN games and games against
+bots; whoever runs the match keeps it, checks that the one switching it is an admin, and tells every player who turned
+it on or off. Each new match starts with it off.
+
 ### Friends
 
 **FRIENDS** in the main menu (it needs an account): type a friend's nickname and click **SEND REQUEST**; on their
@@ -531,7 +537,8 @@ account), and `-ds-accounts-file <file>` keeps test accounts out of the real `ac
 `-ds-difficulty <easy|normal|hard|extreme>` sets the bots, `-ds-players <1-5>` the players per team, and
 `-ds-attack <a|b>` sends the Terrorist bots to that site every round. `-ds-tutorial` starts the tutorial at once, and
 `-ds-cheats-test` (logged in as an admin) turns every cheat on with the console, flies up and
-shoots with the aimbot, and logs what each cheat did. `-ds-tutorial-test` plays it through by itself with pretend controls (logging each step, a screenshot of each with
+shoots with the aimbot, and logs what each cheat did; `-ds-cheats-everyone [seconds]` (an admin host) turns on cheats
+for everyone, and off again after that long. `-ds-tutorial-test` plays it through by itself with pretend controls (logging each step, a screenshot of each with
 `-ds-capture`) and presses FINISH. On a Blender map the log says how far it is to
 walk from each spawn to each site ("no way" means the bots cannot get there), `-ds-navmesh-obj <file>` saves
 where bots can walk as an `.obj`, and `-ds-hide <text>` stops drawing the map parts whose names contain it (with
