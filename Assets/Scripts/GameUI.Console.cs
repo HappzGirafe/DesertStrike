@@ -33,7 +33,8 @@ public partial class GameUI
         var e = Event.current;
         bool enter = e.type == EventType.KeyDown && (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter);
         float w = Mathf.Min(1100f, width - 40f), x = (width - w) / 2f, y = 90f;
-        float h = Cheats.On ? 420f : 320f;   // the switches below the line
+        bool admin = Cheats.IsAdmin(gm);
+        float h = (Cheats.On ? 420f : 320f) + (admin ? 70f : 0f);   // the switches below the line; an admin's button last
         Fill(new Rect(x, y, w, h), new Color(0.02f, 0.02f, 0.03f, 0.92f));
         Fill(new Rect(x, y, w, 4f), Gold);
         Label(new Rect(x + 20f, y + 10f, w - 40f, 30f), "CONSOLE", 22, Gold);
@@ -65,6 +66,11 @@ public partial class GameUI
             if (enter) e.Use();
         }
 
+        // Admins: cheats for everyone in this match, on or off (the host carries it out and tells every game).
+        if (admin && Button(new Rect(x + 20f, y + h - 66f, 420f, 52f), gm.CheatsForEveryone ? "CHEATS FOR EVERYONE: ON" : "CHEATS FOR EVERYONE: OFF",
+                            gm.CheatsForEveryone, true, 18))
+            consoleLines.Add(Cheats.SetForEveryone(gm, !gm.CheatsForEveryone));
+
         if (!Cheats.On) return;
         // The switches.
         float sy = y + 290f, sw = (w - 40f - 5f * 10f) / 6f;
@@ -91,7 +97,14 @@ public partial class GameUI
     /// <summary>The wall hack's boxes (enemies through walls, with name, health and distance), and which cheats are on.</summary>
     void DrawCheatsHud()
     {
-        if (!Cheats.On) return;
+        if (!Cheats.On)
+        {
+            // An admin turned on cheats for everyone: how to use them.
+            if (gm.CheatsForEveryone && !gm.ConsoleOpen && gm.Tutorial == null)
+                Label(new Rect(0f, 78f, width, 26f), GameInput.Touch ? "Cheats for everyone: CONSOLE in the pause menu, then /cheats on"
+                                                                     : "Cheats for everyone: ` then /cheats on", 16, CheatColor, TextAnchor.MiddleCenter);
+            return;
+        }
         var parts = new List<string>();
         if (Cheats.Aimbot) parts.Add("AIMBOT");
         if (Cheats.Fly) parts.Add("FLY");

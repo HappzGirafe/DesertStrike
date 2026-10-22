@@ -114,6 +114,27 @@ public class GameManager : MonoBehaviour
     public bool IsPaused { get; private set; }
     /// <summary>The console is open (` in a match): typing there, not playing (see Cheats).</summary>
     public bool ConsoleOpen { get; set; }
+    /// <summary>"Cheats for everyone": an admin let every player in this match use the console's cheats (Cheats). Kept
+    /// where the match runs and sent to every game with the match; off again at every new match.</summary>
+    public bool CheatsForEveryone { get; private set; }
+
+    /// <summary>Where the match runs: an admin turns cheats for everyone on or off (this game's own player, or a guest
+    /// the host vouched for: RemotePlayerController). Every player sees who did it.</summary>
+    public void SetCheatsForEveryone(bool on, string by)
+    {
+        if (Net.IsClient || CheatsForEveryone == on) return;
+        CheatsForEveryone = on;
+        Debug.Log($"[Cheats] Cheats for everyone {(on ? "on" : "off")} ({by})");
+        ShowMessage(on ? $"{by} turned on cheats for everyone: ` or CONSOLE, then /cheats on" : $"{by} turned off cheats for everyone", 6f);
+        if (on) return;
+        // Off: the cheats of everyone who is not an admin stop at once (their games switch them off too).
+        foreach (var c in Combatants)
+        {
+            var remote = c.GetComponent<RemotePlayerController>();
+            bool admin = remote != null ? remote.Peer != null && remote.Peer.IsAdmin : c.IsPlayer && Online != null && Online.IsAdmin;
+            if (!admin) c.CheatFlags = 0;
+        }
+    }
     public bool BuyMenuOpen { get; private set; }
     public float HitMarkerTime { get; private set; } = -1f;
     public bool HitMarkerHeadshot { get; private set; }
@@ -153,6 +174,7 @@ public class GameManager : MonoBehaviour
     string exportClosed;    // -ds-export-closed <folder>: writes the map and its closing walls for Blender, and quits (see MapExport)
     bool startTutorial;     // -ds-tutorial
     bool cheatsTest;        // -ds-cheats-test (logged in as an admin): every cheat on, flies up firing, logs what each did
+    float cheatsEveryoneFor = -1f, cheatsEveryoneAt = -1f;   // -ds-cheats-everyone [seconds]: an admin host turns it on (and off)
     float cheatsTestAt = -1f;
     bool tutorialTest;      // -ds-tutorial-test: plays the tutorial through with pretend controls (GameInput.Fake), logging each step
     Tutorial.Step testStep = (Tutorial.Step)(-1);
@@ -234,6 +256,7 @@ public class GameManager : MonoBehaviour
     {
         if (Net.IsClient) return;
         ClearMatch();
+        CheatsForEveryone = false;   // a new match starts without (an admin turns it on again)
         CloseSite(ActiveClosedSite);
         if (siteCheck && Map.ClosedSite != null) Invoke(nameof(LogSiteCheck), 1.5f);
         Round = 0;
@@ -1048,6 +1071,7 @@ public class GameManager : MonoBehaviour
         FriendlyFire = match.FriendlyFire;
         CloseSite(match.ClosedSite);
         Warmup = match.Warmup;
+        CheatsForEveryone = match.CheatsForEveryone;
         Message = string.IsNullOrEmpty(match.Message) ? null : match.Message;
         MessageUntil = Time.time + match.MessageLeft;
         PlayerAmmoResupply = string.IsNullOrEmpty(resupply) ? null : resupply;
@@ -1344,6 +1368,10 @@ public class GameManager : MonoBehaviour
                 case "-ds-cheats-test":
                     cheatsTest = true;
                     break;
+                case "-ds-cheats-everyone":
+                    cheatsEveryoneFor = hasValue && float.TryParse(args[i + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float keep) ? keep : 0f;
+                    if (hasValue && cheatsEveryoneFor > 0f) i++;
+                    break;
                 case "-ds-tutorial-test":
                     startTutorial = tutorialTest = true;
                     break;
@@ -1537,6 +1565,7 @@ public class GameManager : MonoBehaviour
     void RunCheatsTest()
     {
         if (State != MatchState.Live || Warmup || !Player.Self.IsAlive) return;   // after warmup (online rooms have one)
+        if (cheatsTestAt < 0f && !Cheats.Allowed(this)) return;                   // a player who waits for cheats for everyone
         var me = Player.Self;
         var fake = GameInput.Fake ??= new GameInput.Pretend();
         fake.Move = fake.Look = Vector2.zero;
@@ -1719,6 +1748,19 @@ public class GameManager : MonoBehaviour
         if (sellTestStep >= 0 && Player != null && Round == 1) RunSellTest();
         if (tutorialTest && Tutorial != null && Player != null) RunTutorialTest();
         if (cheatsTest && Player != null) RunCheatsTest();
+        if (cheatsEveryoneFor >= 0f && State == MatchState.Live && !Warmup && Cheats.IsAdmin(this))
+        {
+            if (cheatsEveryoneAt < 0f)
+            {
+                cheatsEveryoneAt = Time.time;
+                Debug.Log("[CheatsTest] " + Cheats.SetForEveryone(this, true));
+            }
+            else if (cheatsEveryoneFor > 0f && Time.time - cheatsEveryoneAt > cheatsEveryoneFor)
+            {
+                Debug.Log("[CheatsTest] " + Cheats.SetForEveryone(this, false));
+                cheatsEveryoneFor = -1f;
+            }
+        }
         if (teleportTest && IsClient && Player != null && Player.Self.IsAlive && State == MatchState.Live && now >= nextTeleport)
         {
             nextTeleport = now + 3f;

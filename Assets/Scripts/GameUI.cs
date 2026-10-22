@@ -1535,8 +1535,8 @@ public partial class GameUI : MonoBehaviour
         // iPhones and iPads close apps from the app switcher, not from inside the app.
         if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
         y += 70f;
-        // Admins: the console without a keyboard's ` key (phones), last, inside the panel.
-        if (Online.IsAdmin && Cheats.Allowed(gm) && Button(new Rect(x + 40f, y, w - 80f, 56f), "CONSOLE"))
+        // The console without a keyboard's ` key (phones), last, inside the panel: admins, or everyone while cheats are for everyone.
+        if (Cheats.Allowed(gm) && Button(new Rect(x + 40f, y, w - 80f, 56f), "CONSOLE"))
         {
             gm.SetPaused(false);
             gm.ConsoleOpen = true;

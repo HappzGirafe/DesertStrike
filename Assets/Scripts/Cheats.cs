@@ -5,6 +5,8 @@ using UnityEngine;
 /// turns them on and shows their switches: aimbot, fly, infinite ammo (999), wall hack, infinite money and infinite
 /// health; "/cheats off" turns them all off. Only for admin accounts (the online server says who: OnlineClient.IsAdmin),
 /// in every match but the tutorial: against bots, in LAN games (hosted or joined) and in online rooms.
+/// An admin can also turn on "cheats for everyone" for the match ("/cheats everyone on|off", or the console's button):
+/// then every player in it may use them too (GameManager.CheatsForEveryone, kept where the match runs).
 ///
 /// Aimbot and wall hack happen in the player's own game. Fly, ammo, money and health are carried out where the match
 /// runs: in the player's own game, or by the host, which takes them only from a player the online server vouched for:
@@ -20,7 +22,23 @@ public static class Cheats
     public static bool Aimbot, Fly, InfiniteAmmo, WallHack, InfiniteMoney, InfiniteHealth;
 
     /// <summary>Whether cheats may be used in this game right now.</summary>
-    public static bool Allowed(GameManager gm) => gm.Online != null && gm.Online.IsAdmin && gm.Tutorial == null;
+    public static bool Allowed(GameManager gm) => gm.Tutorial == null && (IsAdmin(gm) || gm.CheatsForEveryone);
+
+    public static bool IsAdmin(GameManager gm) => gm.Online != null && gm.Online.IsAdmin;
+
+    /// <summary>An admin turns cheats for everyone on or off: where the match runs, or by asking its host.</summary>
+    public static string SetForEveryone(GameManager gm, bool on)
+    {
+        if (!IsAdmin(gm)) return "Only admins can turn cheats for everyone on or off.";
+        if (gm.Tutorial != null) return "No cheats in the tutorial.";
+        if (gm.IsClient)
+        {
+            gm.Net.SendAction(NetAction.CheatsForEveryone, on ? 1 : 0);
+            return on ? "Asked the host to turn on cheats for everyone." : "Asked the host to turn off cheats for everyone.";
+        }
+        gm.SetCheatsForEveryone(on, gm.Online.User.nick);
+        return on ? "Cheats for everyone: on." : "Cheats for everyone: off.";
+    }
 
     public static bool AimbotOn => On && Aimbot;
     public static bool FlyOn => On && Fly;
@@ -43,10 +61,14 @@ public static class Cheats
             case "":
                 return null;
             case "/help":
-                return "Commands: /cheats on, /cheats off (admins only)";
+                return "Commands: /cheats on, /cheats off; admins also /cheats everyone on, /cheats everyone off";
+            case "/cheats everyone on":
+                return SetForEveryone(gm, true);
+            case "/cheats everyone off":
+                return SetForEveryone(gm, false);
             case "/cheats on":
-                if (gm.Online == null || !gm.Online.IsAdmin) return "Only admins can turn on cheats.";
-                if (!Allowed(gm)) return "No cheats in the tutorial.";
+                if (gm.Tutorial != null) return "No cheats in the tutorial.";
+                if (!Allowed(gm)) return "Only admins can turn on cheats (or everyone, once an admin turns on cheats for everyone).";
                 On = true;
                 Debug.Log("[Cheats] On");
                 return "Cheats on: pick them below.";

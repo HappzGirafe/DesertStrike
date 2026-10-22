@@ -33,8 +33,8 @@ public partial class NetSession : MonoBehaviour
     // Hello, spectators, Reject); 6: a walled-off bombsite in small matches; 7: guns on the ground; 8: every gun's
     // skin, and skins sent to the games that do not have them; 9: the Bone map, Dune made in Blender, maps' own
     // closed versions (both games must have the same maps); 10: Dune and Bone remade smaller, Bone with one bombsite;
-    // 11: admins' cheats in online rooms (NetAction.Cheats, the ticket's admin mark)
-    const int ProtocolVersion = 11;
+    // 11: admins' cheats in online rooms (NetAction.Cheats, the ticket's admin mark); 12: cheats for everyone
+    const int ProtocolVersion = 12;
     public static int Protocol => ProtocolVersion;
     const string BeaconTag = "DSTRIKE";
     const float SnapshotInterval = 1f / 30f;
@@ -833,6 +833,7 @@ public partial class NetSession : MonoBehaviour
         w.Write(gm.Map.Id);
         w.Write(gm.Map.ClosedSite ?? "");
         w.Write(gm.Warmup);
+        w.Write(gm.CheatsForEveryone);
     }
 
     void WriteBomb(BinaryWriter w)
@@ -1055,6 +1056,7 @@ public partial class NetSession : MonoBehaviour
         string closed = r.ReadString();
         match.ClosedSite = closed == "A" || closed == "B" ? closed : null;
         match.Warmup = r.ReadBoolean();
+        match.CheatsForEveryone = r.ReadBoolean();
 
         var bombState = (BombState)r.ReadByte();
         int carrierId = r.ReadUInt16();
