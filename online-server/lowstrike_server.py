@@ -447,10 +447,17 @@ def current_user(request: Request) -> sqlite3.Row:
     return row
 
 
+def release_of(version: str) -> list:
+    """1.20.1 -> [1, 20]: a fix ("1.20.1", a beta) keeps its release's protocol, so it plays with that release."""
+    return [int(p) if p.isdigit() else 0 for p in version.split(".")][:2]
+
+
 def check_version(request: Request):
     if not CONFIG.game_version:
         return
     theirs = request.headers.get("x-game-version", "")
+    if theirs and release_of(theirs) == release_of(CONFIG.game_version):
+        return   # the server's version, or a fix of it (the game host's Hello still checks the protocol)
     if theirs != CONFIG.game_version:
         newer = [int(p) if p.isdigit() else 0 for p in theirs.split(".")] > [int(p) if p.isdigit() else 0 for p in CONFIG.game_version.split(".")]
         if theirs and newer:   # a test version, newer than the server's

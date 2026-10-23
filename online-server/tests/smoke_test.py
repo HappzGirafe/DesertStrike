@@ -170,7 +170,9 @@ def run(join_secret):
     check("game host reports in", status == 200 and answer == {"has_room": False}, answer)
     status, body = call("POST", "/rooms", settings, a, headers={"X-Game-Version": "1.18"})
     check("old game version told to update", status == 426 and "Update" in body["detail"], body)
-    status, joined = call("POST", "/rooms", settings, a)
+    status, body = call("POST", "/rooms", settings, a, headers={"X-Game-Version": "1.20"})
+    check("a newer release is told the server is older", status == 426 and "still runs" in body["detail"], body)
+    status, joined = call("POST", "/rooms", settings, a, headers={"X-Game-Version": "1.19.1"})   # a fix plays with its release
     check("Alice creates a room", status == 200 and joined["udp_host"] == "test.example" and joined["udp_port"] == 40000, joined)
     room = joined["room"]
     body_part, signature = joined["join_ticket"].split(".")
