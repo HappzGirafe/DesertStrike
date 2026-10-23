@@ -36,6 +36,16 @@ public struct JoinTicket
         return true;
     }
 
+    /// <summary>The game server (room slot, e.g. "room-1") a ticket is for, read without checking it: only for showing
+    /// (an admin's FPS counter), since the player's game cannot check a ticket.</summary>
+    public static string SlotOf(string text)
+    {
+        int dot = string.IsNullOrEmpty(text) ? -1 : text.IndexOf('.');
+        byte[] payload = dot > 0 ? FromBase64Url(text.Substring(0, dot)) : null;
+        string[] parts = payload != null ? Encoding.UTF8.GetString(payload).Split('|') : null;
+        return parts != null && parts.Length >= 3 ? parts[2] : null;
+    }
+
     /// <summary>What a game host sends with its reports to the API's internal address (made from the same secret).</summary>
     public static string InternalKey(string secret)
     {

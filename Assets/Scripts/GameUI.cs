@@ -1489,17 +1489,28 @@ public partial class GameUI : MonoBehaviour
     }
 
     // FPS, then how many milliseconds the CPU and the graphics chip (GPU) spend on a frame: when one of them is
-    // close to 1000 / FPS, that one is what holds the frame rate back.
+    // close to 1000 / FPS, that one is what holds the frame rate back. Admins who joined a game (an online room or a
+    // LAN game) also see the ping to it, and which room it is.
+    bool FpsShowsPing => gm.Net.IsClient && gm.Net.PingMs >= 0f && Cheats.IsAdmin(gm);
+
     void DrawFps(float x, float y)
     {
         if (!GameSettings.ShowFps) return;
         float fps = PerfStats.Fps;
-        Fill(new Rect(x, y, 420f, 74f), PanelColor);
+        var net = gm.Net;
+        bool ping = FpsShowsPing;
+        Fill(new Rect(x, y, 420f, ping ? 104f : 74f), PanelColor);
         Label(new Rect(x + 10f, y + 2f, 110f, 30f), $"{Mathf.RoundToInt(fps)} FPS", 22,
               fps >= (GameSettings.FrameLimit > 0 ? GameSettings.FrameLimit : 60) * 0.9f ? MoneyGreen : fps >= 30f ? Gold : Danger);
         string gpu = PerfStats.GpuMs > 0f ? $"{PerfStats.GpuMs:0.0} ms" : "n/a";
         Label(new Rect(x + 120f, y + 2f, 300f, 30f), $"CPU {PerfStats.CpuMs:0.0} ms    GPU {gpu}", 18, Color.white);
         Label(new Rect(x + 10f, y + 36f, 405f, 30f), PerfStats.Device, 15, Dim);
+        if (!ping) return;
+        Label(new Rect(x + 10f, y + 66f, 160f, 30f), $"ping {net.PingMs:0} ms", 20,
+              net.PingMs < 80f ? MoneyGreen : net.PingMs < 150f ? Gold : Danger);
+        string room = net.OnlineClient ? net.RoomSlot ?? net.HostName : net.HostName;
+        if (net.OnlineClient && Online.Room != null && !string.IsNullOrEmpty(Online.Room.name)) room += "  ·  " + Online.Room.name;
+        Label(new Rect(x + 170f, y + 66f, 245f, 30f), room, 15, Dim);
     }
 
     void DrawPauseMenu()
@@ -1720,7 +1731,7 @@ public partial class GameUI : MonoBehaviour
     {
         var voice = VoiceChat.Instance;
         if (voice == null || !GameSettings.VoiceChat || (!voice.InMatch && !voice.Holding)) return;
-        float y = GameSettings.ShowFps ? 352f : 272f;
+        float y = GameSettings.ShowFps ? (FpsShowsPing ? 382f : 352f) : 272f;
         bool openMic = voice.InMatch && GameSettings.Voice == VoiceMode.OpenMic;
         bool micWanted = voice.Holding || openMic;
         if (micWanted && voice.Problem != null)

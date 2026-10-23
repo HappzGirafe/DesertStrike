@@ -167,7 +167,10 @@ is open on the network at the time.
 **Reading the FPS counter:** `CPU` is how many milliseconds the processor works on one frame, `GPU` how many the
 graphics chip does. For 60 FPS both must stay under 16.7 ms. If GPU is the big one, lower Graphics or 3D resolution;
 if CPU is the big one, fewer bots (players per team) helps most. The second line shows the resolution, the graphics
-chip and whether the game runs natively (`arm64` on Apple Silicon Macs, `x64` on Intel).
+chip and whether the game runs natively (`arm64` on Apple Silicon Macs, `x64` on Intel). Admin accounts (see
+**Admin panel**) get a third line once they joined a game: the ping to it, measured every second (green under 80 ms,
+yellow under 150, red above), and which game server it is (`room-1`, `room-2`... and the room's name; a LAN game: the
+host's name).
 
 What the game does to stay light:
 

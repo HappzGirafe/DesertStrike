@@ -102,6 +102,7 @@ public partial class NetSession : MonoBehaviour
     string lanPassSent;   // LAN: the admin's pass the host has had in a Hello
     public bool PreferSpectator;              // online rooms: watch instead of playing
     public float PingMs { get; private set; } = -1f;
+    public string RoomSlot { get; private set; }   // online: the game server (room-1, room-2...) this player's ticket is for
     public bool LastEndWasDrop { get; private set; }   // the connection was lost (not: left, kicked or the room closed)
     string hostLabel = "";
     System.Threading.Tasks.Task<IPAddress[]> resolving;
@@ -206,6 +207,7 @@ public partial class NetSession : MonoBehaviour
     {
         Stop();
         ticket = joinTicket;
+        RoomSlot = JoinTicket.SlotOf(joinTicket);
         lanPassSent = null;
         LastEndWasDrop = false;
         PingMs = -1f;
@@ -236,6 +238,7 @@ public partial class NetSession : MonoBehaviour
     {
         Stop();
         ticket = null;
+        RoomSlot = null;
         LastEndWasDrop = false;
         PingMs = -1f;
         Connect(new IPEndPoint(address, GamePort), address.ToString());
@@ -1240,6 +1243,13 @@ public partial class NetSession : MonoBehaviour
             {
                 nextInput = now + InputInterval;
                 SendInput(player);
+            }
+            // An admin's FPS counter shows the ping to this game (GameUI.DrawFps). In a match only Inputs go to the host,
+            // so a Hello a second keeps measuring it: the host answers a player it knows with a Welcome and nothing else.
+            if (now >= nextHello && GameSettings.ShowFps && Cheats.IsAdmin(gm))
+            {
+                nextHello = now + 1f;
+                SendHello();
             }
         }
         else if (now >= nextHello)
