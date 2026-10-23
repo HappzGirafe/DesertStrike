@@ -1678,6 +1678,28 @@
         },
         {
             "weapon": "rpg",
+            "id": "RPG-7",
+            "folder": "Skins/RPG/RPG-7",
+            "hasModel": true,
+            "hasMain": false,
+            "hasGrip": false,
+            "hasDetail": false,
+            "hasProjectile": false,
+            "info": {
+                "name": "RPG-7",
+                "main": "",
+                "grip": "",
+                "detail": "",
+                "smoothness": 0.20000000298023225,
+                "metallic": 0.0,
+                "rotation": [],
+                "projectileRotation": [],
+                "locked": true,
+                "tokens": 400
+            }
+        },
+        {
+            "weapon": "rpg",
             "id": "Urban Digital",
             "folder": "Skins/RPG/Urban Digital",
             "hasModel": false,

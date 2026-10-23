@@ -1,0 +1,158 @@
+{
+  "parts": [
+    {
+      "name": "Detail",
+      "texture": "",
+      "color": "#7F7F7F",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.001",
+      "texture": "rpg7_wood",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.002",
+      "texture": "rpg7_wood",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.3,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.003",
+      "texture": "",
+      "color": "#7F7F7F",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.004",
+      "texture": "",
+      "color": "#7F7F7F",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.005",
+      "texture": "",
+      "color": "#7F7F7F",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.006",
+      "texture": "",
+      "color": "#7F7F7F",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Main",
+      "texture": "",
+      "color": "#666666",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.007",
+      "texture": "",
+      "color": "#666666",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.008",
+      "texture": "rpg7_wood",
+      "color": "",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.009",
+      "texture": "",
+      "color": "#666666",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.010",
+      "texture": "",
+      "color": "#2A2A2A",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.011",
+      "texture": "",
+      "color": "#666666",
+      "metallic": 0.5,
+      "smoothness": 0.36,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    },
+    {
+      "name": "Detail.012",
+      "texture": "",
+      "color": "#565656",
+      "metallic": 0.5,
+      "smoothness": 0.12,
+      "emission": "",
+      "emissionTexture": "",
+      "alpha": "OPAQUE",
+      "cutoff": 0.5
+    }
+  ]
+}

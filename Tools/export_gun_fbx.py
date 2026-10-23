@@ -17,7 +17,8 @@ handle) the grip colour, and "Detail" (barrel, magazine, sights...) the detail c
 from Blender is copied next to the .fbx and listed in parts.json (<name>_parts.json for other .fbx names), which
 the game reads. (FBX itself cannot carry Blender 5's material
 nodes, which is why the look travels separately.)
-Flat meshes (reference pictures on a plane) are left out.
+Flat meshes (reference pictures on a plane) are left out, and so are loose points (vertices no face uses: one left
+far away would make the model's size, and so the gun in the hand, wrong; the .blend keeps them).
 Texture paths are pointed at the copies in Art/Textures when they exist there, and the .blend is saved,
 so the file does not depend on a Downloads folder.
 """
@@ -25,6 +26,7 @@ import json
 import os
 import sys
 
+import bmesh
 import bpy
 
 args = sys.argv[sys.argv.index("--") + 1:]
@@ -46,6 +48,18 @@ for image in bpy.data.images:
 if relinked:
     bpy.ops.wm.save_mainfile()
     print("Relinked textures to", textures_dir)
+
+for mesh in bpy.data.meshes:   # after the save above, so only the export loses them
+    used = {index for polygon in mesh.polygons for index in polygon.vertices}
+    if len(used) < len(mesh.vertices):
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        loose = [vertex for vertex in bm.verts if not vertex.link_faces]
+        bmesh.ops.delete(bm, geom=loose, context="VERTS")
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+        print(f"Left out {len(loose)} loose point(s) of {mesh.name}")
 
 meshes = [obj for obj in bpy.data.objects if obj.type == "MESH" and min(obj.dimensions) > 1e-4]
 
