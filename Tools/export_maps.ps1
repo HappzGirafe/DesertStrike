@@ -9,6 +9,8 @@ $blender = "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
 # markers Tools/maps/<name>.json adds (spawns and sites for a map made without them; "" for none).
 $maps = @(
     @("village", "", "village_map.blend", ""),
+    @("village", "closedA", "village_closedA.blend", ""),
+    @("village", "closedB", "village_closedB.blend", ""),
     @("halloween", "", "halloween_map.blend", ""),
     @("halloween", "closedA", "halloween_closedA.blend", ""),
     @("halloween", "closedB", "halloween_closedB.blend", ""),

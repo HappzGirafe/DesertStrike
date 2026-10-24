@@ -99,6 +99,13 @@ def copy_texture(image_node, out_dir, name=None, reuse_dir=None):
         shared = os.path.join(reuse_dir, name + extension)
         if os.path.exists(shared) and open(shared, "rb").read() == data:
             return name
+        # The same picture under another name there (the map was exported when only one part used it, so it was
+        # named after that part): that one.
+        for entry in sorted(os.listdir(reuse_dir)):
+            path = os.path.join(reuse_dir, entry)
+            if (entry.lower().endswith(extension) and os.path.isfile(path) and os.path.getsize(path) == len(data)
+                    and open(path, "rb").read() == data):
+                return os.path.splitext(entry)[0]
     with open(os.path.join(out_dir, name + extension), "wb") as file:
         file.write(data)
     return name
