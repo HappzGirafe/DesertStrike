@@ -438,7 +438,7 @@ whose faces point inwards (Blender draws both sides, the game only the front) is
 `.blend` cannot find (made on another computer, with a "текстури" folder) are looked for by name in `Art/Textures`.
 
 **Closed versions.** A map can have its own version for small matches with one site's half shut, made by hand:
-`<map>_closedA.blend` / `<map>_closedB.blend` (Dune, Village, Halloween; Industrial has B), exported to
+`<map>_closedA.blend` / `<map>_closedB.blend` (Dune, Village, Halloween, Industrial: `industrialClosed_A.blend` and `industrial_closedB.blend`), exported to
 `Maps/<map>/closedA` and `closedB` (they share the map's textures). When a small match closes that site the game
 loads that version instead of building walls, checks that no spawn can walk onto the closed site (if one can, it
 says where the way in goes, in Blender's coordinates, and adds its own walls too), and marks the half nobody can

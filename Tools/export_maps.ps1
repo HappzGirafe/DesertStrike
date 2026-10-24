@@ -15,6 +15,7 @@ $maps = @(
     @("halloween", "closedA", "halloween_closedA.blend", ""),
     @("halloween", "closedB", "halloween_closedB.blend", ""),
     @("industrial", "", "industrialnorm.blend", ""),
+    @("industrial", "closedA", "industrialClosed_A.blend", ""),
     @("industrial", "closedB", "industrial_closedB.blend", ""),
     @("dune", "", "dunenorm.blend", "dune"),
     @("dune", "closedA", "dune_closedA.blend", "dune_closed"),
