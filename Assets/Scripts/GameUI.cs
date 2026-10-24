@@ -1583,7 +1583,7 @@ public partial class GameUI : MonoBehaviour
         Fill(new Rect(x, y, w, h), new Color(0f, 0f, 0f, 0.85f));
         Label(new Rect(x + 30f, y + 15f, 400f, 50f), "BUY MENU", 36, Gold);
         Label(new Rect(x + w - 330f, y + 15f, 300f, 50f), $"$ {me.Money}", 36, MoneyGreen, TextAnchor.MiddleRight);
-        string buyTime = canBuy ? $"{Mathf.Max(0f, gm.BuyTimeLeft):0}s of buy time left" : "Buy time is over";
+        string buyTime = gm.ShopsAnywhere(me) ? "Shop anywhere (cheats)" : canBuy ? $"{Mathf.Max(0f, gm.BuyTimeLeft):0}s of buy time left" : "Buy time is over";
         Label(new Rect(x + 30f, y + 62f, w - 60f, 28f), $"{buyTime}  ·  {Mathf.Max(0f, gm.SellTimeLeft):0}s to sell  ·  {(GameInput.Touch ? "CLOSE" : "B / Esc")} to close  ·  weapons carry over if you survive", 18, Dim);
 
         string[] titles = { "PISTOLS", "SMG / SHOTGUN", "RIFLES & HEAVY", "EQUIPMENT" };
@@ -2089,9 +2089,10 @@ public partial class GameUI : MonoBehaviour
     void DrawMoney(Combatant me)
     {
         Label(new Rect(20f, RefHeight - 140f, 300f, 44f), $"$ {me.Money}", 34, MoneyGreen);
-        if (gm.CanBuy(me) && !gm.BuyMenuOpen)
+        if (gm.ShopsAnywhere(me) || gm.BuyMenuOpen) return;   // the shop is always there (cheats): no reminder
+        if (gm.CanBuy(me))
             Label(new Rect(0f, RefHeight - 60f, width, 30f), $"{(GameInput.Touch ? "Tap" : "Press")} {GameInput.BuyName} to buy  ({gm.BuyTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
-        else if (gm.CanSell(me) && !gm.BuyMenuOpen && (me.Primary != null || me.Secondary != null))
+        else if (gm.CanSell(me) && (me.Primary != null || me.Secondary != null))
             Label(new Rect(0f, RefHeight - 60f, width, 30f), $"{(GameInput.Touch ? "Tap" : "Press")} {GameInput.BuyName} to sell  ({gm.SellTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);
     }
 

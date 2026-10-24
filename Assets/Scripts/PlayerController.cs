@@ -192,14 +192,21 @@ public class PlayerController : MonoBehaviour, ICombatantController
         Vector2 stick = GameInput.Move;
         Vector3 input = canMove ? new Vector3(stick.x, 0f, stick.y) : Vector3.zero;
         input = Vector3.ClampMagnitude(input, 1f);
-        if (Cheats.FlyOn)
+        if (Cheats.FlyOn || Cheats.NoClipOn)
         {
             // Fly (Cheats): no gravity, twice as fast; jump goes up, crouch goes down.
             Vector3 flying = transform.rotation * input * Self.Current.Data.MoveSpeed * 2f;
             float up = canMove ? (GameInput.JumpHeld ? 1f : 0f) - (GameInput.CrouchHeld ? 1f : 0f) : 0f;
             velocity = Vector3.Lerp(velocity, new Vector3(flying.x, up * 9f, flying.z), 1f - Mathf.Exp(-8f * dt));
             crouching = false;
-            controller.Move(velocity * dt);
+            if (Cheats.NoClipOn)
+            {
+                // No clip: the same, through walls, floors and roofs (the controller is off while it moves).
+                controller.enabled = false;
+                transform.position += velocity * dt;
+                controller.enabled = true;
+            }
+            else controller.Move(velocity * dt);
             SetHeight(Mathf.MoveTowards(controller.height, StandHeight, 5f * dt));
             return;
         }
@@ -251,10 +258,21 @@ public class PlayerController : MonoBehaviour, ICombatantController
 
     void HandleWeapons()
     {
-        if (GameInput.SlotDown is WeaponSlot slot) SwitchTo(slot);
+        if (GameInput.SlotDown is WeaponSlot slot)
+        {
+            // All weapons (Cheats): 1 / 2 with that slot in hand (or empty) takes the next rifle / pistol.
+            if (Cheats.AllWeaponsOn && slot != WeaponSlot.Knife && (Self.Get(slot) == null || Self.Current.Data.Slot == slot))
+                TakeWeapon(Cheats.NextWeapon(Self.Get(slot)?.Data, 1, slot));
+            else SwitchTo(slot);
+        }
         if (GameInput.LastWeaponDown && Self.EquipPrevious()) IsScoped = false;
         int cycle = GameInput.WeaponCycle;
-        if (cycle != 0) CycleWeapon(cycle);
+        if (cycle != 0)
+        {
+            // All weapons: the mouse wheel (the phone's weapon button) goes through every weapon, not just the three slots.
+            if (Cheats.AllWeaponsOn) TakeWeapon(Cheats.NextWeapon(Self.Current.Data, cycle));
+            else CycleWeapon(cycle);
+        }
         if (GameInput.ReloadDown && Self.StartReload()) IsScoped = false;
 
         var weapon = Self.Current;
@@ -340,6 +358,18 @@ public class PlayerController : MonoBehaviour, ICombatantController
     void SwitchTo(WeaponSlot slot)
     {
         if (!Self.Equip(slot)) return;
+        IsScoped = false;
+        rescopeAt = -1f;
+    }
+
+    void TakeWeapon(WeaponData weapon)
+    {
+        if (weapon.IsMelee)
+        {
+            SwitchTo(WeaponSlot.Knife);
+            return;
+        }
+        Cheats.TakeWeapon(GameManager.Instance, weapon);
         IsScoped = false;
         rescopeAt = -1f;
     }

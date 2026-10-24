@@ -34,7 +34,7 @@ public partial class GameUI
         bool enter = e.type == EventType.KeyDown && (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter);
         float w = Mathf.Min(1100f, width - 40f), x = (width - w) / 2f, y = 90f;
         bool admin = Cheats.IsAdmin(gm);
-        float h = (Cheats.On ? 420f : 320f) + (admin ? 70f : 0f);   // the switches below the line; an admin's button last
+        float h = (Cheats.On ? 484f : 320f) + (admin ? 70f : 0f);   // the switches below the line; an admin's button last
         Fill(new Rect(x, y, w, h), new Color(0.02f, 0.02f, 0.03f, 0.92f));
         Fill(new Rect(x, y, w, 4f), Gold);
         Label(new Rect(x + 20f, y + 10f, w - 40f, 30f), "CONSOLE", 22, Gold);
@@ -72,25 +72,30 @@ public partial class GameUI
             consoleLines.Add(Cheats.SetForEveryone(gm, !gm.CheatsForEveryone));
 
         if (!Cheats.On) return;
-        // The switches.
-        float sy = y + 290f, sw = (w - 40f - 5f * 10f) / 6f;
-        string[] names = { "AIMBOT", "FLY", "INFINITE AMMO", "WALL HACK", "INFINITE MONEY", "INFINITE HEALTH" };
-        bool[] on = { Cheats.Aimbot, Cheats.Fly, Cheats.InfiniteAmmo, Cheats.WallHack, Cheats.InfiniteMoney, Cheats.InfiniteHealth };
+        // The switches, five to a row.
+        float sy = y + 290f, sw = (w - 40f - 4f * 10f) / 5f;
+        string[] names = { "AIMBOT", "FLY", "NO CLIP", "WALL HACK", "ALL WEAPONS", "INFINITE AMMO", "INFINITE MONEY", "INFINITE HEALTH", "SHOP ANYWHERE" };
+        bool[] on = { Cheats.Aimbot, Cheats.Fly, Cheats.NoClip, Cheats.WallHack, Cheats.AllWeapons, Cheats.InfiniteAmmo, Cheats.InfiniteMoney,
+                      Cheats.InfiniteHealth, Cheats.ShopAnywhere };
         for (int i = 0; i < names.Length; i++)
         {
-            if (!Button(new Rect(x + 20f + i * (sw + 10f), sy, sw, 56f), names[i], on[i], true, 16)) continue;
+            if (!Button(new Rect(x + 20f + i % 5 * (sw + 10f), sy + i / 5 * 64f, sw, 56f), names[i], on[i], true, 16)) continue;
             switch (i)
             {
                 case 0: Cheats.Aimbot = !Cheats.Aimbot; break;
                 case 1: Cheats.Fly = !Cheats.Fly; break;
-                case 2: Cheats.InfiniteAmmo = !Cheats.InfiniteAmmo; break;
+                case 2: Cheats.NoClip = !Cheats.NoClip; break;
                 case 3: Cheats.WallHack = !Cheats.WallHack; break;
-                case 4: Cheats.InfiniteMoney = !Cheats.InfiniteMoney; break;
-                case 5: Cheats.InfiniteHealth = !Cheats.InfiniteHealth; break;
+                case 4: Cheats.AllWeapons = !Cheats.AllWeapons; break;
+                case 5: Cheats.InfiniteAmmo = !Cheats.InfiniteAmmo; break;
+                case 6: Cheats.InfiniteMoney = !Cheats.InfiniteMoney; break;
+                case 7: Cheats.InfiniteHealth = !Cheats.InfiniteHealth; break;
+                case 8: Cheats.ShopAnywhere = !Cheats.ShopAnywhere; break;
             }
         }
-        Label(new Rect(x + 20f, sy + 64f, w - 40f, 26f),
-              GameInput.Touch ? "Fly: JUMP goes up, CROUCH goes down. Infinite ammo: 999 in reserve." : "Fly: Space goes up, Ctrl goes down. Infinite ammo: 999 in reserve.",
+        Label(new Rect(x + 20f, sy + 128f, w - 40f, 26f),
+              GameInput.Touch ? "Fly and no clip: JUMP up, CROUCH down. All weapons: the weapon button goes through every gun."
+                              : "Fly and no clip: Space up, Ctrl down. All weapons: mouse wheel (or 1 / 2 again) for the next gun.",
               16, Dim);
     }
 
@@ -108,10 +113,13 @@ public partial class GameUI
         var parts = new List<string>();
         if (Cheats.Aimbot) parts.Add("AIMBOT");
         if (Cheats.Fly) parts.Add("FLY");
-        if (Cheats.InfiniteAmmo) parts.Add("INFINITE AMMO");
+        if (Cheats.NoClip) parts.Add("NO CLIP");
         if (Cheats.WallHack) parts.Add("WALL HACK");
+        if (Cheats.AllWeapons) parts.Add("ALL WEAPONS");
+        if (Cheats.InfiniteAmmo) parts.Add("INFINITE AMMO");
         if (Cheats.InfiniteMoney) parts.Add("INFINITE MONEY");
         if (Cheats.InfiniteHealth) parts.Add("INFINITE HEALTH");
+        if (Cheats.ShopAnywhere) parts.Add("SHOP ANYWHERE");
         if (!gm.ConsoleOpen)
             Label(new Rect(0f, 78f, width, 26f), parts.Count > 0 ? "CHEATS: " + string.Join("  ·  ", parts) : "CHEATS ON", 17, CheatColor,
                   TextAnchor.MiddleCenter);

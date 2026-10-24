@@ -174,6 +174,8 @@ public class GameManager : MonoBehaviour
     string exportClosed;    // -ds-export-closed <folder>: writes the map and its closing walls for Blender, and quits (see MapExport)
     bool startTutorial;     // -ds-tutorial
     bool cheatsTest;        // -ds-cheats-test (logged in as an admin): every cheat on, flies up firing, logs what each did
+    bool pauseMenuTest;     // -ds-pause-menu: opens the pause menu once the match is on (screenshots of it)
+    bool cheatsShopTested;
     float cheatsEveryoneFor = -1f, cheatsEveryoneAt = -1f;   // -ds-cheats-everyone [seconds]: an admin host turns it on (and off)
     float cheatsTestAt = -1f;
     bool tutorialTest;      // -ds-tutorial-test: plays the tutorial through with pretend controls (GameInput.Fake), logging each step
@@ -803,12 +805,16 @@ public class GameManager : MonoBehaviour
         (c.Team == Team.Terrorists ? Map.TerroristBuyZone : Map.SwatBuyZone).Contains(c.transform.position + Vector3.up * 0.5f);
 
     public bool CanBuy(Combatant c) =>
-        c != null && c.IsAlive && (InBuyZone(c) || Tutorial != null)   // the tutorial's shop step comes after walking away
-        && (State == MatchState.Freeze || (State == MatchState.Live && BuyTimeLeft > 0f));
+        c != null && c.IsAlive && (ShopsAnywhere(c) || (InBuyZone(c) || Tutorial != null)   // the tutorial's shop step comes after walking away
+        && (State == MatchState.Freeze || (State == MatchState.Live && BuyTimeLeft > 0f)));
 
     public bool CanSell(Combatant c) =>
-        c != null && c.IsAlive && InBuyZone(c)
-        && (State == MatchState.Freeze || (State == MatchState.Live && SellTimeLeft > 0f));
+        c != null && c.IsAlive && (ShopsAnywhere(c) || InBuyZone(c)
+        && (State == MatchState.Freeze || (State == MatchState.Live && SellTimeLeft > 0f)));
+
+    /// <summary>Shop anywhere (Cheats): buying and selling all round long, anywhere on the map.</summary>
+    public bool ShopsAnywhere(Combatant c) =>
+        Cheats.Has(c, Cheats.ShopFlag) && (State == MatchState.Freeze || State == MatchState.Live);
 
     /// <summary>The shop (B) is open while you can buy or sell.</summary>
     public bool CanShop(Combatant c) => CanBuy(c) || CanSell(c);
@@ -1368,6 +1374,9 @@ public class GameManager : MonoBehaviour
                 case "-ds-cheats-test":
                     cheatsTest = true;
                     break;
+                case "-ds-pause-menu":
+                    pauseMenuTest = true;
+                    break;
                 case "-ds-cheats-everyone":
                     cheatsEveryoneFor = hasValue && float.TryParse(args[i + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float keep) ? keep : 0f;
                     if (hasValue && cheatsEveryoneFor > 0f) i++;
@@ -1561,7 +1570,9 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>-ds-cheats-test: the console's "/cheats on" and every switch, then 2 s flying up while firing (aimbot,
-    /// infinite ammo) until two kills or 40 s, with screenshots (-ds-capture); logs height, ammo, money and kills, then "/cheats off".</summary>
+    /// infinite ammo) until two kills or 40 s, with screenshots (-ds-capture); on the way three guns from the mouse wheel
+    /// (all weapons), a dive through the floor and back and a flight out of the spawn (no clip), and a buy there after the
+    /// buy time (shop anywhere). Logs height, ammo, money, weapons and kills, then "/cheats off".</summary>
     void RunCheatsTest()
     {
         if (State != MatchState.Live || Warmup || !Player.Self.IsAlive) return;   // after warmup (online rooms have one)
@@ -1569,13 +1580,14 @@ public class GameManager : MonoBehaviour
         var me = Player.Self;
         var fake = GameInput.Fake ??= new GameInput.Pretend();
         fake.Move = fake.Look = Vector2.zero;
-        fake.Jump = fake.Fire = false;
+        fake.Jump = fake.Fire = fake.Crouch = false;
         if (cheatsTestAt < 0f)
         {
             cheatsTestAt = Time.time;
             ConsoleOpen = true;
             Debug.Log($"[CheatsTest] /cheats on: {Cheats.Command(this, "/cheats on")}");
             Cheats.Aimbot = Cheats.Fly = Cheats.InfiniteAmmo = Cheats.WallHack = Cheats.InfiniteMoney = Cheats.InfiniteHealth = true;
+            Cheats.ShopAnywhere = Cheats.AllWeapons = true;
             Debug.Log($"[CheatsTest] start: height {Player.transform.position.y:0.0} m, ${me.Money}, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}");
             if (captureDirectory != null) nextCaptureAt = Time.realtimeSinceStartup + 1f;
             return;
@@ -1586,8 +1598,35 @@ public class GameManager : MonoBehaviour
         if (t > 3.5f && t - Time.deltaTime <= 3.5f)
             Debug.Log($"[CheatsTest] flying: height {Player.transform.position.y:0.0} m, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}");
         if (t > 3f && t < 40f) fake.Fire = true;   // the aimbot aims at whoever comes into sight
+        if (Passed(t, 4.6f) || Passed(t, 5.2f) || Passed(t, 5.8f))
+        {
+            Cheats.TakeWeapon(this, Cheats.NextWeapon(me.Current.Data, 1));
+            Debug.Log($"[CheatsTest] all weapons: next is {Cheats.NextWeapon(me.Current.Data, 1).Name}; in hand {me.Current.Data.Name}");
+        }
+        if (Passed(t, 6.4f))
+        {
+            Cheats.NoClip = true;
+            Debug.Log($"[CheatsTest] no clip: diving from {Player.transform.position.y:0.0} m, in hand {me.Current.Data.Name}");
+        }
+        if (t > 6.4f && t < 8f) fake.Crouch = true;   // down through the floor
+        if (Passed(t, 8f)) Debug.Log($"[CheatsTest] no clip: under the floor at {Player.transform.position.y:0.0} m");
+        if (t > 8f && t < 9.8f) fake.Jump = true;     // and back up
+        if (Passed(t, 9.8f)) Debug.Log($"[CheatsTest] no clip: back at {Player.transform.position.y:0.0} m");
+        if (t > 9.8f && t < 13f) fake.Move = new Vector2(0f, 1f);   // out of the spawn, through whatever is in the way
+        if (Passed(t, 13f))
+        {
+            Cheats.NoClip = false;
+            Debug.Log($"[CheatsTest] no clip off at {Player.transform.position}");
+        }
+        if (!cheatsShopTested && t > 13f && BuyTimeLeft < 0f)
+        {
+            cheatsShopTested = true;
+            bool canBuy = CanBuy(me), inZone = InBuyZone(me);
+            BuyWeapon(WeaponData.Awp);
+            Debug.Log($"[CheatsTest] shop anywhere: can buy {canBuy} (in the buy zone {inZone}, buy time left {BuyTimeLeft:0} s), bought the AWP: {me.Primary?.Data.Name}");
+        }
         if (captureDirectory != null && Mathf.Abs(t - 3.5f) < Time.deltaTime) nextCaptureAt = Time.realtimeSinceStartup;
-        if ((t > 40f || me.Kills >= 2) && Cheats.On)
+        if ((t > 40f || me.Kills >= 2 && cheatsShopTested) && Cheats.On)
         {
             Debug.Log($"[CheatsTest] after: height {Player.transform.position.y:0.0} m, ${me.Money}, {me.Current?.Data.Name} {me.Current?.Mag}/{me.Current?.Reserve}, kills {me.Kills}, health {me.Health}, deaths {me.Deaths}");
             Debug.Log($"[CheatsTest] /cheats off: {Cheats.Command(this, "/cheats off")}; on now: {Cheats.On}");
@@ -1595,6 +1634,8 @@ public class GameManager : MonoBehaviour
             cheatsTest = false;
         }
     }
+
+    static bool Passed(float t, float at) => t >= at && t - Time.deltaTime < at;
 
     /// <summary>-ds-tutorial-test: does each step of the tutorial with pretend controls, the way a player would (only the
     /// walk to the bombsite is a jump there), with a screenshot of each step (-ds-capture), and presses FINISH at the end.</summary>
@@ -1748,6 +1789,11 @@ public class GameManager : MonoBehaviour
         if (sellTestStep >= 0 && Player != null && Round == 1) RunSellTest();
         if (tutorialTest && Tutorial != null && Player != null) RunTutorialTest();
         if (cheatsTest && Player != null) RunCheatsTest();
+        if (pauseMenuTest && State == MatchState.Live && !Warmup && Time.time - roundStartedAt > 3f)
+        {
+            pauseMenuTest = false;
+            SetPaused(true);
+        }
         if (cheatsEveryoneFor >= 0f && State == MatchState.Live && !Warmup && Cheats.IsAdmin(this))
         {
             if (cheatsEveryoneAt < 0f)

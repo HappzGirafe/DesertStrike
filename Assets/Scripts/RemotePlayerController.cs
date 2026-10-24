@@ -7,7 +7,7 @@ using UnityEngine.AI;
 ///
 /// The other game could be changed to cheat, so what it sends is checked here: shots no faster than the weapon fires
 /// and never straighter than it shoots (the spread it sends may only make them worse), and in online games every
-/// move too: no faster than running, no flying (but an admin's Cheats), nothing through walls. A move that fails is not taken; after several
+/// move too: no faster than running, no flying, nothing through walls (but an admin's Cheats: fly, no clip). A move that fails is not taken; after several
 /// the player is put back where the host has them. Purchases, reloads and the bomb already follow the host's rules.
 /// </summary>
 [RequireComponent(typeof(Combatant))]
@@ -108,12 +108,13 @@ public class RemotePlayerController : MonoBehaviour, ICombatantController
         Vector3 from = transform.position, flat = target - from;
         flat.y = 0f;
         float distance = flat.magnitude, rise = target.y - from.y;
-        bool flying = (Self.CheatFlags & Cheats.FlyFlag) != 0;   // an admin flying (Cheats): only walls stop them
+        bool noClip = (Self.CheatFlags & Cheats.NoClipFlag) != 0;   // no clip (Cheats): nothing stops them
+        bool flying = noClip || (Self.CheatFlags & Cheats.FlyFlag) != 0;   // fly (Cheats): only walls stop them
         if (!flying && (distance > moveBudget || rise > riseBudget || -rise > MaxFallSpeed * Mathf.Max(passed, 0.1f) + 1f)) return false;
         // Through a wall: anything of the map between the two places, at half the player's height (under low
         // ceilings when crouching, over small steps).
         Vector3 lift = Vector3.up * (Self.Height * 0.5f);
-        if (distance > 0.01f && Physics.Linecast(from + lift, target + lift, Ballistics.EnvironmentMask, QueryTriggerInteraction.Ignore))
+        if (!noClip && distance > 0.01f && Physics.Linecast(from + lift, target + lift, Ballistics.EnvironmentMask, QueryTriggerInteraction.Ignore))
             return false;
         moveBudget -= distance;
         if (rise > 0f) riseBudget -= rise;
@@ -169,6 +170,7 @@ public class RemotePlayerController : MonoBehaviour, ICombatantController
                     Debug.Log(Peer.IsAdmin || gm.CheatsForEveryone ? $"[Net] {Peer.Name} ({(Peer.IsAdmin ? "admin" : "cheats for everyone")}): cheats {flags}" : $"[Net] {Peer.Name} asked for cheats and is no admin: refused");
                 Self.CheatFlags = flags;
                 break;
+            case NetAction.CheatWeapon: Self.TakeCheatWeapon(WeaponData.FromIndex(argument)); break;   // only with the cheat
             case NetAction.CheatsForEveryone:
                 if (Peer.IsAdmin) gm.SetCheatsForEveryone(argument != 0, Peer.Name);
                 else Debug.Log($"[Net] {Peer.Name} asked to switch cheats for everyone and is no admin: refused");

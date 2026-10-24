@@ -5,7 +5,7 @@ using UnityEngine;
 
 /// <summary>
 /// Voice chat for LAN and online games: hold V during a match to talk (or, with Open mic, just speak); everyone in
-/// the game hears you. A player can be muted for yourself (pause menu, or the online room's player list).
+/// the game hears you. A player can be muted or turned down for yourself (pause menu, or the online room's player list).
 ///
 /// The microphone is recorded at 16 kHz, cut into 20 ms frames, squeezed to 8 bits per sample (G.711 mu-law,
 /// 16 KB/s, plenty for a LAN) and sent through <see cref="NetSession"/>: a client sends to the host, the host plays
@@ -86,6 +86,21 @@ public class VoiceChat : MonoBehaviour
 
     public bool IsMuted(string speaker) => muted.Contains(speaker);
 
+    /// <summary>How loud this player hears a speaker, 0 to 1 (their voice turned down for this player only: the pause
+    /// menu's VOICE list or the online room's players); kept between games.</summary>
+    public float VolumeOf(string speaker) => PlayerPrefs.GetFloat(VolumeKeyOf(speaker), 1f);
+
+    public void SetVolume(string speaker, float volume)
+    {
+        volume = Mathf.Clamp01(Mathf.Round(volume * 10f) / 10f);
+        if (volume >= 1f) PlayerPrefs.DeleteKey(VolumeKeyOf(speaker));
+        else PlayerPrefs.SetFloat(VolumeKeyOf(speaker), volume);
+        if (speakers.TryGetValue(speaker, out var output) && output != null) output.Volume = volume;
+    }
+
+    const string VolumeKey = "DesertStrike.voice.volume.";   // + the speaker's name
+    static string VolumeKeyOf(string speaker) => VolumeKey + speaker.ToLowerInvariant();
+
     /// <summary>Mutes or unmutes one player for this player only (until the game is closed).</summary>
     public void SetMuted(string speaker, bool mute)
     {
@@ -110,6 +125,11 @@ public class VoiceChat : MonoBehaviour
         testTone = Array.IndexOf(args, "-ds-voice-test") >= 0;
         log = Array.IndexOf(args, "-ds-voice-log") >= 0;
         micCheck = Array.IndexOf(args, "-ds-mic-check") >= 0;
+        // -ds-voice-volume <name> <0-1>: that speaker turned down, as with the pause menu's - (tests; kept like it).
+        int volume = Array.IndexOf(args, "-ds-voice-volume");
+        if (volume >= 0 && volume + 2 < args.Length && float.TryParse(args[volume + 2], System.Globalization.NumberStyles.Float,
+                                                                       System.Globalization.CultureInfo.InvariantCulture, out float level))
+            SetVolume(args[volume + 1], level);
     }
 
     void Update()
@@ -164,7 +184,8 @@ public class VoiceChat : MonoBehaviour
         {
             nextLog = Time.unscaledTime + 2f;
             foreach (var pair in speakers)
-                Debug.Log($"[Voice] {pair.Key}: {pair.Value.Packets} packets, {pair.Value.BufferedMs:0} ms buffered, {pair.Value.Underruns} gaps");
+                Debug.Log($"[Voice] {pair.Key}: {pair.Value.Packets} packets, {pair.Value.BufferedMs:0} ms buffered, {pair.Value.Underruns} gaps, " +
+                          $"volume {pair.Value.Volume:0.0}, loudest {pair.Value.TakePeak():0.000}");
             if (Talking) Debug.Log($"[Voice] sending, packet {sequence}");
         }
     }
@@ -186,6 +207,7 @@ public class VoiceChat : MonoBehaviour
             go.transform.SetParent(transform, false);
             go.AddComponent<AudioSource>();          // the AudioSource comes first, so the voice is mixed into its output
             output = go.AddComponent<VoiceOutput>();
+            output.Volume = VolumeOf(speaker);
             speakers[speaker] = output;
         }
         output.Push(data, offset, count);
@@ -437,6 +459,15 @@ public class VoiceOutput : MonoBehaviour
     double step, fraction;
 
     public float LastHeard { get; private set; }
+    public float Volume = 1f;   // this speaker turned down (VoiceChat.SetVolume)
+    float peak;                 // the loudest sample played since TakePeak (-ds-voice-log)
+
+    public float TakePeak()
+    {
+        float loudest = peak;
+        peak = 0f;
+        return loudest;
+    }
     public int Packets { get; private set; }
     public int Underruns { get; private set; }
     public float BufferedMs { get { lock (gate) return buffered * 1000f / VoiceChat.SampleRate; } }
@@ -483,6 +514,7 @@ public class VoiceOutput : MonoBehaviour
         {
             if (!playing && buffered >= StartSamples) playing = true;
             if (!playing) return;
+            float volume = Volume;
             for (int i = 0; i < data.Length; i += channels)
             {
                 if (buffered < 2)
@@ -492,7 +524,8 @@ public class VoiceOutput : MonoBehaviour
                     return;
                 }
                 float a = ring[read], b = ring[(read + 1) % ring.Length];
-                float sample = a + (b - a) * (float)fraction;
+                float sample = (a + (b - a) * (float)fraction) * volume;
+                if (sample > peak) peak = sample;
                 for (int c = 0; c < channels; c++) data[i + c] += sample;
                 fraction += buffered > CatchUpSamples ? step * 1.06 : step;
                 while (fraction >= 1.0)

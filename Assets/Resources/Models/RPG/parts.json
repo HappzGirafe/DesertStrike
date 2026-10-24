@@ -13,7 +13,7 @@
     },
     {
       "name": "Detail.001",
-      "texture": "rpg7_wood",
+      "texture": "\u0433\u043d\u0441\u0440\u043b\u0444",
       "color": "",
       "metallic": 0.5,
       "smoothness": 0.3,
@@ -24,7 +24,7 @@
     },
     {
       "name": "Detail.002",
-      "texture": "rpg7_wood",
+      "texture": "\u0433\u043d\u0441\u0440\u043b\u0444",
       "color": "",
       "metallic": 0.5,
       "smoothness": 0.3,
@@ -101,7 +101,7 @@
     },
     {
       "name": "Detail.008",
-      "texture": "rpg7_wood",
+      "texture": "\u0433\u043d\u0441\u0440\u043b\u0444",
       "color": "",
       "metallic": 0.5,
       "smoothness": 0.36,

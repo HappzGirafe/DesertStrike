@@ -180,6 +180,19 @@ public class Combatant : MonoBehaviour
         return true;
     }
 
+    /// <summary>All weapons (Cheats): that gun, free, into its slot in place of the one there, and in hand (the knife:
+    /// just in hand). Only for a combatant with the cheat (<see cref="CheatFlags"/>).</summary>
+    public bool TakeCheatWeapon(WeaponData weapon)
+    {
+        if (weapon == null || !IsAlive || (CheatFlags & Cheats.AllWeaponsFlag) == 0) return false;
+        if (weapon.IsMelee || Get(weapon.Slot)?.Data == weapon) return Equip(weapon.Slot);
+        var instance = new WeaponInstance(weapon) { SellPrice = 0 };
+        if (weapon.Slot == WeaponSlot.Primary) Primary = instance;
+        else Secondary = instance;
+        SetCurrent(instance, 0.4f);
+        return true;
+    }
+
     /// <summary>Sells the gun in a slot back (never the knife) for its <see cref="WeaponInstance.SellPrice"/>.</summary>
     public bool TrySell(WeaponSlot slot)
     {

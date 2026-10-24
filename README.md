@@ -106,7 +106,6 @@ the **INVENTORY**:
 | Knife: nogektestskin | 1000 |
 | Desert Eagle: digle | 750 |
 | RPG: Web | 400 |
-| RPG: RPG-7 | 400 |
 
 A skin bought is yours for good, on every computer and phone you log in on. Until then it shows its price and a
 padlock. A skin is sold for tokens when its `skin.json` has `"tokens": <price>` (the price shown until the server's is
@@ -122,11 +121,13 @@ each skin can be given or taken back. The right side lists what admins did latel
 
 **Console and cheats (admins):** in a match, **`** (the key left of 1; on a phone **CONSOLE** in the pause menu) opens
 the console. **/cheats on** turns the cheats on and shows their switches: **AIMBOT** (the view locks onto the head of
-the nearest enemy in sight), **FLY** (no gravity; Space or JUMP up, Ctrl or CROUCH down), **INFINITE AMMO** (full
-magazines, 999 in reserve), **WALL HACK** (a box, name, health and distance round every enemy, through walls),
-**INFINITE MONEY** ($16000) and **INFINITE HEALTH** (hit, never hurt). **/cheats off** turns them all off; **/help**
+the nearest enemy in sight), **FLY** (no gravity; Space or JUMP up, Ctrl or CROUCH down), **NO CLIP** (flying
+through walls, floors and roofs), **WALL HACK** (a box, name, health and distance round every enemy, through walls),
+**ALL WEAPONS** (every gun, free: the mouse wheel or the phone's weapon button goes through all of them, 1 or 2 again
+to the next rifle or pistol), **INFINITE AMMO** (full magazines, 999 in reserve), **INFINITE MONEY** ($16000),
+**INFINITE HEALTH** (hit, never hurt) and **SHOP ANYWHERE** (B buys and sells all round long, anywhere on the map). **/cheats off** turns them all off; **/help**
 lists the commands. They work only for admin accounts, in every match but the tutorial: against bots, in LAN games
-(hosting or joining) and in online rooms. Whoever runs the match carries out fly, ammo, money and health, and only for a
+(hosting or joining) and in online rooms. Whoever runs the match carries out all but aimbot and wall hack, and only for a
 player the online server vouches for: in an online room by the join ticket's admin mark, in a LAN game by an admin's
 pass (`/admin/lan-pass`) that the LAN host checks online (so a LAN host needs internet for a guest's cheats). Aimbot
 and wall hack happen in the player's own game.
@@ -203,7 +204,8 @@ or playing. **JOIN** one, **QUICK JOIN** the first with a free place, join a pri
 **CREATE ROOM** (name, map, players in each team, bots, rounds, friendly fire, everyone or with the code). In the room you pick
 Terrorists, SWAT or Watch, invite friends, and its owner presses **START MATCH**; bots fill the free places. After the
 match everyone is back in the room. If the connection drops, the game joins again by itself and gets its player back
-(within a minute). Voice chat works as in LAN games; the pause menu and the room's player list can **MUTE** a player.
+(within a minute). Voice chat works as in LAN games; the pause menu and the room's player list can turn a player down
+(**-** / **+**) or **MUTE** them.
 
 **Time in the game:** the server counts how long each online account has the game open and logged in (menus and
 matches), for as long as the account exists (counted from 1.20 on). **ACCOUNT** shows your own; the friends list,
@@ -233,6 +235,8 @@ people talking appear under the radar. Settings > *When the others hear you* > *
 whenever you speak, without a key (use headphones). During a LAN match the HUD always shows the microphone:
 "Hold V to talk", "You" with a level bar while talking, "Open mic", or what is wrong. The microphone starts the first time you press V (macOS asks for
 permission once) and stops when the LAN game ends. Settings > *Voice chat (LAN and online games)* turns it off.
+Someone too loud: the pause menu's **VOICE** list (and an online room's player list) has **-** and **+** for each player,
+turning their voice down for you in steps of 10% (kept for next time), and **MUTE**.
 **TEST MICROPHONE** in Settings shows a level bar that moves when you speak, without a second computer. If the
 game cannot use the microphone, it says why (not allowed, no microphone, only silence) and where to turn it on;
 on a Mac that is System Settings > Privacy & Security > Microphone > Low Strike (then restart the game).
@@ -304,13 +308,12 @@ Hover a skin to preview it and click to equip it; the choice is saved. Bots carr
 
 Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
 Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
-nogektestskin and karambit (knife), digle (Desert Eagle), and Web and RPG-7 (RPG; RPG-7 is `RPG.blend`, a classic
-launcher with wooden grips).
+nogektestskin and karambit (knife), digle (Desert Eagle), and Web (RPG).
 
 The Glock-18, USP, TEC-DC9, M1911, Desert Eagle (`digle_default.blend`), Uzi, MP5, Pump Shotgun, M4A1, AK-47, SVD,
-AWP (since 1.20 the green one with scope and bipod) and knife (since 1.20 the Classic knife, `klasiknogen.blend`)
-use Blender models. Their **Default** skin is the model's own look from Blender; the other skins ("wraps") paint
-over it. The RPG is built from boxes.
+AWP (since 1.20 the green one with scope and bipod), knife (since 1.20 the Classic knife, `klasiknogen.blend`) and
+RPG (since 1.20.1 the RPG-7 with wooden grips, `RPG.blend`) use Blender models. Their **Default** skin is the model's
+own look from Blender; the other skins ("wraps") paint over it.
 
 ### Skin folders
 
@@ -542,7 +545,9 @@ account), and `-ds-accounts-file <file>` keeps test accounts out of the real `ac
 `-ds-difficulty <easy|normal|hard|extreme>` sets the bots, `-ds-players <1-5>` the players per team, and
 `-ds-attack <a|b>` sends the Terrorist bots to that site every round. `-ds-tutorial` starts the tutorial at once, and
 `-ds-cheats-test` (logged in as an admin) turns every cheat on with the console, flies up and
-shoots with the aimbot, and logs what each cheat did; `-ds-cheats-everyone [seconds]` (an admin host) turns on cheats
+shoots with the aimbot, goes through three guns, dives through the floor, flies out of the spawn and buys there after
+the buy time, and logs what each cheat did; `-ds-pause-menu` opens the pause menu once the match is on, and
+`-ds-voice-volume <name> <0-1>` turns that player's voice down; `-ds-cheats-everyone [seconds]` (an admin host) turns on cheats
 for everyone, and off again after that long. `-ds-tutorial-test` plays it through by itself with pretend controls (logging each step, a screenshot of each with
 `-ds-capture`) and presses FINISH. On a Blender map the log says how far it is to
 walk from each spawn to each site ("no way" means the bots cannot get there), `-ds-navmesh-obj <file>` saves

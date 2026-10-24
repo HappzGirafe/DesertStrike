@@ -336,12 +336,13 @@ public partial class GameUI
             Fill(new Rect(left, y, column, 42f), new Color(1f, 1f, 1f, me ? 0.1f : 0.05f));
             Fill(new Rect(left + 12f, y + 15f, 12f, 12f), m.connected ? MoneyGreen : OfflineColor);
             string side = m.team == "spectator" ? "watching" : m.team == "swat" ? "SWAT" : "Terrorists";
-            Label(new Rect(left + 34f, y, column - 200f, 42f),
+            Label(new Rect(left + 34f, y, column - (me || voice == null ? 200f : 350f), 42f),
                   $"{m.nick}{(m.owner ? "  (owner)" : "")}{(me ? "  (you)" : "")}   ·  {side}{(m.connected ? "" : "  ·  not connected")}", 19, color);
             if (!me && voice != null)
             {
                 bool muted = voice.IsMuted(m.nick);
                 if (Button(new Rect(left + column - 130f, y + 5f, 120f, 32f), muted ? "UNMUTE" : "MUTE", muted, true, 15)) voice.SetMuted(m.nick, !muted);
+                VolumeControl(new Rect(left + column - 280f, y + 5f, 140f, 32f), voice, m.nick, muted);
             }
             y += 48f;
         }
@@ -727,7 +728,18 @@ public partial class GameUI
         else gm.ReturnToMenu();
     }
 
-    // The pause menu's list of the other people in the game, each with MUTE (voice chat, for this player only).
+    // A speaker's voice turned down or up again for this player only: - 70% + (in steps of 10%, at most 100%).
+    void VolumeControl(Rect r, VoiceChat voice, string name, bool muted)
+    {
+        float volume = voice.VolumeOf(name), button = r.height + 4f;
+        if (Button(new Rect(r.x, r.y, button, r.height), "-", false, !muted && volume > 0f, 18)) voice.SetVolume(name, volume - 0.1f);
+        Label(new Rect(r.x + button, r.y, r.width - 2f * button, r.height), $"{Mathf.RoundToInt(volume * 100f)}%", 16,
+              muted || volume <= 0f ? Dim : Color.white, TextAnchor.MiddleCenter);
+        if (Button(new Rect(r.xMax - button, r.y, button, r.height), "+", false, !muted && volume < 1f, 18)) voice.SetVolume(name, volume + 0.1f);
+    }
+
+    // The pause menu's list of the other people in the game, each with their voice's volume and MUTE (voice chat, for
+    // this player only).
     void DrawMuteList(float x, float y)
     {
         var voice = VoiceChat.Instance;
@@ -739,14 +751,15 @@ public partial class GameUI
             foreach (var m in Online.Room.members)
                 if (m.user_id != Online.User.id && !names.Contains(m.nick)) names.Add(m.nick);
         if (names.Count == 0) return;
-        float w = 360f;
+        float w = Mathf.Clamp(width - x - 20f, 440f, 520f);   // narrower beside the pause menu on a 4:3 screen
         Fill(new Rect(x, y, w, 70f + names.Count * 46f), PanelColor);
         Label(new Rect(x, y + 12f, w, 40f), "VOICE", 26, Gold, TextAnchor.MiddleCenter);
         y += 62f;
         foreach (string name in names)
         {
             bool muted = voice.IsMuted(name);
-            Label(new Rect(x + 20f, y, w - 170f, 40f), name, 19, muted ? Dim : Color.white);
+            Label(new Rect(x + 20f, y, w - 330f, 40f), name, 19, muted ? Dim : Color.white);
+            VolumeControl(new Rect(x + w - 300f, y + 3f, 150f, 34f), voice, name, muted);
             if (Button(new Rect(x + w - 140f, y + 3f, 120f, 34f), muted ? "UNMUTE" : "MUTE", muted, true, 15)) voice.SetMuted(name, !muted);
             y += 46f;
         }
