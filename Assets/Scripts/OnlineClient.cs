@@ -24,6 +24,7 @@ public class OnlineUser
     public string id, nick, created_at;
     public bool hide_status, linked_local, admin;
     public int played = -1;   // seconds online in the game since the account was made (-1: an older API)
+    public string email = "", email_pending = "";   // password recovery (online-server/recovery.py): confirmed / waiting for its code
     public OnlineProfile profile = new OnlineProfile();
 }
 
@@ -110,6 +111,12 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class InviteBody { public string user_id; }
     [Serializable] class PasswordBody { public string password; }
     [Serializable] class PasswordChange { public string old_password, new_password; }
+    [Serializable] class EmailBody { public string email, password, lang; }
+    [Serializable] class EmailAnswer { public string email, pending; }
+    [Serializable] class CodeBody { public string code; }
+    [Serializable] class ForgotBody { public string nick, lang; }
+    [Serializable] class ForgotAnswer { public string message; }
+    [Serializable] class ResetBody { public string nick, code, new_password; }
     [Serializable] class ProfileBody { public OnlineProfile profile; }
     [Serializable] class LinkBody { public bool linked_local = true; public OnlineProfile profile; }
     [Serializable] class HideBody { public bool hide_status; }
@@ -663,6 +670,68 @@ public class OnlineClient : MonoBehaviour
         busy++;
         Ask(null, "POST", "/me/password", new PasswordChange { old_password = oldPassword, new_password = newPassword },
             text => { busy--; done(null); }, (code, message) => { busy--; done(message); });
+    }
+
+    // ----------------------------------------------------------------- password recovery (online-server/recovery.py)
+
+    /// <summary>Sets the account's email (after its password): a code goes there, and the address counts once
+    /// <see cref="ConfirmEmail"/> gets it. "" removes the email.</summary>
+    public void SetEmail(string email, string password, Action<string> done)
+    {
+        busy++;
+        Ask(null, "POST", "/me/email", new EmailBody { email = (email ?? "").Trim(), password = password, lang = Loc.Language }, text =>
+        {
+            busy--;
+            var answer = JsonUtility.FromJson<EmailAnswer>(text);
+            User.email = answer.email ?? "";
+            User.email_pending = answer.pending ?? "";
+            done(null);
+        }, (status, message) => { busy--; done(message); });
+    }
+
+    public void ConfirmEmail(string code, Action<string> done)
+    {
+        busy++;
+        Ask(null, "POST", "/me/email/confirm", new CodeBody { code = code }, text =>
+        {
+            busy--;
+            var answer = JsonUtility.FromJson<EmailAnswer>(text);
+            User.email = answer.email ?? "";
+            User.email_pending = "";
+            done(null);
+        }, (status, message) => { busy--; done(message); });
+    }
+
+    /// <summary>A forgotten password: the server mails a code to the account's confirmed email. <paramref name="done"/>
+    /// gets the server's answer (the same whether the account exists or not) and what went wrong, or null.</summary>
+    public void ForgotPassword(string nick, Action<string, string> done)
+    {
+        busy++;
+        Ask(null, "POST", "/auth/forgot", new ForgotBody { nick = (nick ?? "").Trim(), lang = Loc.Language }, text =>
+        {
+            busy--;
+            done(JsonUtility.FromJson<ForgotAnswer>(text).message, null);
+        }, (status, message) => { busy--; done(null, message); }, withToken: false);
+    }
+
+    /// <summary>The code from that mail and a new password: logs in with it (every other device is logged out).</summary>
+    public void ResetPassword(string nick, string code, string newPassword, Action<string> done)
+    {
+        string before = Accounts.LoggedIn && !Accounts.IsOnline ? Accounts.Current : null;
+        busy++;
+        Ask(null, "POST", "/auth/reset", new ResetBody { nick = (nick ?? "").Trim(), code = code, new_password = newPassword }, text =>
+        {
+            busy--;
+            var answer = JsonUtility.FromJson<AuthAnswer>(text);
+            token = answer.token;
+            if (!testApi)
+            {
+                PlayerPrefs.SetString(TokenKey, token);
+                PlayerPrefs.Save();
+            }
+            BeginLogin(answer.user, before);
+            done(null);
+        }, (status, message) => { busy--; done(message); }, withToken: false);
     }
 
     /// <summary>Deletes the online account and everything the server keeps about it (after the password).</summary>

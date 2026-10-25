@@ -12,7 +12,7 @@ public partial class GameUI
 {
     bool onlineOpen;              // PLAY ONLINE
     bool onlineCreating;          // its CREATE ROOM page
-    bool onlineAccountOpen;       // ACCOUNT (online): password, deleting the account
+    bool onlineAccountOpen;       // ACCOUNT (online): email, password, deleting the account
     bool friendsLan;              // the friends screen shows the LAN friends instead of the online ones
     bool accountOnline;           // the log-in screen logs in online (not only on this computer)
     int onlineTeam;               // 0 Terrorists, 1 SWAT, 2 watching: for joining and creating rooms
@@ -27,7 +27,7 @@ public partial class GameUI
     Vector2 roomsScroll, onlineFriendsScroll, inviteScroll;
 
     OnlineClient Online => gm.Online;
-    string testScreen;   // -ds-online-screen <login|rooms|create|friends|account|admin|...>: opens it once logged in (screenshots)
+    string testScreen;   // -ds-online-screen <login|forgot|rooms|create|friends|account|admin|...>: opens it once logged in (screenshots)
 
     void OpenTestScreen()
     {
@@ -39,6 +39,11 @@ public partial class GameUI
         }
         if (testScreen == "" || testScreen == "link") return;
         if (testScreen == "login") OpenAccount(null, online: true);
+        else if (testScreen == "forgot")
+        {
+            OpenAccount(null, online: true);
+            OpenForgotPassword(Accounts.LastName);
+        }
         else if (testScreen == "tutorial") tutorialOffer = true;
         else if (!Online.LoggedIn) return;
         else if (testScreen == "rooms" || testScreen == "create")
@@ -623,12 +628,13 @@ public partial class GameUI
             return;
         }
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
-        float w = 760f, h = 830f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
+        float w = 760f, h = 930f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
         Fill(new Rect(x, y, w, h), PanelColor);
         Label(new Rect(x, y + 18f, w, 60f), "ONLINE ACCOUNT", 46, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 76f, w, 30f), $"{online.User.nick}  ·  since {online.User.created_at?.Substring(0, Mathf.Min(10, online.User.created_at.Length))}"
               + (online.User.played >= 0 ? $"  ·  Time in the game: {PlayedText(online.User.played)}" : ""), 20, Dim, TextAnchor.MiddleCenter);
-        float fx = x + 60f, fw = w - 120f, cy = y + 130f;
+        float fx = x + 60f, fw = w - 120f, cy = y + 126f;
+        cy += DrawEmailSection(fx, fw, cy) + 10f;   // GameUI.Recovery
 
         Label(new Rect(fx, cy, fw, 30f), "Change the password", 22, Color.white);
         cy += 38f;
@@ -694,6 +700,7 @@ public partial class GameUI
             accountPageMessage = null;
             deleteConfirm = false;
             oldPassword = newPassword = newRepeat = deletePassword = "";
+            emailInput = emailPassword = emailCode = "";
         }
     }
 

@@ -47,6 +47,7 @@ import uvicorn
 import admin
 import bot_knowledge
 import living_world
+import recovery
 import reviews
 import tokens
 from argon2 import PasswordHasher
@@ -99,7 +100,7 @@ class Config:
         env = read_env_file(Path(os.environ.get("LOWSTRIKE_ENV", HERE / ".env")))
         env.update({k: v for k, v in os.environ.items() if k in env or k.startswith(("API_", "LOWSTRIKE_", "GAME_", "ROOM_", "UNITY_", "WORLD_"))
                     or k in ("PUBLIC_API_URL", "DATABASE_PATH", "AUTH_SECRET", "INTERNAL_PORT", "SESSION_IDLE_DAYS", "SESSION_MAX_DAYS",
-                             "REVIEW_ORIGINS", "ADMIN_NICKS")})
+                             "REVIEW_ORIGINS", "ADMIN_NICKS") or k.startswith(("SMTP_", "MAIL_"))})
         self.domain = env.get("LOWSTRIKE_DOMAIN", "")
         self.public_api_url = env.get("PUBLIC_API_URL", "")
         self.api_host = env.get("API_HOST", "127.0.0.1")
@@ -141,6 +142,14 @@ class Config:
         self.world_history_limit = int(env.get("WORLD_HISTORY_PAGE_LIMIT", "30"))
         # Reviews: the website addresses that may send one (comma-separated; empty = the website's own).
         self.review_origins = env.get("REVIEW_ORIGINS", "")
+        # Password recovery by email (recovery.py): the mailbox the server sends its codes from (port 465: SSL, else
+        # STARTTLS). MAIL_DIR (tests) writes the mails as files there instead of sending them.
+        self.smtp_host = env.get("SMTP_HOST", "")
+        self.smtp_port = int(env.get("SMTP_PORT", "587") or "587")
+        self.smtp_user = env.get("SMTP_USER", "")
+        self.smtp_password = env.get("SMTP_PASSWORD", "")
+        self.mail_from = env.get("MAIL_FROM", "")
+        self.mail_dir = env.get("MAIL_DIR", "")
 
     @staticmethod
     def parse_slots(text: str) -> list:
@@ -311,6 +320,7 @@ MIGRATIONS = [
     """,
     tokens.SCHEMA,          # 8: Tokens and the skins bought with them
     admin.SCHEMA,           # 9: what admins did (the admin panel)
+    recovery.SCHEMA,        # 10: each account's email, and the codes that confirm it or reset a forgotten password
 ]
 
 
@@ -396,6 +406,10 @@ class RateLimiter:
             while q and t - q[0] > seconds:
                 q.popleft()
             return len(q)
+
+    def reset(self, key: str):
+        with self.lock:
+            self.hits.pop(key, None)
 
 
 LIMITS = RateLimiter()
@@ -497,10 +511,13 @@ def password_problem(password: str) -> Optional[str]:
 
 def me_view(con, user) -> dict:
     profile = con.execute("SELECT data, linked_local FROM profiles WHERE user_id = ?", (user["id"],)).fetchone()
+    pending = con.execute("SELECT email FROM email_codes WHERE user_id = ? AND purpose = 'verify' AND expires_at > ?",
+                          (user["id"], now())).fetchone()
     return {"id": user["id"], "nick": user["nick"], "hide_status": bool(user["hide_status"]),
             "created_at": user["created_at"], "profile": json.loads(profile["data"]) if profile else {},
             "linked_local": bool(profile["linked_local"]) if profile else False,
-            "admin": user["nick_key"] in CONFIG.admin_nicks, "played": int(user["played_seconds"])}
+            "admin": user["nick_key"] in CONFIG.admin_nicks, "played": int(user["played_seconds"]),
+            "email": user["email"], "email_pending": pending["email"] if pending else ""}   # recovery.py
 
 
 # ----------------------------------------------------------------- friends and presence
@@ -1449,6 +1466,7 @@ KNOWLEDGE = {}
 REVIEWS = {}
 TOKENS = {}
 ADMIN = {}
+RECOVERY = {}
 
 
 def command_line() -> bool:
@@ -1560,6 +1578,7 @@ def main():
     REVIEWS.update(reviews.install(app, sys.modules[__name__]))
     TOKENS.update(tokens.install(app, sys.modules[__name__]))
     ADMIN.update(admin.install(app, sys.modules[__name__], tokens, TOKENS["view"]))
+    RECOVERY.update(recovery.install(app, sys.modules[__name__]))
     print(f"[api] database {CONFIG.database_path}")
     print(f"[api] public API on http://{CONFIG.api_host}:{CONFIG.api_port} (the tunnel's target), "
           f"game hosts report to http://127.0.0.1:{CONFIG.internal_port}")

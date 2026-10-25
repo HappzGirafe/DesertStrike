@@ -15,7 +15,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ["GameUI.cs", "GameUI.Online.cs", "TouchControls.cs", "GameManager.cs", "BombManager.cs", "OnlineClient.cs",
+FILES = ["GameUI.cs", "GameUI.Online.cs", "GameUI.Recovery.cs", "TouchControls.cs", "GameManager.cs", "BombManager.cs", "OnlineClient.cs",
          "NetSession.cs", "Accounts.cs", "Friends.cs", "VoiceChat.cs", "GameSettings.cs"]
 LANGUAGES = ["ua", "de", "fr", "it", "es"]
 SKIP_LINE = re.compile(r"Debug\.Log|PlayerPrefs\.|case \"|args\[|== \"-ds|StartsWith\(\"-|GetString\(|Resources\.Load|"

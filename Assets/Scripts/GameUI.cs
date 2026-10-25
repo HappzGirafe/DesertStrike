@@ -164,6 +164,7 @@ public partial class GameUI : MonoBehaviour
 
             bool updateQuestion = Online.NewVersion != null && updateStep < 2;
             if (updateQuestion) DrawUpdateQuestion();
+            else if (forgotOpen) DrawForgotPassword();
             else if (accountOpen) DrawAccount();
             else if (onlineAccountOpen) DrawOnlineAccount();
             else if (adminOpen) DrawAdmin();
@@ -1179,6 +1180,8 @@ public partial class GameUI : MonoBehaviour
         cy += 90f;
         int minimum = accountOnline ? 8 : Accounts.MinPasswordLength;
         Label(new Rect(fx, cy, fw, 30f), accountSignUp ? $"Password (at least {minimum} characters)" : "Password", 20, Color.white);
+        if (accountOnline && !accountSignUp && Button(new Rect(fx + fw - 260f, cy - 4f, 260f, 34f), "FORGOT PASSWORD?", false, true, 16))
+            OpenForgotPassword(accountName);
         accountPassword = TextInput(new Rect(fx, cy + 32f, fw, 42f), "account-password", accountPassword, 64, true);
         cy += 90f;
         if (accountSignUp)

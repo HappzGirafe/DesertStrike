@@ -6,10 +6,13 @@ Run:  python tests/smoke_test.py      (from online-server/, with the requirement
 """
 
 import base64
+import email
+import email.policy
 import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -62,7 +65,9 @@ def check(name, condition, detail=""):
 
 
 def main():
+    global MAIL_DIR
     work = Path(tempfile.mkdtemp(prefix="lowstrike-test-"))
+    MAIL_DIR = work / "mail"
     join_secret = secrets.token_urlsafe(48)
     auth_secret = secrets.token_urlsafe(48)
     logs = []
@@ -73,13 +78,15 @@ def main():
         env_file.write_text("\n".join([
             "API_HOST=127.0.0.1", f"API_PORT={PORT}", f"INTERNAL_PORT={INTERNAL}", f"DATABASE_PATH={work / 'test.sqlite3'}",
             f"AUTH_SECRET={auth_secret}", f"GAME_JOIN_SECRET={join_secret}", "GAME_BUILD_VERSION=1.19",
-            "REVIEW_ORIGINS=https://lowstrike.lokvetia.com", f"ADMIN_NICKS={admins}",
+            "REVIEW_ORIGINS=https://lowstrike.lokvetia.com", f"ADMIN_NICKS={admins}", f"MAIL_DIR={MAIL_DIR}",
             'ROOM_SLOTS_JSON=[{"id":"room-1","local_udp_port":27015,"public_udp_host":"test.example","public_udp_port":40000}]',
         ]), encoding="utf-8")
         env = dict(os.environ, LOWSTRIKE_ENV=str(env_file))
         for key in ("API_PORT", "INTERNAL_PORT", "DATABASE_PATH", "AUTH_SECRET", "GAME_JOIN_SECRET", "ROOM_SLOTS_JSON",
                     "UNITY_SERVER_EXECUTABLE", "ADMIN_NICKS"):
             env.pop(key, None)
+        for key in [k for k in env if k.startswith(("SMTP_", "MAIL_"))]:
+            env.pop(key)   # mails go to MAIL_DIR, never out
         log = work / f"server-{len(logs) + 1}.log"
         logs.append(log)
         server = subprocess.Popen([sys.executable, str(HERE / "lowstrike_server.py")], env=env, cwd=HERE,
@@ -99,7 +106,9 @@ def main():
     serve("ghost_admin", lambda: run(join_secret))
     serve("alice,ghost_admin", run_admin)   # the same database: Alice (made in the first run) is now an admin
     text = "".join(log.read_text() for log in logs)
-    check("the server log holds no password", "secret-pass" not in text and "Hunter2hunter" not in text and "carol-pass" not in text)
+    check("the server log holds no password", "secret-pass" not in text and "Hunter2hunter" not in text and "carol-pass" not in text
+          and "brand-new-pass" not in text)
+    check("nor a recovery code", not any(code in text for code in CODES_SEEN), CODES_SEEN)
     print(f"\n{'ALL PASSED' if failures == 0 else f'{failures} FAILED'}   (server logs: {work})")
     sys.exit(1 if failures else 0)
 
@@ -383,6 +392,7 @@ def run(join_secret):
 
 
 def run_admin():
+    global c   # carol logs in again after resetting her password
     print("admin panel (the server started again, with Alice on ADMIN_NICKS)")
     a = call("POST", "/auth/login", {"nick": "Alice", "password": "new-secret-pass"})[1]["token"]
     c = call("POST", "/auth/login", {"nick": "carol", "password": "carol-pass"})[1]["token"]
@@ -437,6 +447,70 @@ def run_admin():
     check("the shop's prices", prices == {("ak47", "Halloween"): 150, ("m4a1", "Halloween"): 150, ("knife", "Classic Halloween"): 500,
                                           ("knife", "karambit"): 400, ("knife", "nogektestskin"): 1000, ("deagle", "digle"): 750,
                                           ("rpg", "Web"): 400, ("awp", "AWPOLD"): 750, **neon}, prices)
+
+
+    print("password recovery by email")
+    check("an email needs the password", call("POST", "/me/email", {"email": "carol@example.com", "password": "x"}, c)[0] == 401)
+    check("not an email address", call("POST", "/me/email", {"email": "carol-at-example", "password": "carol-pass"}, c)[0] == 422)
+    status, asked = call("POST", "/me/email", {"email": "carol@example.com", "password": "carol-pass", "lang": "de"}, c)
+    check("carol adds an email: it waits for its code", status == 200 and asked["pending"] == "carol@example.com" and asked["email"] == "", asked)
+    to, subject, code = next_mail()
+    check("the code goes to that address, in her language", to == "carol@example.com" and "bestätigen" in subject and code, (to, subject))
+    check("/me shows it waiting", call("GET", "/me", token=c)[1]["email_pending"] == "carol@example.com")
+    check("a wrong code", call("POST", "/me/email/confirm", {"code": wrong(code)}, c)[0] == 422)
+    status, confirmed = call("POST", "/me/email/confirm", {"code": code}, c)
+    check("the right code confirms it", status == 200 and confirmed["email"] == "carol@example.com", confirmed)
+    me = call("GET", "/me", token=c)[1]
+    check("/me shows the email", me["email"] == "carol@example.com" and me["email_pending"] == "", me)
+
+    status, answer = call("POST", "/auth/forgot", {"nick": "nobody_here"})
+    check("forgot: an unknown nickname gets the usual answer, and no mail", status == 200 and answer["ok"] and next_mail(wait=1.5) is None, answer)
+    status, same = call("POST", "/auth/forgot", {"nick": "CAROL", "lang": "en"})
+    check("forgot: carol gets the same answer", status == 200 and same == answer, same)
+    to, subject, code = next_mail()
+    check("and a reset code at her email", to == "carol@example.com" and "reset" in subject and code, (to, subject))
+    check("reset: a wrong code", call("POST", "/auth/reset", {"nick": "carol", "code": wrong(code), "new_password": "brand-new-pass"})[0] == 422)
+    check("reset: a too short password", call("POST", "/auth/reset", {"nick": "carol", "code": code, "new_password": "short"})[0] == 422)
+    status, reset = call("POST", "/auth/reset", {"nick": "carol", "code": code, "new_password": "brand-new-pass"})
+    check("reset with the code logs her in", status == 200 and reset["user"]["nick"] == "carol" and reset["token"], reset)
+    check("her other logins ended", call("GET", "/me", token=c)[0] == 401)
+    c = reset["token"]
+    check("the code works once", call("POST", "/auth/reset", {"nick": "carol", "code": code, "new_password": "another-pass"})[0] == 422)
+    check("the new password logs in", call("POST", "/auth/login", {"nick": "carol", "password": "brand-new-pass"})[0] == 200)
+    check("the old one does not", call("POST", "/auth/login", {"nick": "carol", "password": "carol-pass"})[0] == 401)
+    call("POST", "/auth/forgot", {"nick": "carol"})
+    to, subject, code = next_mail()
+    for _ in range(5):
+        call("POST", "/auth/reset", {"nick": "carol", "code": wrong(code), "new_password": "another-pass"})
+    check("five wrong tries use the code up", call("POST", "/auth/reset", {"nick": "carol", "code": code, "new_password": "another-pass"})[0] == 422)
+    check("an account without an email gets no mail", call("POST", "/auth/forgot", {"nick": "Alice"})[0] == 200 and next_mail(wait=1.5) is None)
+    status, removed = call("POST", "/me/email", {"email": "", "password": "brand-new-pass"}, c)
+    check("carol removes her email", status == 200 and removed["email"] == "" and call("GET", "/me", token=c)[1]["email"] == "", removed)
+
+
+MAIL_DIR = None
+MAILS_READ = set()
+CODES_SEEN = []
+
+
+def next_mail(wait=8.0):
+    """The next mail the server wrote to MAIL_DIR: (to, subject, the 8-digit code in it), or None."""
+    until = time.time() + wait
+    while time.time() < until:
+        new = sorted(f for f in MAIL_DIR.glob("*.eml") if f.name not in MAILS_READ) if MAIL_DIR.exists() else []
+        if new:
+            MAILS_READ.add(new[0].name)
+            mail = email.message_from_bytes(new[0].read_bytes(), policy=email.policy.default)
+            found = re.search(r"\b\d{8}\b", mail.get_content())
+            if found:
+                CODES_SEEN.append(found.group(0))
+            return mail["To"], mail["Subject"], found.group(0) if found else None
+        time.sleep(0.1)
+    return None
+
+
+def wrong(code):
+    return f"{(int(code) + 1) % 10 ** 8:08d}"
 
 
 if __name__ == "__main__":
