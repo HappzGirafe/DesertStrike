@@ -21,8 +21,10 @@ $top = Join-Path $stage "LowStrike-Server"
 New-Item -ItemType Directory -Force (Join-Path $top "game"), (Join-Path $top "online-server") | Out-Null
 Get-ChildItem $build | Where-Object { $_.Name -notlike "*DoNotShip*" } | Copy-Item -Destination (Join-Path $top "game") -Recurse
 $server = Join-Path $repo "online-server"
-foreach ($item in @("lowstrike_server.py", "living_world.py", "world_rules.json", "bot_knowledge.py", "reviews.py", "tokens.py", "admin.py",
-                    "requirements.txt", ".env.example", "README.md", "scripts", "tests")) {
+# Every module of the server (so a new one is never left out: the API would not start), and what goes with them.
+$items = @(Get-ChildItem $server -Filter "*.py" | ForEach-Object { $_.Name }) + @("world_rules.json", "requirements.txt", ".env.example",
+                                                                                   "README.md", "scripts", "tests")
+foreach ($item in $items) {
     Copy-Item (Join-Path $server $item) -Destination (Join-Path $top "online-server") -Recurse
 }
 Get-ChildItem (Join-Path $top "online-server") -Recurse -Directory -Filter "__pycache__" | Remove-Item -Recurse -Force
