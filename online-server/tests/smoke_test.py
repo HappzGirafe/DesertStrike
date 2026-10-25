@@ -107,7 +107,7 @@ def main():
     serve("alice,ghost_admin", run_admin)   # the same database: Alice (made in the first run) is now an admin
     text = "".join(log.read_text() for log in logs)
     check("the server log holds no password", "secret-pass" not in text and "Hunter2hunter" not in text and "carol-pass" not in text
-          and "brand-new-pass" not in text)
+          and "brand-new-pass" not in text and "admin-given-pass" not in text)
     check("nor a recovery code", not any(code in text for code in CODES_SEEN), CODES_SEEN)
     print(f"\n{'ALL PASSED' if failures == 0 else f'{failures} FAILED'}   (server logs: {work})")
     sys.exit(1 if failures else 0)
@@ -486,6 +486,21 @@ def run_admin():
     check("an account without an email gets no mail", call("POST", "/auth/forgot", {"nick": "Alice"})[0] == 200 and next_mail(wait=1.5) is None)
     status, removed = call("POST", "/me/email", {"email": "", "password": "brand-new-pass"}, c)
     check("carol removes her email", status == 200 and removed["email"] == "" and call("GET", "/me", token=c)[1]["email"] == "", removed)
+
+    print("an admin's recovery code (no email needed)")
+    check("not an admin: no recovery code", call("POST", "/admin/recovery-code", {"nick": "Alice"}, c)[0] == 403)
+    check("no such player", call("POST", "/admin/recovery-code", {"nick": "nobody_here"}, a)[0] == 404)
+    status, made = call("POST", "/admin/recovery-code", {"nick": "CAROL"}, a)
+    check("Alice (an admin) makes one for carol", status == 200 and made["nick"] == "carol" and len(made["code"]) == 8 and made["hours"] == 24, made)
+    CODES_SEEN.append(made["code"])
+    check("and no mail goes out", next_mail(wait=1.5) is None)
+    status, reset = call("POST", "/auth/reset", {"nick": "carol", "code": made["code"], "new_password": "admin-given-pass"})
+    check("carol sets her own new password with it", status == 200 and reset["user"]["nick"] == "carol", reset)
+    c = reset["token"]
+    check("and logs in with it", call("POST", "/auth/login", {"nick": "carol", "password": "admin-given-pass"})[0] == 200)
+    entries = call("GET", "/admin/log", token=a)[1]["entries"]
+    check("the admin log says a code was made (not which)", entries[0]["action"] == "made a recovery code" and entries[0]["target"] == "carol"
+          and made["code"] not in str(entries), entries[0])
 
 
 MAIL_DIR = None

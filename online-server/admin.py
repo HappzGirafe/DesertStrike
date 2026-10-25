@@ -10,6 +10,7 @@ to create such an account, take its name off the list first, sign up, and put it
     GET  /admin/log            the last 40 things admins did
     POST /admin/lan-pass       an admin's pass for LAN games (an hour): their game gives it to the LAN host it joins
     POST /admin/lan-pass/check {pass}: {admin, nick}; the LAN host asks before it carries out a guest's cheats
+    POST /admin/recovery-code  {nick}: a one-time code to set a new password, for a player who cannot get in (recovery.py)
 Everything an admin does is kept in admin_log (who, to whom, what, when) and printed in the server log.
 """
 import secrets
@@ -138,4 +139,4 @@ def install(app, s, tokens_module, token_view):
             rows = s.DB.execute("SELECT at, admin, target, action FROM admin_log ORDER BY id DESC LIMIT 40").fetchall()
         return {"entries": [dict(r) for r in rows]}
 
-    return {"is_admin": is_admin}
+    return {"is_admin": is_admin, "admin": admin, "target": target, "log": log}

@@ -8,6 +8,8 @@ sent there.
                              the same either way (it does not tell which nicknames exist or have an email)
     POST /auth/reset         {nick, code, new_password}: the code from that mail and a new password; logs out every
                              device and logs this one in
+    POST /admin/recovery-code {nick}: an admin (admin.py) makes the code instead, for a player who cannot get in (no
+                             email, or lost it); the admin passes it on, the player sets the new password. 24 hours.
 
 Codes are 8 digits, kept only as a keyed hash (AUTH_SECRET), good for 30 minutes and 5 tries. Mails go out through the
 mailbox in .env (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM); MAIL_DIR (tests) writes them as files
@@ -43,6 +45,7 @@ CREATE TABLE IF NOT EXISTS email_codes (
 # purpose: "verify" (confirming a new email; email is the new address) or "reset" (a forgotten password)
 
 CODE_SECONDS = 30 * 60
+ADMIN_CODE_SECONDS = 24 * 3600   # an admin's code goes through a person, which takes longer than a mail
 MAX_TRIES = 5
 EMAIL = re.compile(r"^[^@\s<>()\[\],;:\"]{1,64}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
 
@@ -112,6 +115,10 @@ class ForgotBody(BaseModel):
     lang: str = "en"
 
 
+class NickBody(BaseModel):
+    nick: str = ""
+
+
 class ResetBody(BaseModel):
     nick: str = ""
     code: str = ""
@@ -165,10 +172,10 @@ def install(app, s):
     def code_hash(user_id: str, purpose: str, code: str) -> str:
         return s.token_hash(f"code:{user_id}:{purpose}:{code}")
 
-    def new_code(con, user_id: str, purpose: str, email: str) -> str:
+    def new_code(con, user_id: str, purpose: str, email: str, seconds: float = CODE_SECONDS) -> str:
         code = f"{secrets.randbelow(10 ** 8):08d}"
         con.execute("INSERT OR REPLACE INTO email_codes (user_id, purpose, email, code_hash, expires_at, tries) VALUES (?, ?, ?, ?, ?, 0)",
-                    (user_id, purpose, email, code_hash(user_id, purpose, code), s.now() + CODE_SECONDS))
+                    (user_id, purpose, email, code_hash(user_id, purpose, code), s.now() + seconds))
         return code
 
     def take_code(con, user_id: str, purpose: str, code: str) -> Optional[str]:
@@ -263,5 +270,15 @@ def install(app, s):
         s.LIMITS.reset(f"login-fail:{key}")
         print(f"[recovery] {user['nick']} set a new password with a code")
         return {"token": token, "user": view}
+
+    @app.post("/admin/recovery-code")
+    def admin_recovery_code(body: NickBody, request: Request, user=Depends(s.ADMIN["admin"])):
+        # The code is shown to the admin once and kept only as a hash; the log says a code was made, never the code.
+        s.limit(request, "admin-recovery", 20, 3600, user["id"])
+        with s.Transaction() as con:
+            row = s.ADMIN["target"](con, body.nick)
+            code = new_code(con, row["id"], "reset", row["email"] or "", ADMIN_CODE_SECONDS)
+            s.ADMIN["log"](con, user, row, "made a recovery code")
+        return {"nick": row["nick"], "code": code, "hours": ADMIN_CODE_SECONDS // 3600}
 
     return {"mail_ready": mail_ready}

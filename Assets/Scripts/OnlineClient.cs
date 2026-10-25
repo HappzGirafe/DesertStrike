@@ -125,6 +125,8 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class BuyBody { public string weapon, skin; }
     [Serializable] class AdminTokensBody { public string nick; public int amount; }
     [Serializable] class AdminSkinBody { public string nick, weapon, skin; public bool owned; }
+    [Serializable] class AdminNickBody { public string nick; }
+    [Serializable] class AdminCodeAnswer { public string nick, code; public int hours; }
     [Serializable] class AdminLogAnswer { public List<AdminLogEntry> entries = new List<AdminLogEntry>(); }
     [Serializable] class LanPassAnswer { public string pass; public int seconds; }
     [Serializable] class LanPassCheck { public bool admin; public string nick; }
@@ -299,6 +301,20 @@ public class OnlineClient : MonoBehaviour
     /// <summary>Gives a player a skin of the shop, or takes it back.</summary>
     public void AdminSkin(string nick, string weapon, string skin, bool owned, Action<AdminPlayer, string> done) =>
         AdminAsk("POST", "/admin/skins", new AdminSkinBody { nick = nick, weapon = weapon, skin = skin, owned = owned }, done);
+
+    /// <summary>A one-time code for a player who cannot log in (online-server/recovery.py): the admin passes it on, the
+    /// player sets a new password with it (FORGOT PASSWORD? > I HAVE A CODE). done gets (code, hours, problem).</summary>
+    public void AdminRecoveryCode(string nick, Action<string, int, string> done)
+    {
+        busy++;
+        Ask(null, "POST", "/admin/recovery-code", new AdminNickBody { nick = nick }, text =>
+        {
+            busy--;
+            var answer = JsonUtility.FromJson<AdminCodeAnswer>(text);
+            RefreshAdminLog();
+            done(answer.code, answer.hours, null);
+        }, (status, message) => { busy--; done(null, 0, message); });
+    }
 
     public void RefreshAdminLog()
     {

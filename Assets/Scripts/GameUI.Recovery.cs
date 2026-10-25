@@ -87,13 +87,14 @@ public partial class GameUI
         Fill(new Rect(x, y, w, h), PanelColor);
         Label(new Rect(x, y + 18f, w, 60f), "FORGOT PASSWORD", 44, Gold, TextAnchor.MiddleCenter);
         float fx = x + 60f, fw = w - 120f, cy = y + 90f;
-        WrapLabel(new Rect(fx, cy, fw, 50f), "We email a code to the account's confirmed email (you add it in ACCOUNT once you are logged in).", 17, Dim);
+        WrapLabel(new Rect(fx, cy, fw, 50f), "We email a code to the account's confirmed email (you add it in ACCOUNT once you are logged in). No email? Ask an admin for a code.", 17, Dim);
         cy += 62f;
 
         Label(new Rect(fx, cy, fw, 30f), "Nickname", 20, Color.white);
         forgotNick = TextInput(new Rect(fx, cy + 32f, fw, 42f), "forgot-nick", forgotNick, 16);
         cy += 90f;
-        if (Button(new Rect(fx, cy, fw, 52f), forgotCodeSent ? "SEND A NEW CODE" : "SEND CODE", !forgotCodeSent,
+        float sendWidth = forgotCodeSent ? fw : fw * 0.6f - 5f;
+        if (Button(new Rect(fx, cy, sendWidth, 52f), forgotCodeSent ? "SEND A NEW CODE" : "SEND CODE", !forgotCodeSent,
                    forgotNick.Trim().Length >= 3 && !online.Busy, 22))
             online.ForgotPassword(forgotNick, (message, problem) =>
             {
@@ -101,12 +102,18 @@ public partial class GameUI
                 forgotBad = problem != null;
                 if (problem == null) forgotCodeSent = true;
             });
+        // A code from an admin (admin panel > RECOVERY CODE): no mail needed.
+        if (!forgotCodeSent && Button(new Rect(fx + fw * 0.6f + 5f, cy, fw * 0.4f - 5f, 52f), "I HAVE A CODE", false, true, 20))
+        {
+            forgotCodeSent = true;
+            SetForgotMessage("Type the code from your email, or the one an admin gave you.", false);
+        }
         cy += 66f;
 
         if (forgotCodeSent)
         {
             forgotCode = TextInput(new Rect(fx, cy, fw, 42f), "forgot-code", forgotCode, 12, numbers: true);
-            Label(new Rect(fx + 8f, cy, fw, 42f), forgotCode.Length == 0 && !KeyboardOpenFor("forgot-code") ? "code from the email (8 digits)" : "", 16, Hint);
+            Label(new Rect(fx + 8f, cy, fw, 42f), forgotCode.Length == 0 && !KeyboardOpenFor("forgot-code") ? "the code (8 digits)" : "", 16, Hint);
             cy += 50f;
             forgotPassword = TextInput(new Rect(fx, cy, fw, 42f), "forgot-new", forgotPassword, 128, true);
             Label(new Rect(fx + 8f, cy, fw, 42f), forgotPassword.Length == 0 && !KeyboardOpenFor("forgot-new") ? "new password (at least 8 characters)" : "", 16, Hint);

@@ -53,15 +53,23 @@ public partial class GameUI
         }
         else if (testScreen == "friends") friendsOpen = true;
         else if (testScreen == "account") onlineAccountOpen = true;
-        else if (testScreen == "admin" || testScreen == "admin-give")
+        else if (testScreen == "admin" || testScreen == "admin-give" || testScreen == "admin-code")
         {
-            // "admin-give": also gives the admin 50 tokens and the Halloween AK-47, the way its buttons do.
+            // "admin-give": also gives the admin 50 tokens and the Halloween AK-47, the way its buttons do;
+            // "admin-code": makes a recovery code for the admin's own account, as RECOVERY CODE does.
             if (!Online.IsAdmin) return;
             OpenAdmin();
             if (testScreen == "admin-give")
             {
                 AdminChangeTokens(Online.User.nick, 50);
                 AdminChangeSkin(Online.User.nick, new ShopItem { weapon = "ak47", skin = "Halloween" }, true);
+            }
+            if (testScreen == "admin-code")
+            {
+                string nick = Online.User.nick;
+                Online.AdminRecoveryCode(nick, (code, hours, problem) =>
+                    AdminSay(problem ?? $"Recovery code for {nick}: {code}  (once, {hours} hours). They press FORGOT PASSWORD? > I HAVE A CODE.",
+                             problem != null));
             }
         }
         else if (testScreen == "inventory" || testScreen == "buy")

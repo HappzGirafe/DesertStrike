@@ -116,7 +116,18 @@ public partial class GameUI
             Label(new Rect(lx + 20f, cy + 66f, lw - 40f, 44f), $"Tokens: {player.tokens}", 30, Pumpkin);
             Label(new Rect(lx + 20f, cy + 66f, lw - 40f, 44f), $"Today from own matches: {player.today} / {player.day_limit}", 18, Dim,
                   TextAnchor.MiddleRight);
-            cy += 152f;
+            cy += 144f;
+
+            // Account recovery: a one-time code the admin passes on; the player sets a new password with it.
+            if (Button(new Rect(lx, cy, 300f, 44f), "RECOVERY CODE", false, !online.Busy, 18))
+            {
+                string nick = player.nick;
+                online.AdminRecoveryCode(nick, (code, hours, problem) =>
+                    AdminSay(problem ?? $"Recovery code for {nick}: {code}  (once, {hours} hours). They press FORGOT PASSWORD? > I HAVE A CODE.",
+                             problem != null));
+            }
+            Label(new Rect(lx + 316f, cy, lw - 316f, 44f), "for a player who cannot log in", 17, Dim);
+            cy += 58f;
 
             // Give or take tokens: the amount typed, or one of the quick ones.
             Label(new Rect(lx, cy, 200f, 30f), "Amount", 18, Dim);

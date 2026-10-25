@@ -164,6 +164,11 @@ MAIL_FROM=Low Strike <noreply@lokvetia.com>
 Без цих рядків усе інше працює, а email і FORGOT PASSWORD відповідають, що пошту ще не налаштовано. Лог сервера пише
 `[mail] sent ...` або чому лист не пішов.
 
+Без email (або поки пошту не налаштовано): адмін (`ADMIN_NICKS`) в адмін-панелі знаходить гравця і тисне **RECOVERY CODE**
+(`POST /admin/recovery-code`). Сервер показує адміну одноразовий код на 24 години; адмін передає його гравцеві, а той на
+екрані входу тисне **FORGOT PASSWORD? → I HAVE A CODE** і сам задає новий пароль. Адмін пароля не бачить; у журналі
+адмінів лише «made a recovery code», без коду.
+
 ## Сервер на Linux (з 1.20)
 
 Той самий сервер працює й на Linux (64-bit x86). Пакет: `powershell -ExecutionPolicy Bypass -File
