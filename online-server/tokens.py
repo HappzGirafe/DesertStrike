@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS token_days (
 
 # (weapon id, skin folder) -> price in Tokens. Skins not listed are free.
 SHOP = {
-    ("ak47", "Halloween"): 100,
+    ("ak47", "Halloween"): 150,
     ("m4a1", "Halloween"): 150,
     ("knife", "Classic Halloween"): 500,
     ("knife", "karambit"): 400,
@@ -43,9 +43,9 @@ SHOP = {
     ("rpg", "Web"): 400,
     ("awp", "AWPOLD"): 750,
 }
-# The neon wraps (1.21): four colours for every weapon, 500 Tokens each.
+# The neon wraps (1.21): four colours for every weapon, 100 Tokens each.
 NEON_WEAPONS = ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47", "m4a1", "awp", "rpg", "svd")
-SHOP.update({(weapon, f"Neon {colour}"): 500 for weapon in NEON_WEAPONS for colour in ("Cyan", "Pink", "Green", "Yellow")})
+SHOP.update({(weapon, f"Neon {colour}"): 100 for weapon in NEON_WEAPONS for colour in ("Cyan", "Pink", "Green", "Yellow")})
 PER_KILL = 1
 PER_WIN = 5
 DAY_LIMIT = 40          # tokens a day from matches the player's own game reports

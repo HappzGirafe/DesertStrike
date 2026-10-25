@@ -99,7 +99,7 @@ the **INVENTORY**:
 
 | Skin | Price |
 | --- | --- |
-| AK-47 Halloween | 100 |
+| AK-47 Halloween | 150 |
 | M4A1 Halloween | 150 |
 | Knife: Classic Halloween | 500 |
 | Knife: karambit | 400 |
@@ -107,7 +107,7 @@ the **INVENTORY**:
 | Desert Eagle: digle | 750 |
 | RPG: Web | 400 |
 | AWP: AWPOLD | 750 |
-| Every weapon: Neon Cyan, Neon Pink, Neon Green, Neon Yellow | 500 each |
+| Every weapon: Neon Cyan, Neon Pink, Neon Green, Neon Yellow | 100 each |
 
 A skin bought is yours for good, on every computer and phone you log in on. Until then it shows its price and a
 padlock. A skin is sold for tokens when its `skin.json` has `"tokens": <price>` (the price shown until the server's is
@@ -309,7 +309,7 @@ pistol gives nothing.
 Hover a skin to preview it and click to equip it; the choice is saved. Bots carry random skins.
 
 Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic, and the neon wraps Neon Cyan, Neon Pink,
-Neon Green and Neon Yellow (a dark circuit pattern whose traces glow; 500 Tokens each).
+Neon Green and Neon Yellow (a dark circuit pattern whose traces glow; 100 Tokens each).
 Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
 nogektestskin and karambit (knife), digle (Desert Eagle), Web (RPG) and AWPOLD (AWP: the older AWP with the green
 AWP1Skin body, `AWPOLD.blend`).

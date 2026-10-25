@@ -3,7 +3,7 @@ Makes the neon wraps (1.21) for every weapon:
     python Tools/make_neon_wraps.py <project folder>
 """
 # Makes the neon wraps: Assets/Resources/Skins/<weapon>/Neon <colour>/ main.png (a dark circuit pattern with glowing
-# traces), detail.png (glowing stripes) and skin.json (the picture is also the glow's map; 500 Tokens).
+# traces), detail.png (glowing stripes) and skin.json (the picture is also the glow's map; 100 Tokens).
 import json, os, random, struct, sys, zlib
 
 ROOT = sys.argv[1]
@@ -90,7 +90,7 @@ for weapon in WEAPONS:
         for part, level in patterns.items():
             png(os.path.join(folder, part + ".png"), paint(level, colour))
         info = {"name": "Neon " + name, "main": "#FFFFFF", "grip": "#16181E", "detail": "#FFFFFF",
-                "mainGlow": "#FFFFFF", "detailGlow": "#FFFFFF", "smoothness": 0.55, "metallic": 0.2, "locked": True, "tokens": 500}
+                "mainGlow": "#FFFFFF", "detailGlow": "#FFFFFF", "smoothness": 0.55, "metallic": 0.2, "locked": True, "tokens": 100}
         with open(os.path.join(folder, "skin.json"), "w", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(info) + "\n")
         made += 1

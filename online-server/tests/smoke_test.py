@@ -426,15 +426,15 @@ def run_admin():
     print("buying skins")
     call("POST", "/admin/tokens", {"nick": "carol", "amount": 1000}, a)
     status, bought = call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, c)
-    check("carol buys the Halloween AK-47 for 100", status == 200 and bought["tokens"] == 900 and bought["owned"] == ["ak47/Halloween"], bought)
-    check("buying it again costs nothing", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, c)[1]["tokens"] == 900)
+    check("carol buys the Halloween AK-47 for 150", status == 200 and bought["tokens"] == 850 and bought["owned"] == ["ak47/Halloween"], bought)
+    check("buying it again costs nothing", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, c)[1]["tokens"] == 850)
     status, bought = call("POST", "/tokens/buy", {"weapon": "deagle", "skin": "digle"}, c)
-    check("and the digle Desert Eagle for 750", status == 200 and bought["tokens"] == 150, bought)
-    check("150 are not enough for nogektestskin (1000)", call("POST", "/tokens/buy", {"weapon": "knife", "skin": "nogektestskin"}, c)[0] == 409)
+    check("and the digle Desert Eagle for 750", status == 200 and bought["tokens"] == 100, bought)
+    check("100 are not enough for nogektestskin (1000)", call("POST", "/tokens/buy", {"weapon": "knife", "skin": "nogektestskin"}, c)[0] == 409)
     prices = {(i["weapon"], i["skin"]): i["price"] for i in bought["shop"]}
-    neon = {(w, f"Neon {c}"): 500 for w in ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47",
+    neon = {(w, f"Neon {c}"): 100 for w in ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47",
                                              "m4a1", "awp", "rpg", "svd") for c in ("Cyan", "Pink", "Green", "Yellow")}
-    check("the shop's prices", prices == {("ak47", "Halloween"): 100, ("m4a1", "Halloween"): 150, ("knife", "Classic Halloween"): 500,
+    check("the shop's prices", prices == {("ak47", "Halloween"): 150, ("m4a1", "Halloween"): 150, ("knife", "Classic Halloween"): 500,
                                           ("knife", "karambit"): 400, ("knife", "nogektestskin"): 1000, ("deagle", "digle"): 750,
                                           ("rpg", "Web"): 400, ("awp", "AWPOLD"): 750, **neon}, prices)
 
