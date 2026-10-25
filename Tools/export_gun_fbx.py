@@ -17,7 +17,7 @@ handle) the grip colour, and "Detail" (barrel, magazine, sights...) the detail c
 from Blender is copied next to the .fbx and listed in parts.json (<name>_parts.json for other .fbx names), which
 the game reads. (FBX itself cannot carry Blender 5's material
 nodes, which is why the look travels separately.)
-Flat meshes (reference pictures on a plane) are left out, and so are loose points (vertices no face uses: one left
+Flat meshes (reference pictures on a plane) and hidden ones (the eye closed in Blender) are left out, and so are loose points (vertices no face uses: one left
 far away would make the model's size, and so the gun in the hand, wrong; the .blend keeps them).
 Texture paths are pointed at the copies in Art/Textures when they exist there, and the .blend is saved,
 so the file does not depend on a Downloads folder.
@@ -61,7 +61,10 @@ for mesh in bpy.data.meshes:   # after the save above, so only the export loses 
         mesh.update()
         print(f"Left out {len(loose)} loose point(s) of {mesh.name}")
 
-meshes = [obj for obj in bpy.data.objects if obj.type == "MESH" and min(obj.dimensions) > 1e-4]
+meshes = [obj for obj in bpy.data.objects if obj.type == "MESH" and min(obj.dimensions) > 1e-4 and obj.visible_get()]
+hidden = [obj.name for obj in bpy.data.objects if obj.type == "MESH" and not obj.visible_get()]
+if hidden:
+    print("Hidden, not exported:", hidden)
 
 
 # 2. Name the parts by their role.

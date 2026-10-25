@@ -24,6 +24,7 @@ $models = @(
     @("nogektestskin.blend", "Assets/Resources/Skins/Knife/nogektestskin/model.fbx"),
     @("nogenkerambit.blend", "Assets/Resources/Skins/Knife/karambit/model.fbx", "--roles", "Blade=Cube.008;Grip=Cube.001"),
     @("digle.blend", "Assets/Resources/Skins/Desert Eagle/digle/model.fbx"),
+    @("AWPOLD.blend", "Assets/Resources/Skins/AWP/AWPOLD/model.fbx", "--roles", "Main=Cube.001", "--copy-textures"),
     # The RPG's Web skin and the net it fires (projectile.fbx: what the skin shoots instead of the rocket)
     @("rpg_web_launcher.blend", "Assets/Resources/Skins/RPG/Web/model.fbx", "--roles", "Main=RPG_Web_tube,RPG_Web_black;Grip=RPG_Web_wood", "--copy-textures"),
     @("rpg_web_net.blend", "Assets/Resources/Skins/RPG/Web/projectile.fbx", "--copy-textures"),

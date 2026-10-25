@@ -106,6 +106,7 @@ the **INVENTORY**:
 | Knife: nogektestskin | 1000 |
 | Desert Eagle: digle | 750 |
 | RPG: Web | 400 |
+| AWP: AWPOLD | 750 |
 
 A skin bought is yours for good, on every computer and phone you log in on. Until then it shows its price and a
 padlock. A skin is sold for tokens when its `skin.json` has `"tokens": <price>` (the price shown until the server's is
@@ -308,7 +309,8 @@ Hover a skin to preview it and click to equip it; the choice is saved. Bots carr
 
 Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
 Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
-nogektestskin and karambit (knife), digle (Desert Eagle), and Web (RPG).
+nogektestskin and karambit (knife), digle (Desert Eagle), Web (RPG) and AWPOLD (AWP: the older AWP with the green
+AWP1Skin body, `AWPOLD.blend`).
 
 The Glock-18, USP, TEC-DC9, M1911, Desert Eagle (`digle_default.blend`), Uzi, MP5, Pump Shotgun, M4A1, AK-47, SVD,
 AWP (since 1.20 the green one with scope and bipod), knife (since 1.20 the Classic knife, `klasiknogen.blend`) and

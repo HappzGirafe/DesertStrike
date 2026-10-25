@@ -41,6 +41,7 @@ SHOP = {
     ("knife", "nogektestskin"): 1000,
     ("deagle", "digle"): 750,
     ("rpg", "Web"): 400,
+    ("awp", "AWPOLD"): 750,
 }
 PER_KILL = 1
 PER_WIN = 5
