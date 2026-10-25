@@ -110,7 +110,7 @@ public static class SkinPack
             }
             WriteModel(w, model);
             WriteModel(w, projectile);
-            // Added in 1.20.1 at the end, where older games stop reading: the neon wraps' glow per part.
+            // Added in 1.21 (the 1.20.1 beta) at the end, where older games stop reading: the neon wraps' glow per part.
             w.Write(info.mainGlow ?? "");
             w.Write(info.gripGlow ?? "");
             w.Write(info.detailGlow ?? "");
@@ -260,7 +260,7 @@ public static class SkinPack
                     skin.SharedProjectile = ReadModel(r, $"{weapon.Name} {skinId} projectile", made, ref vertexBudget, ref indexBudget, PictureNamed, out projectileLooks);
                     if (skin.SharedProjectile == null) return false;
                 }
-                if (r.BaseStream.Position < r.BaseStream.Length)   // a pack from 1.20.1 on: the glow per part
+                if (r.BaseStream.Position < r.BaseStream.Length)   // a pack from 1.21 on: the glow per part
                     for (int part = 0; part < 3; part++) skin.Glows[part] = WeaponSkins.ParseColor(Short(r.ReadString()));
                 if (!WeaponSkins.AddShared(skin, modelLooks, projectileLooks)) return false;
                 made.Clear();   // kept: the skin uses them now

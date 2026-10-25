@@ -43,7 +43,7 @@ SHOP = {
     ("rpg", "Web"): 400,
     ("awp", "AWPOLD"): 750,
 }
-# The neon wraps (1.20.1): four colours for every weapon, 500 Tokens each.
+# The neon wraps (1.21): four colours for every weapon, 500 Tokens each.
 NEON_WEAPONS = ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47", "m4a1", "awp", "rpg", "svd")
 SHOP.update({(weapon, f"Neon {colour}"): 500 for weapon in NEON_WEAPONS for colour in ("Cyan", "Pink", "Green", "Yellow")})
 PER_KILL = 1

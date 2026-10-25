@@ -448,7 +448,7 @@ def current_user(request: Request) -> sqlite3.Row:
 
 
 def release_of(version: str) -> list:
-    """1.20.1 -> [1, 20]: a fix ("1.20.1", a beta) keeps its release's protocol, so it plays with that release."""
+    """1.21.1 -> [1, 21]: a fix (or a beta like "1.20.1") keeps its release's protocol, so it plays with that release."""
     return [int(p) if p.isdigit() else 0 for p in version.split(".")][:2]
 
 

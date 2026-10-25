@@ -130,10 +130,10 @@ public static class DesertStrikeSetup
 
     const string BundleId = "com.happzgirafe.lowstrike";
     // The game's version (Application.version): shown by the systems, and online rooms need the server's release
-    // (1.20.1, a fix, plays with a 1.20 server). Phones only install a higher code over an older one: major * 10000 +
-    // minor * 100 + fix from 1.20.1 on (1.20 was 120, so 1.21 is 12100).
-    const string GameVersion = "1.20.1";
-    const int MobileVersionCode = 12001;
+    // (a fix like 1.21.1 plays with a 1.21 server). Phones only install a higher code over an older one: major * 10000
+    // + minor * 100 + fix since the 1.20.1 beta (1.20 was 120, the beta 12001, 1.21 is 12100).
+    const string GameVersion = "1.21";
+    const int MobileVersionCode = 12100;
 
     // Phones: always landscape (either way round).
     static void SetMobileSettings()

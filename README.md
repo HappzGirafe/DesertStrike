@@ -316,7 +316,7 @@ AWP1Skin body, `AWPOLD.blend`).
 
 The Glock-18, USP, TEC-DC9, M1911, Desert Eagle (`digle_default.blend`), Uzi, MP5, Pump Shotgun, M4A1, AK-47, SVD,
 AWP (since 1.20 the green one with scope and bipod), knife (since 1.20 the Classic knife, `klasiknogen.blend`) and
-RPG (since 1.20.1 the RPG-7 with wooden grips, `RPG.blend`) use Blender models. Their **Default** skin is the model's
+RPG (since 1.21 the RPG-7 with wooden grips, `RPG.blend`) use Blender models. Their **Default** skin is the model's
 own look from Blender; the other skins ("wraps") paint over it.
 
 ### Skin folders

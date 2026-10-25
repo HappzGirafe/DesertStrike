@@ -1,5 +1,5 @@
 """
-Makes the neon wraps (1.20.1) for every weapon:
+Makes the neon wraps (1.21) for every weapon:
     python Tools/make_neon_wraps.py <project folder>
 """
 # Makes the neon wraps: Assets/Resources/Skins/<weapon>/Neon <colour>/ main.png (a dark circuit pattern with glowing
