@@ -10,6 +10,9 @@ public class SkinInfo
     public string main;               // "#RRGGBB"; tints the texture when the part has one
     public string grip;
     public string detail;
+    public string mainGlow;           // "#RRGGBB": the part glows (neon) in this colour where its picture is bright (the
+    public string gripGlow;           // picture is the glow's map); without a picture the whole part glows
+    public string detailGlow;
     public float smoothness = 0.2f;
     public float metallic;
     public float[] rotation;          // [x, y, z] degrees: turns a skin's model (a pistol or knife around its grip)
@@ -103,6 +106,7 @@ public class WeaponSkin
     public string Model;                                   // Resources path of a replacement model, or null
     public readonly string[] Textures = new string[3];     // per SkinPart: Resources path, or null
     public readonly Color?[] Colors = new Color?[3];       // per SkinPart: color (tint), or null
+    public readonly Color?[] Glows = new Color?[3];        // per SkinPart: neon glow (skin.json mainGlow ...), or null
     public float Smoothness = 0.2f;
     public float Metallic;
     public Vector3 Rotation;                               // extra turn of the model in the hand (degrees)
@@ -263,7 +267,7 @@ public static class WeaponSkins
             Color? color = skin.Colors[part];
             materials[$"{skin.WeaponId}/{skin.Id}/{(SkinPart)part}"] = texture == null && color == null
                 ? null
-                : Effects.SkinMaterial(color ?? Color.white, texture, skin.Smoothness, skin.Metallic);
+                : Effects.SkinMaterial(color ?? Color.white, texture, skin.Smoothness, skin.Metallic, skin.Glows[part]);
         }
         if (!shared.TryGetValue(skin.WeaponId, out var list)) shared[skin.WeaponId] = list = new List<WeaponSkin>();
         list.Add(skin);
@@ -411,7 +415,7 @@ public static class WeaponSkins
             Color? color = skin.Colors[(int)part];
             material = texture == null && color == null
                 ? null
-                : Effects.SkinMaterial(color ?? Color.white, texture, skin.Smoothness, skin.Metallic);
+                : Effects.SkinMaterial(color ?? Color.white, texture, skin.Smoothness, skin.Metallic, skin.Glows[(int)part]);
             materials[key] = material;
         }
         return material;
@@ -480,6 +484,9 @@ public static class WeaponSkins
             skin.Colors[(int)SkinPart.Main] = ParseColor(info.main);
             skin.Colors[(int)SkinPart.Grip] = ParseColor(info.grip);
             skin.Colors[(int)SkinPart.Detail] = ParseColor(info.detail);
+            skin.Glows[(int)SkinPart.Main] = ParseColor(info.mainGlow);
+            skin.Glows[(int)SkinPart.Grip] = ParseColor(info.gripGlow);
+            skin.Glows[(int)SkinPart.Detail] = ParseColor(info.detailGlow);
 
             if (!byWeapon.TryGetValue(entry.weapon, out var list)) byWeapon[entry.weapon] = list = new List<WeaponSkin>();
             list.Add(skin);

@@ -31,8 +31,10 @@ public static class Effects
         return material;
     }
 
-    public static Material SkinMaterial(Color tint, Texture2D texture, float smoothness, float metallic) =>
-        SurfaceMaterial(tint, texture, smoothness, metallic);
+    /// <summary>A wrap's material for one part; with <paramref name="glow"/> (neon wraps) the part glows in that
+    /// colour where its picture is bright.</summary>
+    public static Material SkinMaterial(Color tint, Texture2D texture, float smoothness, float metallic, Color? glow = null) =>
+        SurfaceMaterial(tint, texture, smoothness, metallic, glow, glow.HasValue ? texture : null);
 
     /// <summary>
     /// A material for a look from Blender: texture (tinted) or colour, smoothness, metallic, an optional glow

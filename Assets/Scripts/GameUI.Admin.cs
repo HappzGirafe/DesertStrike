@@ -13,6 +13,7 @@ public partial class GameUI
     bool adminOpen;
     string adminNick = "", adminAmount = "50";
     AdminPlayer adminPlayer;
+    int adminSkinPage;   // the shop's skins, a page at a time
     string adminMessage;
     bool adminProblem;
 
@@ -135,17 +136,29 @@ public partial class GameUI
             // The shop's skins: give one, or take it back.
             Label(new Rect(lx, cy, lw, 34f), "Skins for Tokens", 24, Gold);
             cy += 42f;
-            foreach (var item in player.shop)
+            // Two columns, a page at a time (64 skins since the neon wraps).
+            int rows = Mathf.Max(1, Mathf.FloorToInt((y + h - 210f - cy) / 46f)), perPage = rows * 2;
+            int pages = (player.shop.Count + perPage - 1) / perPage;
+            adminSkinPage = Mathf.Clamp(adminSkinPage, 0, Mathf.Max(0, pages - 1));
+            if (pages > 1)
             {
+                float py = y + h - 196f;
+                if (Button(new Rect(lx, py, 120f, 40f), "<", false, adminSkinPage > 0, 22)) adminSkinPage--;
+                Label(new Rect(lx + 130f, py, lw - 260f, 40f), $"Page {adminSkinPage + 1} / {pages}", 19, Dim, TextAnchor.MiddleCenter);
+                if (Button(new Rect(lx + lw - 120f, py, 120f, 40f), ">", false, adminSkinPage < pages - 1, 22)) adminSkinPage++;
+            }
+            float cw = (lw - 10f) / 2f;
+            for (int i = adminSkinPage * perPage; i < Mathf.Min(player.shop.Count, (adminSkinPage + 1) * perPage); i++)
+            {
+                var item = player.shop[i];
                 bool owned = player.owned.Contains(item.weapon + "/" + item.skin);
-                var row = new Rect(lx, cy, lw, 42f);
-                Fill(row, new Color(1f, 1f, 1f, owned ? 0.08f : 0.04f));
-                Label(new Rect(lx + 20f, cy, lw * 0.5f, 42f), $"{WeaponData.Find(item.weapon)?.Name ?? item.weapon} | {item.skin}", 19, Color.white);
-                Label(new Rect(lx + lw * 0.5f, cy, lw * 0.25f, 42f), owned ? "OWNED" : $"{item.price} Tokens", 17,
-                      owned ? Gold : Dim);
-                if (Button(new Rect(lx + lw - 190f, cy + 4f, 180f, 34f), owned ? "TAKE BACK" : "GIVE", false, !online.Busy, 17))
+                int cell = i - adminSkinPage * perPage;
+                float cx = lx + cell / rows * (cw + 10f), cellY = cy + cell % rows * 46f;
+                Fill(new Rect(cx, cellY, cw, 42f), new Color(1f, 1f, 1f, owned ? 0.08f : 0.04f));
+                Label(new Rect(cx + 12f, cellY, cw - 150f, 24f), $"{WeaponData.Find(item.weapon)?.Name ?? item.weapon} | {item.skin}", 16, Color.white);
+                Label(new Rect(cx + 12f, cellY + 21f, cw - 150f, 20f), owned ? "OWNED" : $"{item.price} Tokens", 14, owned ? Gold : Dim);
+                if (Button(new Rect(cx + cw - 130f, cellY + 4f, 122f, 34f), owned ? "TAKE BACK" : "GIVE", false, !online.Busy, 15))
                     AdminChangeSkin(player.nick, item, !owned);
-                cy += 46f;
             }
         }
 

@@ -993,12 +993,15 @@ public partial class GameUI : MonoBehaviour
         float listX = previewRect.xMax + 20f, listWidth = x + w - 30f - listX;
         var equipped = WeaponSkins.Equipped(inventoryWeapon);
 
-        // Skin list on the right (hovering a skin previews it).
+        // Skin list on the right (hovering a skin previews it); rows get lower when a weapon has many skins.
         WeaponSkin hovered = null;
         float rowY = top;
-        foreach (var skin in WeaponSkins.For(inventoryWeapon))
+        var skins = WeaponSkins.For(inventoryWeapon);
+        float step = Mathf.Min(64f, (y + h - 30f - top) / Mathf.Max(1, skins.Count)), rowHeight = step - 8f;
+        int textSize = step >= 60f ? 20 : 17;
+        foreach (var skin in skins)
         {
-            var row = new Rect(listX, rowY, listWidth, 56f);
+            var row = new Rect(listX, rowY, listWidth, rowHeight);
             if (row.Contains(Event.current.mousePosition)) hovered = skin;
             bool isEquipped = skin == equipped;
             bool locked = !WeaponSkins.CanUse(skin);
@@ -1017,15 +1020,16 @@ public partial class GameUI : MonoBehaviour
             }
             string text = isEquipped ? $"{skin.Name}\nEQUIPPED"
                         : forTokens ? $"{skin.Name}\n{Online.PriceOf(skin.WeaponId, skin.Id, skin.TokenPrice)} Tokens" : skin.Name;
-            if (Button(row, text, isEquipped, !locked, 20) && WeaponSkins.Equip(inventoryWeapon, skin))
+            if (Button(row, text, isEquipped, !locked, textSize) && WeaponSkins.Equip(inventoryWeapon, skin))
             {
                 previewSkin = null;
                 SoundFX.Play(SoundFX.Buy, Vector3.zero, 0.6f, 1f, false);
             }
-            if (locked) DrawLock(row.xMax - 32f, row.y + 18f, forTokens ? Pumpkin : LockColor);
-            DrawSwatch(new Rect(row.x + 10f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Main));
-            DrawSwatch(new Rect(row.x + 40f, row.y + 15f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Grip));
-            rowY += 64f;
+            float middle = row.y + rowHeight / 2f;
+            if (locked) DrawLock(row.xMax - 32f, middle - 10f, forTokens ? Pumpkin : LockColor);
+            DrawSwatch(new Rect(row.x + 10f, middle - 13f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Main));
+            DrawSwatch(new Rect(row.x + 40f, middle - 13f, 26f, 26f), WeaponSkins.MaterialFor(skin, SkinPart.Grip));
+            rowY += step;
         }
 
         var shown = previewSkin ?? hovered ?? equipped;

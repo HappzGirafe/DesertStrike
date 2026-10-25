@@ -349,7 +349,7 @@ def run(join_secret):
     print("tokens")
     status, mine = call("GET", "/tokens", token=a)
     check("a room's match pays its players once: Alice's 7 kills and the win", status == 200 and mine["tokens"] == 12
-          and mine["owned"] == [] and len(mine["shop"]) == 8, mine)
+          and mine["owned"] == [] and len(mine["shop"]) == 64, mine)
     check("bob_2 lost: his 2 kills", call("GET", "/tokens", token=b)[1]["tokens"] == 2)
     match = {"kills": 10, "won": True, "rounds": 8, "seconds": 600}
     check("a match too short to be real is refused", call("POST", "/tokens/match", dict(match, seconds=30), a)[0] == 422)
@@ -394,7 +394,7 @@ def run_admin():
     check("not an admin cannot give tokens", call("POST", "/admin/tokens", {"nick": "carol", "amount": 500}, c)[0] == 403)
     status, found = call("GET", "/admin/player?nick=CAROL", token=a)
     check("find a player (any case)", status == 200 and found["nick"] == "carol" and found["owned"] == []
-          and len(found["shop"]) == 8 and "created_at" in found, found)
+          and len(found["shop"]) == 64 and "created_at" in found, found)
     had = found["tokens"]
     check("no such player: 404", call("GET", "/admin/player?nick=nobody_here", token=a)[0] == 404)
     status, given = call("POST", "/admin/tokens", {"nick": "carol", "amount": 100}, a)
@@ -432,9 +432,11 @@ def run_admin():
     check("and the digle Desert Eagle for 750", status == 200 and bought["tokens"] == 150, bought)
     check("150 are not enough for nogektestskin (1000)", call("POST", "/tokens/buy", {"weapon": "knife", "skin": "nogektestskin"}, c)[0] == 409)
     prices = {(i["weapon"], i["skin"]): i["price"] for i in bought["shop"]}
+    neon = {(w, f"Neon {c}"): 500 for w in ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47",
+                                             "m4a1", "awp", "rpg", "svd") for c in ("Cyan", "Pink", "Green", "Yellow")}
     check("the shop's prices", prices == {("ak47", "Halloween"): 100, ("m4a1", "Halloween"): 150, ("knife", "Classic Halloween"): 500,
                                           ("knife", "karambit"): 400, ("knife", "nogektestskin"): 1000, ("deagle", "digle"): 750,
-                                          ("rpg", "Web"): 400, ("awp", "AWPOLD"): 750}, prices)
+                                          ("rpg", "Web"): 400, ("awp", "AWPOLD"): 750, **neon}, prices)
 
 
 if __name__ == "__main__":

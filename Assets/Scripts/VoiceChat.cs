@@ -184,8 +184,7 @@ public class VoiceChat : MonoBehaviour
         {
             nextLog = Time.unscaledTime + 2f;
             foreach (var pair in speakers)
-                Debug.Log($"[Voice] {pair.Key}: {pair.Value.Packets} packets, {pair.Value.BufferedMs:0} ms buffered, {pair.Value.Underruns} gaps, " +
-                          $"volume {pair.Value.Volume:0.0}, loudest {pair.Value.TakePeak():0.000}");
+                Debug.Log($"[Voice] {pair.Key}: {pair.Value.Packets} packets, {pair.Value.BufferedMs:0} ms buffered, {pair.Value.Underruns} gaps, volume {pair.Value.Volume:0.0}, loudest {pair.Value.TakePeak():0.000}");
             if (Talking) Debug.Log($"[Voice] sending, packet {sequence}");
         }
     }

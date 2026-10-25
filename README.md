@@ -107,6 +107,7 @@ the **INVENTORY**:
 | Desert Eagle: digle | 750 |
 | RPG: Web | 400 |
 | AWP: AWPOLD | 750 |
+| Every weapon: Neon Cyan, Neon Pink, Neon Green, Neon Yellow | 500 each |
 
 A skin bought is yours for good, on every computer and phone you log in on. Until then it shows its price and a
 padlock. A skin is sold for tokens when its `skin.json` has `"tokens": <price>` (the price shown until the server's is
@@ -307,7 +308,8 @@ pistol gives nothing.
 **INVENTORY** in the main menu lets you pick a skin for every weapon, with a turning 3D preview.
 Hover a skin to preview it and click to equip it; the choice is saved. Bots carry random skins.
 
-Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic.
+Every weapon has: Default, Desert Camo, Jungle, Urban Digital, Gold, Arctic, and the neon wraps Neon Cyan, Neon Pink,
+Neon Green and Neon Yellow (a dark circuit pattern whose traces glow; 500 Tokens each).
 Custom skins: Pink Scribble (Glock-18, USP), AWP_1skin (AWP), and skins with their own model:
 nogektestskin and karambit (knife), digle (Desert Eagle), Web (RPG) and AWPOLD (AWP: the older AWP with the green
 AWP1Skin body, `AWPOLD.blend`).
@@ -342,7 +344,7 @@ A skin folder can hold any of these:
 | `detail.png` | Texture for the rest: barrel, magazine, scope, guard, silencer |
 | `model.fbx` | A model that replaces the weapon's own (like the knife skin) |
 | `projectile.fbx` | RPG only: what the skin fires instead of the rocket (the Web skin's spinning spider-web net), with `projectile_parts.json` |
-| `skin.json` | Optional settings, e.g. `{ "name": "Gold", "main": "#D4AF37", "grip": "#141414", "detail": "#8A6E22", "smoothness": 0.75, "metallic": 0.9 }` |
+| `skin.json` | Optional settings, e.g. `{ "name": "Gold", "main": "#D4AF37", "grip": "#141414", "detail": "#8A6E22", "smoothness": 0.75, "metallic": 0.9 }`; `"mainGlow"`, `"gripGlow"`, `"detailGlow"` (`"#RRGGBB"`) make that part glow where its picture is bright, as the neon wraps do |
 
 `skin.json` can also turn a skin's own model in the hand: `"rotation": [x, y, z]` in degrees, around the grip
 (the karambit uses `[0, 0, 180]`). The game first points every model's blade or barrel forward by itself, then adds this turn.

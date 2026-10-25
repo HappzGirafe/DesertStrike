@@ -131,7 +131,7 @@ API: хости онлайн-кімнат через внутрішній пор
 внутрішній heartbeat (кожен гравець зі своїми вбивствами, один раз на матч, без денної межі). Одиночні матчі з ботами гра
 надсилає сама (`POST /tokens/match`): сервер перевіряє, що такий матч міг бути (раунди, вбивства, тривалість), не
 частіше 12 на годину, і не більше 40 токенів на день. `GET /tokens` — баланс, куплені скіни й ціни; `POST /tokens/buy`
-купує скін (ціни в `SHOP` у `tokens.py`: AK-47 Halloween 100, M4A1 Halloween 150, ніж Classic Halloween 500, karambit 400, nogektestskin 1000, digle 750, RPG Web 400, AWP AWPOLD 750). Перевірка:
+купує скін (ціни в `SHOP` у `tokens.py`: AK-47 Halloween 100, M4A1 Halloween 150, ніж Classic Halloween 500, karambit 400, nogektestskin 1000, digle 750, RPG Web 400, AWP AWPOLD 750, and the neon wraps: Neon Cyan / Pink / Green / Yellow for every weapon, 500 each). Перевірка:
 `tests/smoke_test.py`.
 
 ## Адмін-панель (з 1.20)
