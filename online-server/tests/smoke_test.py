@@ -6,6 +6,7 @@ Run:  python tests/smoke_test.py      (from online-server/, with the requirement
 """
 
 import base64
+import socket
 import email
 import email.policy
 import hashlib
@@ -21,6 +22,8 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+from websockets.sync.client import connect as ws_connect
 
 HERE = Path(__file__).resolve().parent.parent
 PORT, INTERNAL = 18000, 18001
@@ -350,10 +353,42 @@ def run(join_secret):
     status, headers = headers_of("GET", "/reviews", {"Origin": "https://anyone.example"})
     check("anyone may read (CORS)", headers.get("access-control-allow-origin") == "*", headers)
     status, headers = headers_of("OPTIONS", "/reviews", {"Origin": "https://lowstrike.lokvetia.com", "Access-Control-Request-Method": "POST"})
-    check("the website may write (CORS)", status == 204 and headers.get("access-control-allow-origin") == "https://lowstrike.lokvetia.com"
+    check("the website may write (CORS)", status in (200, 204) and headers.get("access-control-allow-origin") == "https://lowstrike.lokvetia.com"
           and "POST" in headers.get("access-control-allow-methods", ""), headers)
     status, headers = headers_of("OPTIONS", "/reviews", {"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"})
     check("other websites may not (CORS)", "access-control-allow-origin" not in headers, headers)
+
+    print("the browser version: the API from the website, online rooms over a WebSocket")
+    status, headers = headers_of("OPTIONS", "/me", {"Origin": "https://lowstrike.lokvetia.com", "Access-Control-Request-Method": "GET",
+                                                   "Access-Control-Request-Headers": "authorization,x-game-version"})
+    check("the website's page may call the API with a login", status == 200 and headers.get("access-control-allow-origin") == "https://lowstrike.lokvetia.com"
+          and "authorization" in headers.get("access-control-allow-headers", "").lower(), headers)
+    status, headers = headers_of("OPTIONS", "/me", {"Origin": "https://evil.example", "Access-Control-Request-Method": "GET"})
+    check("other websites' pages may not", "access-control-allow-origin" not in headers, headers)
+    host = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)   # stands in for room-1's game host (UDP 27015)
+    host.bind(("127.0.0.1", 27015))
+    host.settimeout(5)
+    try:
+        with ws_connect(f"ws://127.0.0.1:{PORT}/rooms/ws/room-1", origin="https://lowstrike.lokvetia.com", open_timeout=5) as link:
+            link.send(b"hello")
+            data, sender = host.recvfrom(2048)
+            check("a browser's message reaches the room's game host as one UDP packet", data == b"hello" and sender[0] == "127.0.0.1", (data, sender))
+            host.sendto(b"ewelcome", sender)
+            check("and the host's answer comes back as one message", link.recv(timeout=5) == b"ewelcome")
+            link.send(b"x" * 1401)
+            link.send(b"after")
+            check("a packet over 1400 bytes is dropped", host.recvfrom(2048)[0] == b"after")
+    finally:
+        host.close()
+    for path, origin, name in (("/rooms/ws/room-9", "https://lowstrike.lokvetia.com", "no such room slot"),
+                               ("/rooms/ws/room-1", "https://evil.example", "another website's page")):
+        try:
+            with ws_connect(f"ws://127.0.0.1:{PORT}{path}", origin=origin, open_timeout=5) as link:
+                link.recv(timeout=5)
+            refused = False
+        except Exception:
+            refused = True
+        check(f"{name}: no link", refused)
 
     print("tokens")
     status, mine = call("GET", "/tokens", token=a)

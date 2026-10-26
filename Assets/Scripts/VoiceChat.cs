@@ -3,6 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+// The browser version has no Microphone (and no voice chat: VoiceChat stays off there); this stands in for it, so the
+// code below is the same everywhere.
+static class Microphone
+{
+    public static string[] devices => new string[0];
+    public static AudioClip Start(string device, bool loop, int seconds, int frequency) => null;
+    public static void End(string device) { }
+    public static int GetPosition(string device) => 0;
+    public static void GetDeviceCaps(string device, out int minFrequency, out int maxFrequency) => minFrequency = maxFrequency = 0;
+}
+#endif
+
 /// <summary>
 /// Voice chat for LAN and online games: hold V during a match to talk (or, with Open mic, just speak); everyone in
 /// the game hears you. A player can be muted or turned down for yourself (pause menu, or the online room's player list).
@@ -134,7 +147,9 @@ public class VoiceChat : MonoBehaviour
 
     void Update()
     {
-        if (gm.ServerMode) return;   // an online game host passes voices on but has no microphone or speakers
+        // An online game host passes voices on but has no microphone or speakers; the browser version (WebGL) has
+        // no voice chat (a browser game cannot record the microphone or play a stream this way).
+        if (gm.ServerMode || WebLink.Available) return;
         var net = gm.Net;
         InSession = net.IsHost ? net.Peers.Count > 0 : net.IsClient && net.Connected;
         bool inMatch = gm.State != MatchState.Menu && !gm.IsPaused;
@@ -199,7 +214,7 @@ public class VoiceChat : MonoBehaviour
     /// <summary>One voice frame from another player (called by NetSession).</summary>
     public void Receive(string speaker, byte[] data, int offset, int count)
     {
-        if (!GameSettings.VoiceChat || count <= 0 || gm.ServerMode || muted.Contains(speaker)) return;
+        if (!GameSettings.VoiceChat || count <= 0 || gm.ServerMode || WebLink.Available || muted.Contains(speaker)) return;
         if (!speakers.TryGetValue(speaker, out var output) || output == null)
         {
             var go = new GameObject("Voice " + speaker);

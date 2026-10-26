@@ -101,6 +101,7 @@ public class Friends : MonoBehaviour
 
     void Open()
     {
+        if (WebLink.Available) return;   // the browser version: no LAN friends (a browser cannot use the network that way)
         try
         {
             socket = new UdpClient { EnableBroadcast = true };

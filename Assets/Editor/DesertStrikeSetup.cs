@@ -60,6 +60,22 @@ public static class DesertStrikeSetup
     [MenuItem("Low Strike/Build Linux Game")]
     public static void BuildLinux() => Build(BuildTarget.StandaloneLinux64, "Builds/Linux/LowStrike.x86_64");
 
+    /// <summary>
+    /// The browser version (WebGL): Builds/WebGL, put on the website as play/ (docs/play). Gzip, unpacked by the page
+    /// itself, so GitHub Pages can serve it without special headers; the page is Assets/WebGLTemplates/LowStrike. A
+    /// browser has no LAN games or voice chat; its online rooms go through the online server (WebLink).
+    /// </summary>
+    [MenuItem("Low Strike/Build Browser Version")]
+    public static void BuildWebGL()
+    {
+        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+        PlayerSettings.WebGL.decompressionFallback = true;
+        PlayerSettings.WebGL.dataCaching = true;
+        PlayerSettings.WebGL.template = "PROJECT:LowStrike";
+        PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+        Build(BuildTarget.WebGL, "Builds/WebGL");
+    }
+
     /// <summary>The online rooms' game host for a Linux server: a dedicated-server build (no window, graphics or sound;
     /// needs "Linux Dedicated Server Build Support"). It hosts rooms like the Windows game started with -ds-server.</summary>
     [MenuItem("Low Strike/Build Linux Server")]

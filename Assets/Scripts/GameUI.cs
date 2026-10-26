@@ -234,7 +234,7 @@ public partial class GameUI : MonoBehaviour
         if (Accounts.IsOnline && Online.Tokens >= 0)   // between the title and EXIT
             Label(new Rect(x + w - 164f - 16f - 330f, top + 30f, 330f, 30f), $"Tokens: {Online.Tokens}", 20, Pumpkin, TextAnchor.MiddleRight);
         // iPhones close apps from the app switcher only (Apple's rules); everywhere else the game can quit itself.
-        if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + w - 164f, top + 22f, 140f, 46f), "EXIT", false, true, 20))
+        if (Application.platform != RuntimePlatform.IPhonePlayer && !WebLink.Available && Button(new Rect(x + w - 164f, top + 22f, 140f, 46f), "EXIT", false, true, 20))
         {
             Debug.Log("[DesertStrike] Exit from the main menu");
             Application.Quit();
@@ -255,7 +255,11 @@ public partial class GameUI : MonoBehaviour
         bx += 300f + gap;
         if (Button(new Rect(bx, y, small, 66f), "PLAY ONLINE", false, true, 21)) OpenOnline();
         bx += small + gap;
-        if (Button(new Rect(bx, y, small, 66f), "LAN GAME", false, true, 21)) OpenLan();
+        if (Button(new Rect(bx, y, small, 66f), "LAN GAME", false, true, 21))
+        {
+            if (WebLink.Available) gm.MenuNotice = BrowserNoLan;   // the browser version
+            else OpenLan();
+        }
         bx += small + gap;
         bool onlineFriends = Accounts.IsOnline;
         int requests = onlineFriends ? Online.RequestCount + Online.InviteCount : gm.Friends.Incoming.Count;
@@ -1551,7 +1555,7 @@ public partial class GameUI : MonoBehaviour
         if (Button(new Rect(x + 40f, y, w - 80f, 56f), "SETTINGS")) settingsOpen = true;
         y += 70f;
         // iPhones and iPads close apps from the app switcher, not from inside the app.
-        if (Application.platform != RuntimePlatform.IPhonePlayer && Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
+        if (Application.platform != RuntimePlatform.IPhonePlayer && !WebLink.Available && Button(new Rect(x + 40f, y, w - 80f, 56f), "QUIT GAME")) gm.QuitGame();
         y += 70f;
         // The console without a keyboard's ` key (phones), last, inside the panel: admins, or everyone while cheats are for everyone.
         if (Cheats.Allowed(gm) && Button(new Rect(x + 40f, y, w - 80f, 56f), "CONSOLE"))

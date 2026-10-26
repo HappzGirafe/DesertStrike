@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <title>{{{ PRODUCT_NAME }}} in the browser</title>
+    <link rel="icon" href="../favicon.png">
+    <style>
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0d0e10; }
+      #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: #0d0e10; outline: none; }
+      #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+                 gap: 18px; color: #f2f2f2; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0d0e10; }
+      #loading h1 { margin: 0; font-size: clamp(36px, 8vw, 72px); letter-spacing: 0.04em; color: #ffc23d; font-weight: 800; }
+      #loading p { margin: 0; font-size: 16px; color: rgba(255, 255, 255, 0.6); text-align: center; padding: 0 16px; }
+      #bar { width: min(420px, 80vw); height: 10px; background: rgba(255, 255, 255, 0.12); border-radius: 5px; overflow: hidden; }
+      #fill { width: 0; height: 100%; background: #ffc23d; transition: width 0.2s; }
+      #loading a { color: #ffc23d; font-size: 15px; }
+      #problem { color: #ff6b5e; display: none; max-width: 560px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="loading">
+      <h1>LOW STRIKE</h1>
+      <div id="bar"><div id="fill"></div></div>
+      <p id="what">Loading the game ({{{ PRODUCT_VERSION }}})...</p>
+      <p id="problem"></p>
+      <a href="../">Back to the website</a>
+    </div>
+    <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+      createUnityInstance(canvas, {
+        arguments: [],
+        dataUrl: "Build/{{{ DATA_FILENAME }}}",
+        frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+        codeUrl: "Build/{{{ CODE_FILENAME }}}",
+#endif
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+        productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+        productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+        devicePixelRatio: 1,   // the game scales its own picture (Settings > 3D resolution); sharper costs a lot here
+        autoSyncPersistentDataPath: true,   // settings and accounts are kept by the browser as soon as they change
+      }, function (progress) {
+        document.querySelector("#fill").style.width = Math.round(progress * 100) + "%";
+      }).then(function () {
+        document.querySelector("#loading").style.display = "none";
+        canvas.focus();
+      }).catch(function (message) {
+        document.querySelector("#what").style.display = "none";
+        var problem = document.querySelector("#problem");
+        problem.textContent = "The game could not start in this browser: " + message +
+          ". Try an up-to-date Chrome, Edge, Firefox or Safari, or download Low Strike from the website.";
+        problem.style.display = "block";
+      });
+    </script>
+  </body>
+</html>

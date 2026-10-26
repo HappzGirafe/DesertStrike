@@ -50,10 +50,12 @@ import living_world
 import recovery
 import reviews
 import tokens
+import webrooms
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -755,6 +757,11 @@ async def lifespan(app):
 
 
 app = FastAPI(title="Low Strike online", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+# The website's own addresses (REVIEW_ORIGINS): its reviews, and the browser version of the game (WebGL), which calls
+# the API from the page like the downloaded game does, and joins online rooms through webrooms.py.
+SITE_ORIGINS = {o.strip().rstrip("/") for o in (CONFIG.review_origins or reviews.DEFAULT_ORIGINS).split(",") if o.strip()}
+app.add_middleware(CORSMiddleware, allow_origins=sorted(SITE_ORIGINS), allow_methods=["GET", "POST", "PATCH", "DELETE"],
+                   allow_headers=["Authorization", "Content-Type", "X-Game-Version"], max_age=600)
 
 
 @app.exception_handler(RequestValidationError)
@@ -1467,6 +1474,7 @@ REVIEWS = {}
 TOKENS = {}
 ADMIN = {}
 RECOVERY = {}
+WEBROOMS = {}
 
 
 def command_line() -> bool:
@@ -1579,6 +1587,7 @@ def main():
     TOKENS.update(tokens.install(app, sys.modules[__name__]))
     ADMIN.update(admin.install(app, sys.modules[__name__], tokens, TOKENS["view"]))
     RECOVERY.update(recovery.install(app, sys.modules[__name__]))
+    WEBROOMS.update(webrooms.install(app, sys.modules[__name__], SITE_ORIGINS))
     print(f"[api] database {CONFIG.database_path}")
     print(f"[api] public API on http://{CONFIG.api_host}:{CONFIG.api_port} (the tunnel's target), "
           f"game hosts report to http://127.0.0.1:{CONFIG.internal_port}")

@@ -27,6 +27,7 @@ public partial class GameUI
     Vector2 roomsScroll, onlineFriendsScroll, inviteScroll;
 
     OnlineClient Online => gm.Online;
+    const string BrowserNoLan = "LAN games need the downloaded game: a browser cannot reach other computers on the WiFi.";
     string testScreen;   // -ds-online-screen <login|forgot|rooms|create|friends|account|admin|...>: opens it once logged in (screenshots)
 
     void OpenTestScreen()
@@ -497,7 +498,15 @@ public partial class GameUI
         y += 112f;
         float bx = x + 40f, bw = w - 80f;
         if (Button(new Rect(bx, y, bw / 2f - 5f, 44f), "ONLINE", true, true, 20)) friendsLan = false;
-        if (Button(new Rect(bx + bw / 2f + 5f, y, bw / 2f - 5f, 44f), "LAN (same WiFi)", false, true, 20)) friendsLan = true;
+        if (Button(new Rect(bx + bw / 2f + 5f, y, bw / 2f - 5f, 44f), "LAN (same WiFi)", false, true, 20))
+        {
+            if (!WebLink.Available) friendsLan = true;
+            else
+            {
+                onlineMessage = BrowserNoLan;   // the browser version
+                onlineMessageBad = true;
+            }
+        }
         y += 60f;
 
         bool hidden = Accounts.HideStatus;
@@ -758,7 +767,7 @@ public partial class GameUI
     void DrawMuteList(float x, float y)
     {
         var voice = VoiceChat.Instance;
-        if (voice == null) return;
+        if (voice == null || WebLink.Available) return;   // no voice chat in the browser version
         var names = new List<string>();
         foreach (var c in gm.Combatants)
             if (c.IsHuman && !c.IsPlayer && !names.Contains(c.DisplayName)) names.Add(c.DisplayName);

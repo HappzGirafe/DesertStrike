@@ -119,6 +119,7 @@ public partial class NetSession : MonoBehaviour
     GameManager gm;
     UdpClient socket;
     UdpClient discovery;
+    WebLink web;              // the browser version (WebGL): its link to an online room, in place of the socket
     IPEndPoint hostEndPoint;
     readonly List<IPEndPoint> beaconTargets = new List<IPEndPoint>();
     float lastHeardFromHost, connectStarted, nextHello, nextInput, nextBeacon, nextSnapshot, nextLobby;
@@ -147,6 +148,11 @@ public partial class NetSession : MonoBehaviour
     public bool StartHost(int port = GamePort, bool online = false, string secret = null)
     {
         Stop();
+        if (WebLink.Available)
+        {
+            Status = "A browser cannot host a game: download Low Strike for that.";
+            return false;
+        }
         try
         {
             // An online game host is reached only through the playit agent on the same PC: it listens on this PC's
@@ -211,6 +217,11 @@ public partial class NetSession : MonoBehaviour
         lanPassSent = null;
         LastEndWasDrop = false;
         PingMs = -1f;
+        if (WebLink.Available)
+        {
+            ConnectWeb(port);
+            return;
+        }
         if (IPAddress.TryParse(host, out var ip))
         {
             Connect(new IPEndPoint(ip, port), host);
@@ -266,6 +277,29 @@ public partial class NetSession : MonoBehaviour
         Debug.Log(label == target.Address.ToString() ? $"[Net] Joining {label}:{target.Port}" : $"[Net] Joining {label} ({target})");
     }
 
+    // The browser version: an online room through the online server (online-server/webrooms.py), which passes the
+    // packets on to the room's game host. A LAN game cannot be joined from a browser.
+    void ConnectWeb(int port)
+    {
+        string api = gm.Online != null ? gm.Online.ApiUrl : null;
+        if (!OnlineClient || string.IsNullOrEmpty(api) || string.IsNullOrEmpty(RoomSlot))
+        {
+            Fail("LAN games need the downloaded game: a browser cannot reach other computers on the network.");
+            return;
+        }
+        string url = (api.StartsWith("https://") ? "wss://" + api.Substring(8) : "ws://" + api.Substring(api.IndexOf("://") + 3)).TrimEnd('/')
+                     + "/rooms/ws/" + Uri.EscapeDataString(RoomSlot);
+        web = new WebLink(url);
+        Role = Mode.Client;
+        Connected = false;
+        hostEndPoint = new IPEndPoint(IPAddress.Loopback, port);   // stands for the game host: everything comes through the link
+        hostLabel = "the game server";
+        connectStarted = lastHeardFromHost = Time.unscaledTime;
+        nextHello = 0f;
+        Status = "Connecting to the game server...";
+        Debug.Log($"[Net] Joining room {RoomSlot} through {url}");
+    }
+
     // The name being looked up: once known, connect (IPv4, like the game's socket).
     void FinishResolving()
     {
@@ -309,6 +343,12 @@ public partial class NetSession : MonoBehaviour
             socket.Close();
             socket = null;
         }
+        if (web != null)
+        {
+            if (IsClient && hostEndPoint != null) Send(new[] { (byte)Msg.Bye }, hostEndPoint);
+            web.Close();
+            web = null;
+        }
         Role = Mode.Off;
         Application.runInBackground = false;  // alone, the game pauses in the background (saves battery)
         Connected = false;
@@ -327,7 +367,7 @@ public partial class NetSession : MonoBehaviour
 
     public void StartDiscovery()
     {
-        if (discovery != null) return;
+        if (discovery != null || WebLink.Available) return;   // a browser cannot search the network
         try
         {
             discovery = new UdpClient();
@@ -414,21 +454,38 @@ public partial class NetSession : MonoBehaviour
             {
                 break;
             }
-            if (data.Length == 0 || data.Length > MaxPacket) continue;
-            int start = IsHost ? ProxyHeaderLength(data) : 0;
-            if (start < 0 || start >= data.Length) continue;
-            try
+            Handle(data, from);
+        }
+        if (web != null)
+        {
+            byte[] data;
+            while (web != null && (data = web.Receive()) != null) Handle(data, hostEndPoint);
+            if (web != null && web.State == WebLink.LinkState.Closed && Role == Mode.Client)
             {
-                using (var reader = new BinaryReader(new MemoryStream(data, start, data.Length - start)))
-                {
-                    if (IsHost) HostReceive(reader, from);
-                    else if (IsClient) ClientReceive(reader, from);
-                }
+                bool wasIn = Connected;
+                Fail(wasIn ? "Lost the connection to the game server." : "The game server does not answer. It may be restarting: try again in a minute.");
+                LastEndWasDrop = true;
+                if (wasIn) gm.OnNetworkGameEnded(Status);
             }
-            catch (Exception e)
+        }
+    }
+
+    void Handle(byte[] data, IPEndPoint from)
+    {
+        if (data.Length == 0 || data.Length > MaxPacket) return;
+        int start = IsHost ? ProxyHeaderLength(data) : 0;
+        if (start < 0 || start >= data.Length) return;
+        try
+        {
+            using (var reader = new BinaryReader(new MemoryStream(data, start, data.Length - start)))
             {
-                Debug.LogWarning("[Net] Bad packet: " + e.Message);
+                if (IsHost) HostReceive(reader, from);
+                else if (IsClient) ClientReceive(reader, from);
             }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("[Net] Bad packet: " + e.Message);
         }
     }
 
@@ -1345,6 +1402,11 @@ public partial class NetSession : MonoBehaviour
 
     void Send(byte[] data, IPEndPoint to)
     {
+        if (web != null)
+        {
+            if (to != null && to.Equals(hostEndPoint)) web.Send(data);   // the browser only ever talks to its game host
+            return;
+        }
         if (socket == null || to == null) return;
         try
         {

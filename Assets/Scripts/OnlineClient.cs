@@ -389,7 +389,10 @@ public class OnlineClient : MonoBehaviour
 
     IEnumerator LoadConfig()
     {
-        using (var request = UnityWebRequest.Get(ConfigUrl))
+        // The browser version reads it from its own website (no other site's address, which a browser would refuse).
+        string configUrl = WebLink.Available && !string.IsNullOrEmpty(Application.absoluteURL)
+            ? new Uri(new Uri(Application.absoluteURL), "/online.json").ToString() : ConfigUrl;
+        using (var request = UnityWebRequest.Get(configUrl))
         {
             request.timeout = 10;
             yield return request.SendWebRequest();
@@ -429,7 +432,7 @@ public class OnlineClient : MonoBehaviour
     void NoteLatest(string latest, string download)
     {
         if (!string.IsNullOrEmpty(download) && download.StartsWith("https://")) DownloadUrl = download;
-        if (!IsNewer(latest, Application.version)) return;
+        if (WebLink.Available || !IsNewer(latest, Application.version)) return;   // the browser version is always the website's newest
         NewVersion = latest.Trim();
         Debug.Log($"[Online] Low Strike {NewVersion} is out (this is {Application.version})");
     }
