@@ -559,6 +559,7 @@ public partial class NetSession : MonoBehaviour
         {
             peer.AwaySince = -1f;
             Debug.Log($"[Net] {peer.Name} is back");
+            gm.HandBack(peer);
         }
         switch (msg)
         {
@@ -659,6 +660,7 @@ public partial class NetSession : MonoBehaviour
                     peer.AwaySince = -1f;
                     peer.IsAdmin = admin;
                     if (gm.State == MatchState.Menu) SetSide(peer, spectator, team);
+                    gm.HandBack(peer);
                 }
             }
             if (peer == null)
@@ -680,7 +682,8 @@ public partial class NetSession : MonoBehaviour
                 };
                 Peers.Add(peer);
                 Debug.Log($"[Net] {peer.Name} joined from {from} ({(spectator ? "watching" : TeamName(team))})");
-                if (gm.State != MatchState.Menu && !peer.Spectator) gm.AddRemotePlayer(peer, midRound: true);
+                // Mid-match: their player again if a bot has been playing for them (they left before), else a new one.
+                if (gm.State != MatchState.Menu && !peer.Spectator && !gm.HandBack(peer)) gm.AddRemotePlayer(peer, midRound: true);
             }
         }
         else if (gm.State == MatchState.Menu && (peer.Spectator != spectator || peer.Team != team))
@@ -791,6 +794,7 @@ public partial class NetSession : MonoBehaviour
                 {
                     peer.AwaySince = now;
                     Debug.Log($"[Net] {peer.Name} lost the connection; keeping their place for {AwayTime:0} s");
+                    gm.StandIn(peer);   // a bot plays for them meanwhile
                 }
                 else RemovePeer(peer, "timed out");
             }

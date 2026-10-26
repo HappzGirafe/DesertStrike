@@ -313,7 +313,7 @@ public static class WeaponSkins
     {
         if (combatant == null || weapon == null) return "";
         if (combatant.SkinChoices != null && combatant.SkinChoices.TryGetValue(weapon.Id, out var id) && !string.IsNullOrEmpty(id)) return id;
-        return combatant.IsHuman ? "" : Pick(weapon, combatant.SkinSeed)?.Id ?? "";
+        return combatant.IsHuman || combatant.StandInFor != null ? "" : Pick(weapon, combatant.SkinSeed)?.Id ?? "";   // a bot playing for a person keeps their skins
     }
 
     /// <summary>The skin a carried gun shows (see <see cref="IdOf"/>).</summary>

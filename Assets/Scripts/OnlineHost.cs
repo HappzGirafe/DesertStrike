@@ -132,7 +132,7 @@ public class OnlineHost : MonoBehaviour
                     user_id = peer.AccountId,
                     team = peer.Spectator ? "spectator" : peer.Team == Team.Swat ? "swat" : "t",
                     connected = !peer.Away,
-                    kills = peer.Player != null ? peer.Player.Self.Kills : 0,   // the API pays Tokens for them
+                    kills = peer.Player != null ? peer.Player.Self.Kills : gm.StandInKills(peer) ?? 0,   // the API pays Tokens for them (not for a bot's)
                 });
 
         using (var request = new UnityWebRequest($"{ControlUrl}/internal/slots/{SlotId}/heartbeat", "POST"))

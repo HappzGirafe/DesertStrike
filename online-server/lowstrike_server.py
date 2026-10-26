@@ -49,6 +49,7 @@ import bot_knowledge
 import living_world
 import recovery
 import reviews
+import tactics
 import tokens
 import webrooms
 from argon2 import PasswordHasher
@@ -323,6 +324,7 @@ MIGRATIONS = [
     tokens.SCHEMA,          # 8: Tokens and the skins bought with them
     admin.SCHEMA,           # 9: what admins did (the admin panel)
     recovery.SCHEMA,        # 10: each account's email, and the codes that confirm it or reset a forgotten password
+    tactics.SCHEMA,         # 11: how each player plays each map, for the bots that copy real players
 ]
 
 
@@ -1475,6 +1477,7 @@ TOKENS = {}
 ADMIN = {}
 RECOVERY = {}
 WEBROOMS = {}
+TACTICS = {}
 
 
 def command_line() -> bool:
@@ -1583,6 +1586,7 @@ def main():
     DB = open_database()
     WORLD.update(living_world.install(app, internal, sys.modules[__name__]))
     KNOWLEDGE.update(bot_knowledge.install(app, internal, sys.modules[__name__]))
+    TACTICS.update(tactics.install(app, internal, sys.modules[__name__]))
     REVIEWS.update(reviews.install(app, sys.modules[__name__]))
     TOKENS.update(tokens.install(app, sys.modules[__name__]))
     ADMIN.update(admin.install(app, sys.modules[__name__], tokens, TOKENS["view"]))

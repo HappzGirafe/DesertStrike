@@ -645,6 +645,8 @@
  "LAN games need the downloaded game: a browser cannot reach other computers on the network.": "Le partite LAN richiedono il gioco scaricato: un browser non può raggiungere gli altri computer della rete.",
  "A browser cannot host a game: download Low Strike for that.": "Un browser non può ospitare una partita: per questo scarica Low Strike.",
  "the game server": "il server di gioco",
+ "{0} LEFT: A BOT PLAYS FOR THEM": "{0} HA LASCIATO: UN BOT GIOCA AL SUO POSTO",
+ "{0} IS BACK": "{0} DI NUOVO IN GIOCO",
  "Unknown bot difficulty.": "Difficoltà dei bot sconosciuta.",
  "Rounds to win: 3, 5, 8 or 16.": "Round per vincere: 3, 5, 8 o 16.",
  "Closed site: A or B.": "Sito chiuso: A o B.",

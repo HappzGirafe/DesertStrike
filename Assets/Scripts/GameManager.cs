@@ -153,6 +153,8 @@ public class GameManager : MonoBehaviour
     public bool SpectatingNow => State != MatchState.Menu && (Player == null || !Player.Self.IsAlive);
     public float BuyTimeLeft => Tutorial != null ? 99f : Warmup ? StateEndsAt - Time.time : BuyTime - (Time.time - roundStartedAt);
     public float SellTimeLeft => Warmup ? StateEndsAt - Time.time : SellTime - (Time.time - roundStartedAt);
+    /// <summary>When this round went live (its buy time began <see cref="FreezeTime"/> before).</summary>
+    public float RoundLiveAt => roundStartedAt + FreezeTime;
 
     readonly List<BotController> bots = new List<BotController>();
     float roundStartedAt;
@@ -224,6 +226,7 @@ public class GameManager : MonoBehaviour
         Bomb = gameObject.AddComponent<BombManager>();
         Drops = gameObject.AddComponent<WeaponDrops>();
         gameObject.AddComponent<BotKnowledge>();
+        gameObject.AddComponent<PlayerTactics>();
         string savedSite = PlayerPrefs.GetString(ClosedSiteKey, "B");
         ClosedSite = savedSite == "A" ? "A" : "B";
         CloseHalf = PlayerPrefs.GetInt(CloseHalfKey, 1) == 1;
@@ -311,6 +314,7 @@ public class GameManager : MonoBehaviour
         Bomb.Clear();   // no bomb in the warm-up
         respawnAt.Clear();
         foreach (var c in Combatants) RespawnForWarmup(c);
+        PlayerTactics.Instance.AssignStyles(bots);
         var terroristBots = bots.FindAll(b => b.Self.Team == Team.Terrorists);
         var swatBots = Shuffled(bots.FindAll(b => b.Self.Team == Team.Swat));
         BotController.PlanRound(terroristBots, swatBots, Map, Time.time);
@@ -641,6 +645,7 @@ public class GameManager : MonoBehaviour
             c.GetComponent<ICombatantController>().Respawn(position, terrorist ? Map.TerroristSpawnYaw : Map.SwatSpawnYaw);
         }
 
+        PlayerTactics.Instance.AssignStyles(bots);
         foreach (var bot in bots) bot.BuyGear();
         var terroristBots = bots.FindAll(b => b.Self.Team == Team.Terrorists);
         var swatBots = Shuffled(bots.FindAll(b => b.Self.Team == Team.Swat));
@@ -884,6 +889,7 @@ public class GameManager : MonoBehaviour
         if (KillFeed.Count > 6) KillFeed.RemoveAt(0);
 
         BotKnowledge.Instance.OnKill(victim, killer);
+        PlayerTactics.Instance.OnKill(victim, killer, headshot);
         Drops.OnDeath(victim);
         if (killer != null && killer != victim && killer.Team != victim.Team)
         {
@@ -906,6 +912,7 @@ public class GameManager : MonoBehaviour
     public void OnBombPlanted(Combatant planter, string site)
     {
         ShowMessage($"BOMB HAS BEEN PLANTED ON {site}", 3f);
+        PlayerTactics.Instance.OnBombPlanted(planter, site);
         ReportNoise(Bomb.Position, planter.Team, 200f);
         Debug.Log($"[DesertStrike] {planter.DisplayName} planted the bomb on {site}");
     }
@@ -935,6 +942,7 @@ public class GameManager : MonoBehaviour
     public void ReportHit(Combatant shooter, bool headshot, bool kill)
     {
         if (shooter == null) return;
+        if (!IsClient) PlayerTactics.Instance.OnHit(shooter);
         if (shooter.IsPlayer) ShowHitMarker(headshot, kill);
         else if (shooter.IsHuman) Net.RecordHitMarker(shooter, headshot, kill);
     }
@@ -1019,16 +1027,89 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>Host: a player on another PC left.</summary>
+    /// <summary>Host: a player on another PC left. During a match a bot plays on in their place (<see cref="StandIn"/>).</summary>
     public void RemoveRemotePlayer(NetSession.Peer peer)
     {
         if (peer.Player == null) return;
+        if (StandIn(peer)) return;
         var combatant = peer.Player.Self;
         Bomb.ReleaseFrom(combatant);
         Combatants.Remove(combatant);
         Destroy(combatant.gameObject);
         peer.Player = null;
         CheckElimination();
+    }
+
+    bool MatchRunning => (State == MatchState.Freeze || State == MatchState.Live || State == MatchState.RoundEnd) && Tutorial == null;
+
+    /// <summary>
+    /// Host: a person left the match (or lost the connection): a bot takes over their player, with everything it
+    /// has (health, guns, money, the bomb, their kills), and plays on the way they play (<see cref="PlayerTactics"/>)
+    /// until they come back (<see cref="HandBack"/>) or the match ends.
+    /// </summary>
+    public bool StandIn(NetSession.Peer peer)
+    {
+        var remote = peer.Player;
+        if (remote == null || !MatchRunning) return false;
+        var c = remote.Self;
+        peer.Player = null;
+        DestroyImmediate(remote);
+        var obstacle = c.GetComponent<UnityEngine.AI.NavMeshObstacle>();
+        if (obstacle != null) DestroyImmediate(obstacle);
+        c.IsHuman = false;
+        c.StandInFor = peer.Name;
+        c.CheatFlags = 0;
+        c.Scoped = false;
+        c.DisplayName = "BOT " + peer.Name;
+        var bot = c.gameObject.AddComponent<BotController>();
+        bot.Setup(Difficulty == BotDifficulty.Easy ? BotDifficulty.Normal : Difficulty);
+        bot.StandInAccount = peer.AccountId;
+        bot.StandInKills = c.Kills;
+        bot.StyleChosen = true;
+        bot.UseStyle(PlayerTactics.Instance.StyleOf(peer));
+        bots.Add(bot);
+        bot.TakeOver();
+        if (State == MatchState.Freeze && BuyTimeLeft > 0f && InBuyZone(c)) bot.BuyGear();
+        if (State != MatchState.RoundEnd) bot.PlanTakeover(Map, RoundLiveAt);
+        ShowMessage($"{peer.Name} LEFT: A BOT PLAYS FOR THEM", 3f);
+        Debug.Log($"[Net] A bot plays for {peer.Name} ({(bot.Style != null ? "their way" : "no style of theirs yet")})");
+        return true;
+    }
+
+    /// <summary>
+    /// Host: a person came back to the match (online: the same account; LAN: the same name) while a bot plays for
+    /// them: their player is theirs again, where it is now. False when no bot plays for them.
+    /// </summary>
+    public bool HandBack(NetSession.Peer peer)
+    {
+        if (!MatchRunning || peer.Spectator || peer.Player != null) return false;
+        var bot = bots.Find(b => b.Self.StandInFor != null &&
+                                 (peer.AccountId != null ? b.StandInAccount == peer.AccountId : b.StandInAccount == null && b.Self.StandInFor == peer.Name));
+        if (bot == null) return false;
+        var c = bot.Self;
+        bots.Remove(bot);
+        bot.Release();
+        DestroyImmediate(bot);
+        c.IsHuman = true;
+        c.StandInFor = null;
+        c.DisplayName = peer.Name;
+        c.SkinChoices = peer.SkinChoices ?? c.SkinChoices;
+        peer.Team = c.Team;   // they play on where their player is
+        var remote = c.gameObject.AddComponent<RemotePlayerController>();
+        remote.Setup(peer);
+        remote.TakeBack();
+        peer.Player = remote;
+        c.SpawnCount++;   // their game takes the place the host has for them (as after a respawn)
+        ShowMessage($"{peer.Name} IS BACK", 3f);
+        Debug.Log($"[Net] {peer.Name} plays again (the bot that played for them steps aside)");
+        return true;
+    }
+
+    /// <summary>Host: the kills a person made before a bot took over for them (null: no bot plays for them).</summary>
+    public int? StandInKills(NetSession.Peer peer)
+    {
+        var bot = bots.Find(b => b.Self.StandInFor != null && peer.AccountId != null && b.StandInAccount == peer.AccountId);
+        return bot != null ? bot.StandInKills : (int?)null;
     }
 
     void ClearMatch()

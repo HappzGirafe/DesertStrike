@@ -325,6 +325,35 @@ def run(join_secret):
     status, same = call("GET", "/internal/bot-knowledge/dune", base=CONTROL, headers={"X-Internal-Key": internal_key})
     check("game hosts read the same knowledge", status == 200 and same["kill"] == known["kill"], same)
 
+    print("player styles (bots that copy players)")
+    key = {"X-Internal-Key": internal_key}
+    way = {"site": "B", "points": [0, 0, 0, 0, 5, 0, 1, 2.5, 10, 0, 3, 9], "lookX": 1, "lookZ": 0, "hold": 4, "crouch": True}
+    style = {"v": 1, "t": {"rounds": 3, "siteA": 0, "siteB": 2, "paths": [way], "buys": [9, 3], "armor": 3, "helmet": 1, "kit": 0,
+                           "kills": [10, 0, 3, 0, 1], "killCount": 1, "headshots": 1},
+             "swat": {"rounds": 0, "paths": []}}
+    status, answer = call("GET", f"/internal/tactics/dune?users={a_id}", base=CONTROL, headers=key)
+    check("no styles yet", status == 200 and answer["players"] == [] and answer["others"] == [], answer)
+    check("styles: game hosts need the key", call("GET", "/internal/tactics/dune", base=CONTROL, headers={"X-Internal-Key": "0" * 64})[0] == 403)
+    check("styles: unknown map 404", call("GET", "/tactics/nowhere")[0] == 404)
+    bad = dict(style, t=dict(style["t"], paths=[dict(way, points=[1, 2, 3])]))
+    status, sent = call("POST", "/internal/tactics", {"map": "dune", "players": [
+        {"user_id": a_id, "data": style}, {"user_id": b_id, "data": bad}, {"user_id": "nobody", "data": style},
+        {"user_id": a_id, "data": {"t": {"paths": [{"points": [0, 0, 0, float("nan")] * 2}]}}}]}, base=CONTROL, headers=key)
+    check("a game host keeps its players' styles (bad ones and unknown accounts left out)", status == 200 and sent["kept"] == 1, sent)
+    far = dict(way, points=[9999, 0, 0, 0, 5, 0, 1, 999], hold=500, site="C", lookX=7)
+    call("POST", "/internal/tactics", {"map": "dune", "players": [{"user_id": b_id, "data": {"t": {"rounds": 1, "paths": [far] * 12}}}]},
+         base=CONTROL, headers=key)
+    status, answer = call("GET", f"/internal/tactics/dune?users={a_id}", base=CONTROL, headers=key)
+    mine = answer["players"][0]["data"] if answer.get("players") else {}
+    check("a player's style comes back as sent", status == 200 and len(answer["players"]) == 1 and answer["players"][0]["user_id"] == a_id
+          and mine["t"]["paths"][0] == way and mine["t"]["buys"] == [9, 3] and mine["t"]["siteB"] == 2, answer)
+    check("others for the bots leave out the room's players", len(answer["others"]) == 1, answer)
+    b_way = answer["others"][0]["t"]["paths"] if answer["others"] else []
+    check("numbers are kept in range, at most 8 ways", len(b_way) == 8 and b_way[0]["points"][0] == 2000 and b_way[0]["points"][7] == 300
+          and b_way[0]["hold"] == 120 and b_way[0]["site"] == "" and b_way[0]["lookX"] == 1, b_way[:1])
+    status, public = call("GET", "/tactics/dune")
+    check("anyone gets styles without names", status == 200 and len(public["others"]) == 2 and "user_id" not in json.dumps(public), public)
+
     print("reviews")
     site = {"Origin": "https://lowstrike.lokvetia.com"}
     review = {"nick": "carol", "password": "carol-pass", "rating": 5, "text": "Great game,   really fun!\n\n\n\nThe bots are tough.", "lang": "en"}

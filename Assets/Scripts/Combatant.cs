@@ -71,6 +71,7 @@ public class Combatant : MonoBehaviour
     public string LastResupply;    // free ammo given at the start of this round
     public bool Dummy;             // the tutorial's training bot: hits count, but it never gets hurt
     public int CheatFlags;         // host side: an admin's cheats the host carries out (Cheats.FlyFlag...)
+    public string StandInFor;      // host side: a bot playing for this person, who left (GameManager.StandIn)
     public Transform Eye;
     public Transform Muzzle;
 

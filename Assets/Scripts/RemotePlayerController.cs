@@ -34,8 +34,13 @@ public class RemotePlayerController : MonoBehaviour, ICombatantController
     {
         Peer = peer;
         Self = GetComponent<Combatant>();
-        body = gameObject.AddComponent<CharacterBody>();
-        body.Setup();
+        // Their player back from a bot (GameManager.HandBack): it keeps its body.
+        body = GetComponent<CharacterBody>();
+        if (body == null)
+        {
+            body = gameObject.AddComponent<CharacterBody>();
+            body.Setup();
+        }
 
         // Lets bots path around them, like around the host's own player.
         var obstacle = gameObject.AddComponent<NavMeshObstacle>();
@@ -56,6 +61,18 @@ public class RemotePlayerController : MonoBehaviour, ICombatantController
         measuredSpeed = 0f;
         refusedMoves = 0;
         body.Revive();
+    }
+
+    /// <summary>Their player again after a bot played for them: their moves count from where it is now.</summary>
+    public void TakeBack()
+    {
+        lastPosition = speedFrom = transform.position;
+        useHeld = false;
+        moveBudget = MoveBurst;
+        riseBudget = RiseBurst;
+        budgetAt = speedAt = Time.time;
+        measuredSpeed = 0f;
+        refusedMoves = 0;
     }
 
     /// <summary>Joined in the middle of a round: wait, dead, until the next one.</summary>

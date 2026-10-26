@@ -168,7 +168,8 @@ public class BotKnowledge : MonoBehaviour
         foreach (var s in b) yield return s;
     }
 
-    static bool PickReachable(List<Spot> strongest, Vector3 from, out Spot found)
+    /// <summary>One of the strongest spots (at random by weight) that is on the navmesh and can be walked to.</summary>
+    public static bool PickReachable(List<Spot> strongest, Vector3 from, out Spot found)
     {
         found = default;
         if (strongest.Count == 0) return false;

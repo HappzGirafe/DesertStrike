@@ -24,7 +24,7 @@ SKIP_LINE = re.compile(r"Debug\.Log|PlayerPrefs\.|case \"|args\[|== \"-ds|Starts
 # Not shown to players, or the same in every language.
 IGNORE = {
     "LOW STRIKE", "SWAT", "SHIFT", "ABC", "TAB", "II", "AUTO", "STICK", "HP", "Low Strike {0}", "{0}  SWAT", "@account-name",
-    "Player", "Bot ", "Remote ", "Net ", "Main Camera", "MainCamera", "Sun", "Pose ", "crouch walk", "DSTRIKE", "LSFRIENDS",
+    "Player", "Bot ", "BOT ", "Remote ", "Net ", "Main Camera", "MainCamera", "Sun", "Pose ", "crouch walk", "DSTRIKE", "LSFRIENDS",
     "Led", "GET", "POST", "PATCH", "DELETE", "code:", " room", "{0}'s room", "yyyy-MM-dd", "Voice ", "Silence", "Friends",
     "{0} FPS", "{0} ms", "CPU {0} ms    GPU {1}", "30 FPS", "60 FPS", "120 FPS", "Site", "WELCOME,",
     "No skins found in Assets/Resources/Skins.", "was sent away:", "did not come back", "timed out", "(culling off)",
