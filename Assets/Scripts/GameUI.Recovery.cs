@@ -84,7 +84,7 @@ public partial class GameUI
         }
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = 760f, h = forgotCodeSent ? 800f : 560f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 18f, w, 60f), "FORGOT PASSWORD", 44, Gold, TextAnchor.MiddleCenter);
         float fx = x + 60f, fw = w - 120f, cy = y + 90f;
         WrapLabel(new Rect(fx, cy, fw, 50f), "We email a code to the account's confirmed email (you add it in ACCOUNT once you are logged in). No email? Ask an admin for a code.", 17, Dim);

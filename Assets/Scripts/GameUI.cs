@@ -12,17 +12,10 @@ public partial class GameUI : MonoBehaviour
 
     public static readonly Color TerroristColor = new Color(0.98f, 0.66f, 0.25f);
     public static readonly Color SwatColor = new Color(0.45f, 0.72f, 1f);
-    static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.65f);
     static readonly Color Gold = new Color(1f, 0.78f, 0.35f);
     static readonly Color MoneyGreen = new Color(0.45f, 0.95f, 0.45f);
     static readonly Color Danger = new Color(1f, 0.35f, 0.3f);
     static readonly Color Dim = new Color(1f, 1f, 1f, 0.6f);
-
-    const string ControlsHelp =
-        "WASD move  ·  Mouse aim  ·  Left click shoot  ·  R reload  ·  Space jump\n" +
-        "Right click: AWP scope  ·  TEC-DC9 / M1911 switch semi-auto and full-auto\n" +
-        "1 / 2 / 3 weapons  ·  Q last weapon  ·  Ctrl crouch  ·  Shift walk (silent)  ·  V talk (LAN)\n" +
-        "E plant / defuse, take a gun  ·  G drop the gun (knife in hand: the bomb)  ·  B buy (in your spawn)  ·  Tab scores  ·  Esc pause";
 
     const string TouchHelp =
         "Left thumb: move (a small push walks quietly)  ·  Right side: drag to look around\n" +
@@ -95,6 +88,7 @@ public partial class GameUI : MonoBehaviour
         if (crosshairOpen) settingsOpen = true;
         touchLayoutOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-touch-layout") >= 0;   // screenshots
         languagesOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-languages") >= 0;   // screenshots
+        controlsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-controls") >= 0;   // screenshots
         if (languagesOpen) settingsOpen = true;
         int demo = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-keyboard-demo");
         if (demo >= 0 && demo + 2 < Environment.GetCommandLineArgs().Length)
@@ -180,6 +174,7 @@ public partial class GameUI : MonoBehaviour
             else if (settingsOpen && crosshairOpen) DrawCrosshairSettings();
             else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
             else if (settingsOpen) DrawSettings();
+            else if (controlsOpen) DrawControls();
             else DrawMainMenu();
             if (Online.AskLink && !accountOpen && !updateQuestion) DrawLinkQuestion();
             else if (tutorialOffer && !accountOpen && !updateQuestion) DrawTutorialOffer();
@@ -219,73 +214,6 @@ public partial class GameUI : MonoBehaviour
     }
 
     // ----------------------------------------------------------------- menus
-
-    // Two columns: who plays on the left, where and how on the right; the buttons and controls below.
-    void DrawMainMenu()
-    {
-        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.3f));
-        const float top = 70f;
-        float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
-        float column = (w - 120f) / 2f, right = x + column + 40f;
-        Fill(new Rect(x, top, w, 720f), PanelColor);
-        Label(new Rect(x, top + 20f, w, 80f), "LOW STRIKE", 66, Gold, TextAnchor.MiddleCenter);
-        Label(new Rect(x, top + 95f, w, 30f), $"Terrorists vs SWAT on {gm.Map.Description}", 22, Dim, TextAnchor.MiddleCenter);
-        DrawAccountBox(x + 24f, top + 22f);
-        if (Accounts.IsOnline && Online.Tokens >= 0)   // between the title and EXIT
-            Label(new Rect(x + w - 164f - 16f - 330f, top + 30f, 330f, 30f), $"Tokens: {Online.Tokens}", 20, Pumpkin, TextAnchor.MiddleRight);
-        // iPhones close apps from the app switcher only (Apple's rules); everywhere else the game can quit itself.
-        if (Application.platform != RuntimePlatform.IPhonePlayer && !WebLink.Available && Button(new Rect(x + w - 164f, top + 22f, 140f, 46f), "EXIT", false, true, 20))
-        {
-            Debug.Log("[DesertStrike] Exit from the main menu");
-            Application.Quit();
-        }
-
-        float y = top + 150f;
-        float leftEnd = TeamRow(x, y, allowSpectate: true, column);
-        leftEnd = PlayersRow(x, leftEnd, column);
-        leftEnd = DifficultyRow(x, leftEnd, column);
-        float rightEnd = MapRow(right, y, column);
-        rightEnd = RoundsRow(right, rightEnd, column);
-        rightEnd = FriendlyFireAndSiteRow(right, rightEnd, column);
-        y = Mathf.Max(leftEnd, rightEnd) + 6f;
-
-        const float small = 188f, gap = 12f;
-        float buttons = 300f + 5f * small + 5f * gap, bx = x + (w - buttons) / 2f;
-        if (Button(new Rect(bx, y, 300f, 66f), "START MATCH", true, true, 30)) gm.StartMatch();
-        bx += 300f + gap;
-        if (Button(new Rect(bx, y, small, 66f), "PLAY ONLINE", false, true, 21)) OpenOnline();
-        bx += small + gap;
-        if (Button(new Rect(bx, y, small, 66f), "LAN GAME", false, true, 21))
-        {
-            if (WebLink.Available) gm.MenuNotice = BrowserNoLan;   // the browser version
-            else OpenLan();
-        }
-        bx += small + gap;
-        bool onlineFriends = Accounts.IsOnline;
-        int requests = onlineFriends ? Online.RequestCount + Online.InviteCount : gm.Friends.Incoming.Count;
-        int online = onlineFriends ? Online.Friends.FindAll(f => f.status == "online" || f.status == "in_match").Count
-                   : Accounts.LoggedIn ? gm.Friends.OnlineCount : 0;
-        string news = onlineFriends && Online.InviteCount > 0 ? $"{Online.InviteCount} invitation{(Online.InviteCount == 1 ? "" : "s")}"
-                    : $"{requests} request{(requests == 1 ? "" : "s")}";
-        string friends = requests > 0 ? $"FRIENDS\n{news}" : online > 0 ? $"FRIENDS\n{online} online" : "FRIENDS";
-        if (Button(new Rect(bx, y, small, 66f), friends, requests > 0, true, friends.Contains("\n") ? 18 : 21))
-        {
-            friendsOpen = true;
-            friendsLan = false;
-        }
-        bx += small + gap;
-        if (Button(new Rect(bx, y, small, 66f), "INVENTORY", false, true, 21)) inventoryOpen = true;
-        bx += small + gap;
-        if (Button(new Rect(bx, y, small, 66f), "SETTINGS", false, true, 21)) settingsOpen = true;
-        y += 82f;
-        if (!string.IsNullOrEmpty(gm.MenuNotice))
-        {
-            Label(new Rect(x, y - 6f, w, 26f), gm.MenuNotice, 18, Danger, TextAnchor.MiddleCenter);
-            y += 22f;
-        }
-        Label(new Rect(x + 20f, y, w - 40f, 100f), GameInput.Touch ? TouchHelp : GameInput.CrouchOnC ? ControlsHelp.Replace("Ctrl crouch", "C crouch") : ControlsHelp,
-              16, Dim, TextAnchor.UpperCenter);
-    }
 
     // A newer Low Strike is on the website: asked at every start. YES, NOW opens the download page; LATER warns that
     // online play may not work, and only I AGREE closes it (NO goes back to the question).
@@ -487,7 +415,7 @@ public partial class GameUI : MonoBehaviour
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
         const float top = 70f, h = 940f;
         float w = 820f, x = (width - w) / 2f, y = top;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 20f, w, 60f), Accounts.IsOnline ? "LAN FRIENDS" : "FRIENDS", 50, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 78f, w, 28f), "Friends who play on the same WiFi or network show as online", 20, Dim, TextAnchor.MiddleCenter);
         y += 130f;
@@ -616,7 +544,7 @@ public partial class GameUI : MonoBehaviour
     {
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
         float w = 780f, x = (width - w) / 2f, y = 70f;
-        Fill(new Rect(x, y, w, 940f), PanelColor);
+        Panel(new Rect(x, y, w, 940f));
         Label(new Rect(x, y + 20f, w, 60f), "LAN GAME", 50, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 78f, w, 28f), "Play together with PCs on the same WiFi or network", 20, Dim, TextAnchor.MiddleCenter);
         y += 125f;
@@ -691,7 +619,7 @@ public partial class GameUI : MonoBehaviour
         const float top = 70f;
         float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
         float column = (w - 120f) / 2f, right = x + column + 40f;
-        Fill(new Rect(x, top, w, 940f), PanelColor);
+        Panel(new Rect(x, top, w, 940f));
         Label(new Rect(x, top + 20f, w, 60f), "HOSTING A LAN GAME", 44, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, top + 75f, w, 28f), $"Other PCs find this game automatically. Your IP: {string.Join(", ", NetSession.LocalAddresses())}",
               18, Dim, TextAnchor.MiddleCenter);
@@ -733,7 +661,7 @@ public partial class GameUI : MonoBehaviour
     {
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
         float w = 780f, h = 640f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         var net = gm.Net;
         Label(new Rect(x, y + 20f, w, 60f), net.Connected ? $"JOINED {net.HostName.ToUpperInvariant()}" : "CONNECTING...", 40, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 75f, w, 28f), net.Connected ? net.LobbySettings : net.Status, 18, Dim, TextAnchor.MiddleCenter);
@@ -970,7 +898,7 @@ public partial class GameUI : MonoBehaviour
         }
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = 1240f, h = 820f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 15f, w, 60f), "INVENTORY", 48, Gold, TextAnchor.MiddleCenter);
         if (Accounts.IsOnline && Online.Tokens >= 0)
             Label(new Rect(x + w - 330f, y + 26f, 300f, 34f), $"Tokens: {Online.Tokens}", 22, Pumpkin, TextAnchor.MiddleRight);
@@ -1149,7 +1077,7 @@ public partial class GameUI : MonoBehaviour
 
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = 760f, h = (accountSignUp ? 790f : 700f) + 100f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 20f, w, 70f), "LOW STRIKE", 58, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 88f, w, 30f), "Log in or sign up", 22, Dim, TextAnchor.MiddleCenter);
         float fx = x + 60f, fw = w - 120f, cy = y + 140f;
@@ -1288,7 +1216,7 @@ public partial class GameUI : MonoBehaviour
         const float top = 90f, height = 820f;
         float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
         float column = (w - 120f) / 2f, right = x + column + 40f;
-        Fill(new Rect(x, top, w, height), PanelColor);
+        Panel(new Rect(x, top, w, height));
         Label(new Rect(x, top + 20f, w, 60f), "SETTINGS", 50, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x + 40f, top + 105f, column, 30f), "DISPLAY & GRAPHICS", 18, Gold);
         Label(new Rect(right + 40f, top + 105f, column, 30f), "VOICE & CONTROLS", 18, Gold);
@@ -1361,7 +1289,7 @@ public partial class GameUI : MonoBehaviour
         }
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = Mathf.Min(900f, width - 40f), h = 600f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 20f, w, 60f), "LANGUAGES", 50, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 84f, w, 30f), "Choose the game's language", 20, Dim, TextAnchor.MiddleCenter);
         float bw = (w - 120f) / 2f;
@@ -1391,7 +1319,7 @@ public partial class GameUI : MonoBehaviour
         touch.DrawEditor();   // first, so a touch on a button is the button's
 
         float w = 600f, x = (width - w) / 2f, y = 100f, h = touch.Selected != null ? 300f : 210f;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 12f, w, 44f), "TOUCH CONTROLS", 34, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x + 20f, y + 58f, w - 40f, 28f), "Drag a button to move it. Tap one to change its size.", 18, Dim, TextAnchor.MiddleCenter);
         float cy = y + 96f;
@@ -1423,7 +1351,7 @@ public partial class GameUI : MonoBehaviour
         const float top = 90f, height = 860f;
         float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
         float column = (w - 120f) / 2f, right = x + column + 40f;
-        Fill(new Rect(x, top, w, height), PanelColor);
+        Panel(new Rect(x, top, w, height));
         Label(new Rect(x, top + 20f, w, 60f), "CROSSHAIR", 50, Gold, TextAnchor.MiddleCenter);
 
         float y = top + 110f;
@@ -1511,7 +1439,7 @@ public partial class GameUI : MonoBehaviour
         float fps = PerfStats.Fps;
         var net = gm.Net;
         bool ping = FpsShowsPing;
-        Fill(new Rect(x, y, 420f, ping ? 104f : 74f), PanelColor);
+        Panel(new Rect(x, y, 420f, ping ? 104f : 74f));
         Label(new Rect(x + 10f, y + 2f, 110f, 30f), $"{Mathf.RoundToInt(fps)} FPS", 22,
               fps >= (GameSettings.FrameLimit > 0 ? GameSettings.FrameLimit : 60) * 0.9f ? MoneyGreen : fps >= 30f ? Gold : Danger);
         string gpu = PerfStats.GpuMs > 0f ? $"{PerfStats.GpuMs:0.0} ms" : "n/a";
@@ -1529,7 +1457,7 @@ public partial class GameUI : MonoBehaviour
     {
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.55f));
         float w = 440f, x = (width - w) / 2f, y = 260f;
-        Fill(new Rect(x, y, w, 520f), PanelColor);
+        Panel(new Rect(x, y, w, 520f));
         bool online = gm.Net.Role != NetSession.Mode.Off;
         DrawMuteList(x + w + 20f, y);
         Label(new Rect(x, y + 15f, w, 60f), online ? "MENU" : "PAUSED", 44, Gold, TextAnchor.MiddleCenter);
@@ -1748,7 +1676,7 @@ public partial class GameUI : MonoBehaviour
         bool micWanted = voice.Holding || openMic;
         if (micWanted && voice.Problem != null)
         {
-            Fill(new Rect(20f, y, 600f, 62f), PanelColor);
+            Panel(new Rect(20f, y, 600f, 62f));
             WrapLabel(new Rect(30f, y + 4f, 580f, 56f), voice.Problem, 16, Danger);
             y += 66f;
         }
@@ -1828,7 +1756,7 @@ public partial class GameUI : MonoBehaviour
 
     void VoiceRow(float y, string name, Color color, float level = -1f)
     {
-        Fill(new Rect(20f, y, 240f, 30f), PanelColor);
+        Panel(new Rect(20f, y, 240f, 30f));
         Fill(new Rect(30f, y + 9f, 12f, 12f), color);   // a small "talking" light
         Label(new Rect(52f, y, 205f, 30f), name, 18, color);
         if (level >= 0f) LevelBar(new Rect(150f, y + 11f, 100f, 8f), level);
@@ -1886,7 +1814,7 @@ public partial class GameUI : MonoBehaviour
     void DrawTopBar()
     {
         float w = 460f, x = (width - w) / 2f;
-        Fill(new Rect(x, 10f, w, 76f), PanelColor);
+        Panel(new Rect(x, 10f, w, 76f));
         Label(new Rect(x + 15f, 14f, 150f, 44f), $"T  {gm.TerroristWins}", 34, TerroristColor);
         Label(new Rect(x + w - 165f, 14f, 150f, 44f), $"{gm.SwatWins}  SWAT", 34, SwatColor, TextAnchor.MiddleRight);
 
@@ -2068,7 +1996,7 @@ public partial class GameUI : MonoBehaviour
     void DrawVitals(Combatant me)
     {
         float y = RefHeight - 90f;
-        Fill(new Rect(20f, y, 420f, 70f), PanelColor);
+        Panel(new Rect(20f, y, 420f, 70f));
         Label(new Rect(35f, y, 60f, 70f), "HP", 22, Dim);
         Label(new Rect(80f, y, 120f, 70f), me.Health.ToString(), 44, me.Health <= 25 ? Danger : Color.white);
         Label(new Rect(200f, y, 110f, 70f), me.Helmet ? "ARMOR+H" : "ARMOR", 18, Dim);
@@ -2079,7 +2007,7 @@ public partial class GameUI : MonoBehaviour
     {
         var weapon = me.Current;
         float x = width - 420f, y = RefHeight - 90f;
-        Fill(new Rect(x, y, 400f, 70f), PanelColor);
+        Panel(new Rect(x, y, 400f, 70f));
         if (weapon.Data.SelectFire)
         {
             Label(new Rect(x + 15f, y + 2f, 200f, 40f), weapon.Data.Name, 22, Dim);
@@ -2133,6 +2061,12 @@ public partial class GameUI : MonoBehaviour
     {
         text = Loc.T(text);
         if (!Loc.English) size = FitSize(text, size, rect.width);
+        Text(rect, text, size, color, anchor);
+    }
+
+    /// <summary>Text as it is (already translated, or a name), with a shadow.</summary>
+    void Text(Rect rect, string text, int size, Color color, TextAnchor anchor)
+    {
         var style = Style(size, anchor);
         GUI.color = new Color(0f, 0f, 0f, 0.8f * color.a);
         GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
@@ -2205,14 +2139,24 @@ public partial class GameUI : MonoBehaviour
         GUI.color = Color.white;
     }
 
+    // Round, with a sheen; the pointer over it lights it up smoothly, and a chosen one is gold with a glow.
     bool Button(Rect rect, string text, bool selected = false, bool interactable = true, int size = 22)
     {
-        bool hover = rect.Contains(Event.current.mousePosition);
-        Color background = !interactable ? new Color(0.2f, 0.2f, 0.2f, 0.7f)
-                         : selected ? new Color(0.85f, 0.55f, 0.15f, 0.95f)
-                         : hover ? new Color(0.35f, 0.35f, 0.35f, 0.9f)
-                         : new Color(0.18f, 0.18f, 0.18f, 0.9f);
-        Fill(rect, background);
+        float hover = interactable ? Hover(rect) : 0f;
+        float radius = Mathf.Min(10f, rect.height * 0.28f);
+        if (!interactable) Round(rect, new Color(0.14f, 0.15f, 0.17f, 0.7f), radius);
+        else if (selected)
+        {
+            Glow(rect, new Color(1f, 0.6f, 0.15f, 0.22f + 0.18f * hover), 14f);
+            Round(rect, Color.Lerp(new Color(0.86f, 0.53f, 0.13f, 0.97f), new Color(0.97f, 0.64f, 0.2f, 1f), hover), radius);
+            Sheen(rect, 0.2f);
+        }
+        else
+        {
+            Round(rect, Color.Lerp(new Color(0.12f, 0.13f, 0.15f, 0.9f), new Color(0.24f, 0.26f, 0.3f, 0.95f), hover), radius);
+            Sheen(rect, 0.05f + 0.05f * hover);
+            Outline(rect, new Color(1f, 1f, 1f, 0.07f + 0.2f * hover), radius);
+        }
         Label(rect, text, size, interactable ? Color.white : new Color(1f, 1f, 1f, 0.4f), TextAnchor.MiddleCenter);
         return GUI.Button(rect, GUIContent.none, GUIStyle.none) && interactable;
     }

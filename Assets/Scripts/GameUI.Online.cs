@@ -149,7 +149,7 @@ public partial class GameUI
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
         const float top = 50f, h = 980f;
         float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f;
-        Fill(new Rect(x, top, w, h), PanelColor);
+        Panel(new Rect(x, top, w, h));
         Label(new Rect(x, top + 18f, w, 60f), onlineCreating ? "CREATE A ROOM" : "PLAY ONLINE", 50, Gold, TextAnchor.MiddleCenter);
         OnlineStatusLine(new Rect(x, top + 78f, w, 28f));
         float y = top + 130f, bottom = top + h - 80f;
@@ -299,7 +299,7 @@ public partial class GameUI
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
         const float top = 50f, h = 980f;
         float w = Mathf.Min(1480f, width - 40f), x = (width - w) / 2f, bottom = top + h - 80f;
-        Fill(new Rect(x, top, w, h), PanelColor);
+        Panel(new Rect(x, top, w, h));
         if (room == null)
         {
             Label(new Rect(x, top + 20f, w, 60f), "ONLINE ROOM", 44, Gold, TextAnchor.MiddleCenter);
@@ -492,7 +492,7 @@ public partial class GameUI
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
         const float top = 50f, h = 980f;
         float w = 900f, x = (width - w) / 2f, y = top;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 16f, w, 60f), "FRIENDS", 50, Gold, TextAnchor.MiddleCenter);
         OnlineStatusLine(new Rect(x, y + 74f, w, 28f));
         y += 112f;
@@ -646,7 +646,7 @@ public partial class GameUI
         }
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.45f));
         float w = 760f, h = 930f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 18f, w, 60f), "ONLINE ACCOUNT", 46, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 76f, w, 30f), $"{online.User.nick}  ·  since {online.User.created_at?.Substring(0, Mathf.Min(10, online.User.created_at.Length))}"
               + (online.User.played >= 0 ? $"  ·  Time in the game: {PlayedText(online.User.played)}" : ""), 20, Dim, TextAnchor.MiddleCenter);
@@ -776,7 +776,7 @@ public partial class GameUI
                 if (m.user_id != Online.User.id && !names.Contains(m.nick)) names.Add(m.nick);
         if (names.Count == 0) return;
         float w = Mathf.Clamp(width - x - 20f, 440f, 520f);   // narrower beside the pause menu on a 4:3 screen
-        Fill(new Rect(x, y, w, 70f + names.Count * 46f), PanelColor);
+        Panel(new Rect(x, y, w, 70f + names.Count * 46f));
         Label(new Rect(x, y + 12f, w, 40f), "VOICE", 26, Gold, TextAnchor.MiddleCenter);
         y += 62f;
         foreach (string name in names)

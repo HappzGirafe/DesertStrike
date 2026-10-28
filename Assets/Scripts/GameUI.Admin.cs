@@ -90,7 +90,7 @@ public partial class GameUI
                      && GUI.GetNameOfFocusedControl() == "admin-nick";
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.55f));
         float w = Mathf.Min(1440f, width - 40f), h = 1040f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;   // tall enough for the shop's skins
-        Fill(new Rect(x, y, w, h), PanelColor);
+        Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 18f, w, 60f), "ADMIN PANEL", 46, Gold, TextAnchor.MiddleCenter);
         Label(new Rect(x, y + 76f, w, 28f), "Only admins see this. Everything done here is kept in the server's log.", 18, Dim,
               TextAnchor.MiddleCenter);
