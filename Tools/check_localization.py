@@ -15,7 +15,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ["GameUI.cs", "GameUI.MainMenu.cs", "GameUI.Online.cs", "GameUI.Recovery.cs", "GameUI.Admin.cs", "TouchControls.cs", "GameManager.cs", "BombManager.cs", "OnlineClient.cs",
+FILES = ["GameUI.cs", "GameUI.MainMenu.cs", "GameUI.ClassicMenu.cs", "GameUI.Online.cs", "GameUI.Recovery.cs", "GameUI.Admin.cs", "TouchControls.cs", "GameManager.cs", "BombManager.cs", "OnlineClient.cs",
          "NetSession.cs", "Accounts.cs", "Friends.cs", "VoiceChat.cs", "GameSettings.cs"]
 LANGUAGES = ["ua", "de", "fr", "it", "es"]
 SKIP_LINE = re.compile(r"Debug\.Log|PlayerPrefs\.|case \"|args\[|== \"-ds|StartsWith\(\"-|GetString\(|Resources\.Load|"
@@ -24,7 +24,7 @@ SKIP_LINE = re.compile(r"Debug\.Log|PlayerPrefs\.|case \"|args\[|== \"-ds|Starts
 # Not shown to players, or the same in every language.
 IGNORE = {
     "LOW STRIKE", "SWAT", "SHIFT", "ABC", "TAB", "II", "AUTO", "STICK", "HP", "Low Strike {0}", "{0}  SWAT", "@account-name",
-    "Player", "Bot ", "BOT ", "Remote ", "LOW", "STRIKE", "Low Strike ", "Esc", "Tab", "Shift", "Ctrl / C", "Net ", "Main Camera", "MainCamera", "Sun", "Pose ", "crouch walk", "DSTRIKE", "LSFRIENDS",
+    "Player", "Bot ", "BOT ", "__Internal", "Remote ", "LOW", "STRIKE", "Low Strike ", "Esc", "Tab", "Shift", "Ctrl / C", "Net ", "Main Camera", "MainCamera", "Sun", "Pose ", "crouch walk", "DSTRIKE", "LSFRIENDS",
     "Led", "GET", "POST", "PATCH", "DELETE", "code:", " room", "{0}'s room", "yyyy-MM-dd", "Voice ", "Silence", "Friends",
     "{0} FPS", "{0} ms", "CPU {0} ms    GPU {1}", "30 FPS", "60 FPS", "120 FPS", "Site", "WELCOME,",
     "No skins found in Assets/Resources/Skins.", "was sent away:", "did not come back", "timed out", "(culling off)",

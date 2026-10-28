@@ -175,6 +175,7 @@ public partial class GameUI : MonoBehaviour
             else if (settingsOpen && touchLayoutOpen) DrawTouchLayout();
             else if (settingsOpen) DrawSettings();
             else if (controlsOpen) DrawControls();
+            else if (GameSettings.ClassicMenu) DrawClassicMenu();
             else DrawMainMenu();
             if (Online.AskLink && !accountOpen && !updateQuestion) DrawLinkQuestion();
             else if (tutorialOffer && !accountOpen && !updateQuestion) DrawTutorialOffer();
@@ -699,7 +700,7 @@ public partial class GameUI : MonoBehaviour
     readonly Queue<string> keyboardDemo = new Queue<string>();
     int keyboardDemoFrame;
 
-    static bool OnPhone => Application.isMobilePlatform || GameInput.Touch;
+    static bool OnPhone => TouchControls.TouchScreen || GameInput.Touch;
 
     static string FieldName(string id) => id switch
     {
@@ -1222,7 +1223,7 @@ public partial class GameUI : MonoBehaviour
         Label(new Rect(right + 40f, top + 105f, column, 30f), "VOICE & CONTROLS", 18, Gold);
 
         float y = top + 145f;
-        if (!Application.isMobilePlatform && !GameInput.Touch)   // a phone is always full screen
+        if (!TouchControls.TouchScreen && !GameInput.Touch)   // a phone is always full screen
             y = OptionRow(x, y, "Display", new[] { "Fullscreen", "Window" }, GameSettings.Fullscreen ? 0 : 1,
                           i => GameSettings.SetFullscreen(i == 0), column);
         else
@@ -1236,7 +1237,9 @@ public partial class GameUI : MonoBehaviour
                       Array.IndexOf(GameSettings.FrameLimits, GameSettings.FrameLimit), i => GameSettings.SetFrameLimit(GameSettings.FrameLimits[i]), column);
         y = OptionRow(x, y, "3D resolution (lower = faster; menus stay sharp)", new[] { "100%", "75%", "50%" },
                       Array.IndexOf(GameSettings.RenderScales, GameSettings.RenderScale), i => GameSettings.SetRenderScale(GameSettings.RenderScales[i]), column);
-        OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1), column);
+        float half = (column - 20f) / 2f;
+        OptionRow(x, y, "Show FPS counter", new[] { "Off", "On" }, GameSettings.ShowFps ? 1 : 0, i => GameSettings.SetShowFps(i == 1), half);
+        OptionRow(x + half + 20f, y, "Start menu", new[] { "New", "Classic" }, GameSettings.ClassicMenu ? 1 : 0, i => GameSettings.SetClassicMenu(i == 1), half);
 
         y = top + 145f;
         y = OptionRow(right, y, "Voice chat (LAN and online games)", new[] { "Off", "On" }, GameSettings.VoiceChat ? 1 : 0,

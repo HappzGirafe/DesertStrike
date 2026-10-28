@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 public enum TouchButton { Fire, Jump, Crouch, Reload, Switch, Scope, Use, Drop, Buy, Scores, Pause, Talk, Previous, Next }
@@ -18,6 +19,19 @@ public enum TouchButton { Fire, Jump, Crouch, Reload, Switch, Scope, Use, Drop, 
 public class TouchControls : MonoBehaviour
 {
     public static bool Active { get; private set; }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")] static extern int WebTouchScreen();
+#else
+    static int WebTouchScreen() => 0;
+#endif
+    static bool? touchScreen;
+
+    /// <summary>
+    /// A phone or tablet: the app on one, or the browser version on one (the browser is asked, as an iPad's browser
+    /// calls itself a Mac).
+    /// </summary>
+    public static bool TouchScreen => touchScreen ??= Application.isMobilePlatform || WebTouchScreen() == 1;
     public static Vector2 Move { get; private set; }
     public static Vector2 LookPixels { get; private set; }
     public static bool Crouched { get; private set; }
@@ -64,8 +78,8 @@ public class TouchControls : MonoBehaviour
     void Awake()
     {
         var args = Environment.GetCommandLineArgs();
-        Active = Application.isMobilePlatform || Array.IndexOf(args, "-ds-touch") >= 0;
-        if (Application.isMobilePlatform) Screen.sleepTimeout = SleepTimeout.NeverSleep;   // no dimming mid-round
+        Active = TouchScreen || Array.IndexOf(args, "-ds-touch") >= 0;
+        if (TouchScreen) Screen.sleepTimeout = SleepTimeout.NeverSleep;   // no dimming mid-round
         LoadLayout();
         if (Array.IndexOf(args, "-ds-touch-demo") >= 0) DemoLayout();
     }
@@ -262,7 +276,7 @@ public class TouchControls : MonoBehaviour
             }
             yield break;
         }
-        if (Application.isMobilePlatform) yield break;
+        if (TouchScreen) yield break;   // the mouse a phone's browser makes of a finger: the finger counts already
         if (Input.GetMouseButtonDown(0)) yield return (-1, TouchPhase.Began, Input.mousePosition);
         else if (Input.GetMouseButton(0)) yield return (-1, TouchPhase.Moved, Input.mousePosition);
         else if (Input.GetMouseButtonUp(0)) yield return (-1, TouchPhase.Ended, Input.mousePosition);

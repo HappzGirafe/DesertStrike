@@ -22,6 +22,7 @@ public static class GameSettings
     const string QualityKey = "DesertStrike.quality";
     const string FrameLimitKey = "DesertStrike.fps";
     const string ShowFpsKey = "DesertStrike.showFps";
+    const string ClassicMenuKey = "DesertStrike.classicMenu";
     const string SensitivityKey = "DesertStrike.sensitivity";
     const string RenderScaleKey = "DesertStrike.renderScale";
     const string HudScaleKey = "DesertStrike.hudScale";
@@ -62,6 +63,8 @@ public static class GameSettings
     /// <summary>Most frames per second, or 0 for no limit.</summary>
     public static int FrameLimit { get; private set; } = 60;
     public static bool ShowFps { get; private set; }
+    /// <summary>The start menu as it was before 1.22 (one panel, all buttons in a row) instead of the new one.</summary>
+    public static bool ClassicMenu { get; private set; }
 
     /// <summary>The 3D view is drawn at this fraction of the screen resolution and stretched (menus and HUD stay sharp).</summary>
     public static float RenderScale { get; private set; } = 1f;
@@ -80,15 +83,16 @@ public static class GameSettings
     public static void Load()
     {
         // Phones and tablets start on Low, Macs (often fanless laptops) on Medium, everything else on High.
-        var fallback = Application.isMobilePlatform ? GraphicsQuality.Low
+        var fallback = TouchControls.TouchScreen ? GraphicsQuality.Low
             : Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor
             ? GraphicsQuality.Medium
             : GraphicsQuality.High;
         Quality = (GraphicsQuality)Mathf.Clamp(PlayerPrefs.GetInt(QualityKey, (int)fallback), 0, 2);
         FrameLimit = PlayerPrefs.GetInt(FrameLimitKey, 60);
         ShowFps = PlayerPrefs.GetInt(ShowFpsKey, 0) == 1;
+        ClassicMenu = PlayerPrefs.GetInt(ClassicMenuKey, 0) == 1;
         // A phone's screen has many pixels for its small graphics chip: 3D at 75% to start with.
-        RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(RenderScaleKey, Application.isMobilePlatform ? 0.75f : 1f), 0.5f, 1f);
+        RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(RenderScaleKey, TouchControls.TouchScreen ? 0.75f : 1f), 0.5f, 1f);
         HudScale = Mathf.Clamp(PlayerPrefs.GetFloat(HudScaleKey, 1f), 1f, 1.5f);
         VoiceChat = PlayerPrefs.GetInt(VoiceKey, 1) == 1;
         Voice = (VoiceMode)Mathf.Clamp(PlayerPrefs.GetInt(VoiceModeKey, 0), 0, 1);
@@ -222,6 +226,12 @@ public static class GameSettings
     {
         ShowFps = show;
         PlayerPrefs.SetInt(ShowFpsKey, show ? 1 : 0);
+    }
+
+    public static void SetClassicMenu(bool classic)
+    {
+        ClassicMenu = classic;
+        PlayerPrefs.SetInt(ClassicMenuKey, classic ? 1 : 0);
     }
 
     public static void SetSensitivity(float sensitivity)

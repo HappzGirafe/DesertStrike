@@ -6,8 +6,16 @@
     <title>{{{ PRODUCT_NAME }}} in the browser</title>
     <link rel="icon" href="../favicon.png">
     <style>
-      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0d0e10; }
-      #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: #0d0e10; outline: none; }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0d0e10;
+                   overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+      /* Fingers play the game: no scrolling, zooming or pull-to-refresh on it. */
+      #unity-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: #0d0e10; outline: none;
+                      touch-action: none; -webkit-tap-highlight-color: transparent; }
+      #rotate { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+                gap: 14px; background: #0d0e10; color: #f2f2f2; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+                font-size: 20px; text-align: center; padding: 24px; z-index: 5; }
+      #rotate b { color: #ffc23d; font-size: 54px; line-height: 1; }
+      @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
       #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
                  gap: 18px; color: #f2f2f2; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #0d0e10; }
       #loading h1 { margin: 0; font-size: clamp(36px, 8vw, 72px); letter-spacing: 0.04em; color: #ffc23d; font-weight: 800; }
@@ -20,6 +28,7 @@
   </head>
   <body>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="rotate"><b>&#8635;</b><span id="rotate-text">Turn your phone sideways to play</span></div>
     <div id="loading">
       <h1>LOW STRIKE</h1>
       <div id="bar"><div id="fill"></div></div>
@@ -30,6 +39,26 @@
     <script src="Build/{{{ LOADER_FILENAME }}}"></script>
     <script>
       var canvas = document.querySelector("#unity-canvas");
+      // Phones and tablets: the game takes the whole screen, sideways, at the first tap (browsers only allow it then).
+      var touchScreen = window.matchMedia && matchMedia("(pointer: coarse)").matches && navigator.maxTouchPoints > 0;
+      var sideways = { uk: "Поверніть телефон горизонтально, щоб грати", de: "Dreh dein Handy quer, um zu spielen",
+                       fr: "Tourne ton téléphone à l'horizontale pour jouer", it: "Gira il telefono in orizzontale per giocare",
+                       es: "Gira el teléfono en horizontal para jugar" }[(navigator.language || "en").slice(0, 2)];
+      if (sideways) document.querySelector("#rotate-text").textContent = sideways;
+      if (touchScreen) {
+        var wholeScreen = function () {
+          document.removeEventListener("touchend", wholeScreen);
+          var page = document.documentElement, ask = page.requestFullscreen || page.webkitRequestFullscreen;
+          if (!ask || document.fullscreenElement || document.webkitFullscreenElement) return;
+          try {
+            var asked = ask.call(page);
+            if (asked && asked.then) asked.then(function () {
+              if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(function () {});
+            }).catch(function () {});
+          } catch (e) {}
+        };
+        document.addEventListener("touchend", wholeScreen);
+      }
       createUnityInstance(canvas, {
         arguments: [],
         dataUrl: "Build/{{{ DATA_FILENAME }}}",
