@@ -9,6 +9,11 @@ made in Blender: **Village**, **Halloween** (a haunted village at night) and **I
 Ukrainian, German, French, Italian and Spanish). Its pages are built from
 `Website/index.html` by `python Tools/build_site.py` into `docs/`, which GitHub Pages serves.
 
+**Second website: [happzgirafe.github.io](https://happzgirafe.github.io/)** (English, with the browser version at
+[/play](https://happzgirafe.github.io/play/)). The page is `GitHubIO/index.html`; `Tools/publish_github_io.ps1` puts
+it together with `docs/play`, `docs/media` and `online.json` and pushes it to the repository
+[HappzGirafe.github.io](https://github.com/HappzGirafe/HappzGirafe.github.io). Run it again after a new browser build.
+
 ## Download
 
 | System | File | |
