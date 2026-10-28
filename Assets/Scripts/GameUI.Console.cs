@@ -95,6 +95,7 @@ public partial class GameUI
         }
         Label(new Rect(x + 20f, sy + 128f, w - 40f, 26f),
               GameInput.Touch ? "Fly and no clip: JUMP up, CROUCH down. All weapons: the weapon button goes through every gun."
+                              : GameInput.CrouchOnC ? "Fly and no clip: Space up, C down. All weapons: mouse wheel (or 1 / 2 again) for the next gun."
                               : "Fly and no clip: Space up, Ctrl down. All weapons: mouse wheel (or 1 / 2 again) for the next gun.",
               16, Dim);
     }

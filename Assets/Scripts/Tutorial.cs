@@ -115,7 +115,7 @@ public class Tutorial
             case Step.Walk: return touch ? "Walk around with the stick on the left" : "Walk around with W A S D";
             case Step.Look: return touch ? "Look around: drag on the right side of the screen" : "Look around: move the mouse";
             case Step.Jump: return touch ? "Jump: tap JUMP" : "Jump: press Space";
-            case Step.Crouch: return touch ? "Crouch: tap CROUCH" : "Crouch: hold Ctrl";
+            case Step.Crouch: return touch ? "Crouch: tap CROUCH" : GameInput.CrouchOnC ? "Crouch: hold C" : "Crouch: hold Ctrl";
             case Step.Buy: return touch ? "Tap BUY and buy a rifle (the AK-47)" : "Open the shop with B and buy a rifle (the AK-47)";
             case Step.Shoot: return touch ? "Shoot the training bot in front of you: hit it 3 times (FIRE)"
                                           : "Shoot the training bot in front of you: hit it 3 times (left mouse button)";

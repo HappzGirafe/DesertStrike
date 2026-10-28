@@ -31,7 +31,10 @@ public static class GameInput
     public static bool JumpHeld => Fake != null ? Fake.Jump : Touch ? TouchControls.Held(TouchButton.Jump) : Input.GetKey(KeyCode.Space);
     /// <summary>` (the key left of 1): the console in a match (on a phone: CONSOLE in the pause menu).</summary>
     public static bool ConsoleDown => Input.GetKeyDown(KeyCode.BackQuote);
-    public static bool CrouchHeld => Fake != null ? Fake.Crouch : Touch ? TouchControls.Crouched : Input.GetKey(KeyCode.LeftControl);
+    /// <summary>Ctrl or C. In a browser C is the one to tell players: Ctrl + W closes the tab (browsers keep that for themselves).</summary>
+    public static bool CrouchHeld => Fake != null ? Fake.Crouch : Touch ? TouchControls.Crouched : Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.C);
+    /// <summary>The crouch key the help texts name: C in the browser, Ctrl elsewhere.</summary>
+    public static bool CrouchOnC => Application.platform == RuntimePlatform.WebGLPlayer;
     public static bool WalkHeld => !Touch && Input.GetKey(KeyCode.LeftShift);
     public static bool ReloadDown => Touch ? TouchControls.Down(TouchButton.Reload) : Input.GetKeyDown(KeyCode.R);
 

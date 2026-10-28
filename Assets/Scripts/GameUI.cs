@@ -283,7 +283,8 @@ public partial class GameUI : MonoBehaviour
             Label(new Rect(x, y - 6f, w, 26f), gm.MenuNotice, 18, Danger, TextAnchor.MiddleCenter);
             y += 22f;
         }
-        Label(new Rect(x + 20f, y, w - 40f, 100f), GameInput.Touch ? TouchHelp : ControlsHelp, 16, Dim, TextAnchor.UpperCenter);
+        Label(new Rect(x + 20f, y, w - 40f, 100f), GameInput.Touch ? TouchHelp : GameInput.CrouchOnC ? ControlsHelp.Replace("Ctrl crouch", "C crouch") : ControlsHelp,
+              16, Dim, TextAnchor.UpperCenter);
     }
 
     // A newer Low Strike is on the website: asked at every start. YES, NOW opens the download page; LATER warns that
