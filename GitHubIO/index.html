@@ -1,0 +1,1056 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Low Strike: free tactical shooter, play in your browser</title>
+<meta name="description" content="Low Strike: Terrorists against SWAT on five maps. Plant the bomb or defuse it against bots or real players. Free in the browser and for Windows, macOS, Linux and Android.">
+<link rel="canonical" href="https://happzgirafe.github.io/">
+<meta name="theme-color" content="#0b0c0e">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Low Strike">
+<meta property="og:title" content="Low Strike: free tactical shooter">
+<meta property="og:description" content="Terrorists against SWAT on five maps. Play in your browser, or download for Windows, macOS, Linux and Android.">
+<meta property="og:url" content="https://happzgirafe.github.io/">
+<meta property="og:image" content="https://happzgirafe.github.io/media/dune-b.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Saira+Stencil+One&family=Saira:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0c0e;
+    --bg-2: #101216;
+    --panel: #15181d;
+    --panel-2: #1b1f26;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-2: rgba(255, 255, 255, 0.15);
+    --text: #efe9dd;
+    --muted: #a8a194;
+    --dim: #6f6a61;
+    --amber: #ffc23d;
+    --amber-2: #ffd877;
+    --ink: #17120a;
+    --sand: #d8b77b;
+    --t: #ff6a4d;
+    --swat: #63a6ff;
+    --ok: #46d38a;
+    --bad: #ff5f57;
+    --display: "Saira Stencil One", Impact, "Arial Black", sans-serif;
+    --sans: "Saira", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    --r: 14px;
+    --wrap: 1180px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: radial-gradient(1100px 600px at 85% -5%, rgba(255, 194, 61, 0.07), transparent 60%), var(--bg);
+    color: var(--text);
+    font: 400 17px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  img, video { max-width: 100%; height: auto; display: block; }
+  a { color: var(--amber); }
+  a:hover { color: var(--amber-2); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 6px; }
+  .wrap { width: min(var(--wrap), 100% - 32px); margin: 0 auto; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---------- top bar ---------- */
+  .bar {
+    position: fixed; inset: 0 0 auto; z-index: 50; height: 64px;
+    background: linear-gradient(rgba(11, 12, 14, 0.92), rgba(11, 12, 14, 0.72));
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar .wrap { height: 100%; display: flex; align-items: center; gap: 24px; }
+  .logo { font: 400 22px/1 var(--display); color: var(--text); text-decoration: none; letter-spacing: 0.02em; white-space: nowrap; }
+  .logo span { color: var(--amber); }
+  .logo:hover { color: var(--text); }
+  .nav { display: flex; gap: 4px; margin-left: 8px; }
+  .nav a {
+    color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 8px 12px; border-radius: 8px;
+  }
+  .nav a:hover, .nav a.on { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+  .bar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--line-2); font: 500 12px/1 var(--mono); color: var(--muted); white-space: nowrap;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: none; }
+  [data-server="online"] .dot { background: var(--ok); box-shadow: 0 0 0 0 rgba(70, 211, 138, 0.6); animation: pulse 2s infinite; }
+  [data-server="offline"] .dot { background: var(--bad); }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 7px rgba(70, 211, 138, 0); } 100% { box-shadow: 0 0 0 0 rgba(70, 211, 138, 0); } }
+  .bar .btn { padding: 9px 16px; font-size: 13px; border-radius: 8px; }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 12px; padding: 15px 22px; border-radius: 10px; text-decoration: none;
+    font: 700 16px/1.15 var(--sans); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; border: 0;
+    transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .btn small { display: block; margin-top: 3px; font: 500 12px/1.2 var(--mono); letter-spacing: 0; text-transform: none; opacity: 0.72; }
+  .btn svg { flex: none; }
+  .btn-play { background: var(--amber); color: var(--ink); box-shadow: 0 12px 32px -12px rgba(255, 194, 61, 0.7), inset 0 -3px 0 rgba(0, 0, 0, 0.18); }
+  .btn-play:hover { background: var(--amber-2); color: var(--ink); transform: translateY(-1px); }
+  .btn-ghost { background: rgba(255, 255, 255, 0.06); color: var(--text); border: 1px solid var(--line-2); }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.11); color: var(--text); }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; isolation: isolate; overflow: hidden; min-height: min(94vh, 880px); display: flex; align-items: center; padding: 120px 0 72px; }
+  .hero-bg { position: absolute; inset: 0; z-index: -3; background: url("media/dune-b.jpg") 62% center / cover no-repeat; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; z-index: -2;
+    background:
+      linear-gradient(90deg, rgba(11, 12, 14, 0.97) 0%, rgba(11, 12, 14, 0.86) 36%, rgba(11, 12, 14, 0.35) 68%, rgba(11, 12, 14, 0.55) 100%),
+      linear-gradient(180deg, rgba(11, 12, 14, 0.55) 0%, transparent 22%, transparent 72%, var(--bg) 100%);
+  }
+  .hero::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: linear-gradient(90deg, #000, transparent 55%); mask-image: linear-gradient(90deg, #000, transparent 55%);
+  }
+  .hero .wrap { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 48px; align-items: end; }
+  .eyebrow { margin: 0 0 18px; font: 500 13px/1.4 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--sand); }
+  .eyebrow b { color: var(--amber); font-weight: 700; }
+  h1 { margin: 0; font: 400 clamp(72px, 13vw, 176px)/0.84 var(--display); letter-spacing: 0.01em; text-shadow: 0 6px 40px rgba(0, 0, 0, 0.5); }
+  h1 span { display: block; color: var(--amber); }
+  .lead { max-width: 560px; margin: 26px 0 32px; font-size: clamp(18px, 2vw, 21px); line-height: 1.5; color: #ddd6c8; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+  .hero-note { margin: 18px 0 0; font: 500 13px/1.5 var(--mono); color: var(--muted); }
+  .hero-note a { color: var(--muted); }
+  .hero-note a:hover { color: var(--text); }
+
+  .killfeed { position: absolute; top: 84px; right: max(16px, calc((100vw - var(--wrap)) / 2)); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+  .kf {
+    display: flex; gap: 8px; align-items: center; padding: 5px 10px; border-radius: 6px; white-space: nowrap;
+    background: rgba(8, 9, 11, 0.72); border: 1px solid rgba(255, 255, 255, 0.06); font: 500 13px/1.2 var(--mono);
+    animation: kf-in 0.35s ease-out;
+  }
+  .kf .gun { color: #cfc8ba; }
+  .kf .hs { color: var(--amber); }
+  .kf .t { color: var(--t); }
+  .kf .s { color: var(--swat); }
+  .kf b { font-weight: 700; }
+  .kf:nth-child(3) { opacity: 0.7; }
+  .kf:nth-child(4) { opacity: 0.4; }
+  @keyframes kf-in { from { opacity: 0; transform: translateX(16px); } }
+
+  .crosshair { position: absolute; left: 66%; top: 50%; width: 46px; height: 46px; transform: translate(-50%, -50%); pointer-events: none; opacity: 0.9; }
+  .crosshair i { position: absolute; background: #46f08c; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55); }
+  .crosshair i:nth-child(1), .crosshair i:nth-child(2) { width: 2px; height: 14px; left: 22px; }
+  .crosshair i:nth-child(1) { top: 0; }
+  .crosshair i:nth-child(2) { bottom: 0; }
+  .crosshair i:nth-child(3), .crosshair i:nth-child(4) { height: 2px; width: 14px; top: 22px; }
+  .crosshair i:nth-child(3) { left: 0; }
+  .crosshair i:nth-child(4) { right: 0; }
+
+  .intel {
+    background: rgba(14, 16, 20, 0.74); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--line-2); border-radius: var(--r); padding: 18px 20px 8px; max-width: 380px; justify-self: end; width: 100%;
+  }
+  .intel-head { display: flex; align-items: center; gap: 10px; font: 700 12px/1 var(--mono); letter-spacing: 0.2em; color: var(--muted); margin-bottom: 8px; }
+  .intel dl { margin: 0; }
+  .intel dl div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 11px 0; border-bottom: 1px dashed var(--line-2); }
+  .intel dl div:last-child { border-bottom: 0; }
+  .intel dt { color: var(--muted); font-size: 15px; }
+  .intel dd { margin: 0; font: 700 18px/1 var(--mono); color: var(--text); text-align: right; }
+  .intel dd.ok { color: var(--ok); }
+  .intel dd.bad { color: var(--bad); }
+
+  /* ---------- sections ---------- */
+  section { padding: 104px 0 0; }
+  .kicker { margin: 0 0 10px; font: 700 13px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--amber); }
+  h2 { margin: 0; font: 800 clamp(34px, 5vw, 58px)/1 var(--sans); text-transform: uppercase; letter-spacing: 0.01em; }
+  .intro { margin: 14px 0 0; max-width: 640px; color: var(--muted); font-size: 18px; }
+  .head { margin-bottom: 40px; }
+  .split-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap; }
+  h3 { margin: 0; font: 700 21px/1.2 var(--sans); }
+
+  /* round */
+  .round { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 48px; align-items: center; }
+  .monitor { position: relative; margin: 0; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line-2); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8); }
+  .monitor img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+  .monitor figcaption { position: absolute; left: 12px; bottom: 12px; padding: 5px 10px; border-radius: 6px; background: rgba(8, 9, 11, 0.8); font: 500 12px/1.3 var(--mono); color: #d8d1c3; }
+  .steps { list-style: none; margin: 40px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--panel); }
+  .step { position: relative; padding: 26px 22px 24px; border-right: 1px solid var(--line); }
+  .step:last-child { border-right: 0; }
+  .step::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--c, var(--amber)); }
+  .step .n { font: 700 13px/1 var(--mono); color: var(--dim); letter-spacing: 0.1em; }
+  .step h3 { margin: 14px 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .step .time { font: 700 26px/1.1 var(--mono); color: var(--c, var(--amber)); }
+  .step p { margin: 12px 0 0; color: var(--muted); font-size: 15.5px; line-height: 1.5; }
+  .win-line { margin: 18px 0 0; color: var(--muted); font-size: 15.5px; }
+  .win-line b { color: var(--text); }
+
+  /* maps */
+  .maps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 230px; gap: 14px; }
+  .map { position: relative; margin: 0; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+  .map:first-child { grid-column: span 2; grid-row: span 2; }
+  .map img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+  .map:hover img { transform: scale(1.04); }
+  .map::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, rgba(8, 9, 11, 0.92) 100%); }
+  .map figcaption { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 18px 20px; }
+  .map .tag { font: 700 11px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--sand); }
+  .map h3 { margin-top: 6px; font-size: 24px; }
+  .map:first-child h3 { font-size: 34px; }
+  .map p { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: #d4cdbf; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* video */
+  .film { margin: 0; border-radius: var(--r); overflow: hidden; border: 1px solid var(--line-2); background: #000; }
+  .film video { width: 100%; height: auto; }
+
+  /* modes */
+  .modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .mode { padding: 24px 22px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .mode svg { width: 34px; height: 34px; color: var(--amber); margin-bottom: 18px; }
+  .mode p { margin: 10px 0 18px; color: var(--muted); font-size: 15.5px; line-height: 1.5; flex: 1; }
+  .mode .meta { font: 500 12px/1.3 var(--mono); color: var(--sand); padding-top: 14px; border-top: 1px solid var(--line); }
+  .extras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--line); }
+  .extras h3 { font-size: 17px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .extras p { margin: 8px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+
+  /* arsenal */
+  .buy-menu { border-radius: var(--r); border: 1px solid var(--line-2); background: linear-gradient(180deg, var(--panel-2), var(--panel)); overflow: hidden; }
+  .buy-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 22px; border-bottom: 1px solid var(--line); font: 700 13px/1 var(--mono); letter-spacing: 0.16em; color: var(--muted); }
+  .buy-top kbd { font: 700 12px/1 var(--mono); color: var(--ink); background: var(--amber); padding: 5px 8px; border-radius: 5px; }
+  .buy-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .buy-col { padding: 20px 22px 22px; border-right: 1px solid var(--line); }
+  .buy-col:last-child { border-right: 0; }
+  .buy-col h3 { font: 700 12px/1 var(--mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--sand); margin-bottom: 12px; }
+  .buy-col ul { list-style: none; margin: 0; padding: 0; }
+  .buy-col li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); font-weight: 600; }
+  .buy-col li:last-child { border-bottom: 0; }
+  .cost { font: 700 15px/1 var(--mono); color: var(--ok); min-width: 64px; text-align: right; }
+  .side { font: 700 10px/1 var(--mono); letter-spacing: 0.08em; padding: 4px 6px; border-radius: 4px; }
+  .side.t { color: var(--t); background: rgba(255, 106, 77, 0.12); }
+  .side.s { color: var(--swat); background: rgba(99, 166, 255, 0.12); }
+  .money { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line-2); font: 500 13px/1.2 var(--mono); color: var(--muted); }
+  .chip b { color: var(--ok); }
+
+  /* gallery */
+  .shots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .shots figure { margin: 0; }
+  .shots .wide { grid-column: span 2; }
+  .shot { display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--panel); cursor: zoom-in; }
+  .shot img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; transition: transform 0.4s ease, opacity 0.2s; }
+  .shot:hover img { transform: scale(1.03); }
+  .shots figcaption { margin-top: 8px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+
+  /* controls */
+  .keys { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .keys li { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+  kbd.key {
+    min-width: 46px; padding: 7px 10px; text-align: center; border-radius: 7px; font: 700 13px/1 var(--mono); color: var(--text);
+    background: linear-gradient(180deg, #2a2f38, #1d2128); border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 3px 0 #0a0b0d;
+  }
+
+  /* download */
+  .downloads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .os.wide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(200px, 0.8fr) minmax(0, 2fr) auto; align-items: center; gap: 8px 36px; }
+  .os.wide ol { margin: 0; }
+  .os.wide .btn { width: auto; padding: 14px 24px; }
+  .os { position: relative; display: flex; flex-direction: column; padding: 24px 20px 20px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); }
+  .os.best { border-color: var(--amber); background: linear-gradient(180deg, rgba(255, 194, 61, 0.08), var(--panel) 45%); }
+  .os .best-tag { position: absolute; top: -11px; left: 18px; padding: 4px 9px; border-radius: 5px; background: var(--amber); color: var(--ink); font: 700 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+  .os .file { margin: 6px 0 0; font: 500 12.5px/1.45 var(--mono); color: var(--dim); word-break: break-word; }
+  .os ol { margin: 16px 0 20px; padding-left: 20px; color: var(--muted); font-size: 14.5px; line-height: 1.5; flex: 1; }
+  .os li + li { margin-top: 6px; }
+  .os code { font: 500 12.5px var(--mono); color: var(--text); background: rgba(255, 255, 255, 0.06); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  .os .btn { justify-content: center; width: 100%; padding: 13px 14px; font-size: 14px; }
+  .os:not(.best) .btn { background: rgba(255, 255, 255, 0.07); color: var(--text); box-shadow: none; border: 1px solid var(--line-2); }
+  .os:not(.best) .btn:hover { background: rgba(255, 255, 255, 0.12); }
+  .dl-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 18px 32px; margin-top: 28px; padding: 22px 24px; border-radius: var(--r); border: 1px dashed var(--line-2); }
+  .dl-foot p { margin: 0; color: var(--muted); font-size: 15px; }
+  .counter { display: flex; align-items: baseline; gap: 12px; }
+  .counter .num { font: 700 34px/1 var(--mono); color: var(--amber); }
+  .counter .lbl { color: var(--muted); font-size: 15px; }
+  .dl-links { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 15px; }
+
+  /* reviews */
+  .reviews { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); gap: 32px; align-items: start; }
+  .score { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .score .big { font: 700 52px/1 var(--mono); color: var(--amber); }
+  .stars { color: var(--amber); letter-spacing: 0.12em; }
+  .score .count { color: var(--muted); font-size: 15px; }
+  .review-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .review { padding: 18px 20px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); }
+  .review-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .review-nick { font-weight: 700; }
+  .review-date { margin-left: auto; font: 500 12px var(--mono); color: var(--dim); }
+  .review p { margin: 10px 0 0; color: #d6cfc2; font-size: 15.5px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+  .reviews-empty { color: var(--muted); }
+  .more { margin-top: 16px; }
+  .form { padding: 24px 22px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line-2); position: sticky; top: 84px; }
+  .form h3 { margin-bottom: 4px; }
+  .form .note { margin: 0 0 16px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .field { display: block; margin-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--muted); }
+  .field input, .field textarea {
+    display: block; width: 100%; margin-top: 6px; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--line-2);
+    background: var(--bg-2); color: var(--text); font: 400 16px/1.4 var(--sans);
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--amber); }
+  .rating { border: 0; margin: 0 0 12px; padding: 0; display: flex; gap: 4px; }
+  .rating legend { font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 4px; padding: 0; }
+  .rating label { cursor: pointer; font-size: 30px; line-height: 1; color: #3b3f47; }
+  .rating label.on { color: var(--amber); }
+  .rating input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .rating input:focus-visible + span { outline: 2px solid var(--amber); outline-offset: 2px; border-radius: 4px; }
+  .form .btn { width: 100%; justify-content: center; margin-top: 4px; }
+  .form-status { min-height: 1.4em; margin: 12px 0 0; font-size: 14px; color: var(--muted); }
+  .form-status[data-kind="ok"] { color: var(--ok); }
+  .form-status[data-kind="error"] { color: var(--bad); }
+
+  /* footer */
+  footer { margin-top: 120px; border-top: 1px solid var(--line); padding: 36px 0 48px; color: var(--muted); font-size: 15px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 32px; align-items: center; justify-content: space-between; }
+  footer .links { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  footer .langs { width: 100%; margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; color: var(--dim); }
+  footer .langs a { color: var(--muted); }
+
+  /* lightbox */
+  .lightbox { width: min(1400px, 96vw); max-height: 96vh; padding: 0; border: 1px solid var(--line-2); border-radius: 12px; background: #000; color: var(--text); }
+  .lightbox::backdrop { background: rgba(0, 0, 0, 0.86); }
+  .lightbox img { width: 100%; max-height: 82vh; object-fit: contain; background: #000; }
+  .lb-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; background: var(--panel); }
+  .lb-cap { flex: 1; min-width: 200px; font-size: 15px; color: var(--muted); }
+  .lb-bar button { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line-2); background: rgba(255, 255, 255, 0.06); color: var(--text); font: 600 14px var(--sans); cursor: pointer; }
+  .lb-bar button:hover { background: rgba(255, 255, 255, 0.12); }
+
+  /* ---------- smaller screens ---------- */
+  @media (max-width: 1080px) {
+    .nav { display: none; }
+    .downloads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .modes, .extras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .buy-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .buy-col:nth-child(2) { border-right: 0; }
+    .buy-col:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    .reviews { grid-template-columns: 1fr; }
+    .form { position: static; max-width: 560px; }
+  }
+  @media (max-width: 860px) {
+    .hero { min-height: 0; padding: 104px 0 56px; }
+    .hero::before { background: linear-gradient(180deg, rgba(11, 12, 14, 0.88) 0%, rgba(11, 12, 14, 0.8) 50%, var(--bg) 100%); }
+    .hero .wrap { grid-template-columns: 1fr; gap: 36px; }
+    .intel { justify-self: start; max-width: none; }
+    .killfeed, .crosshair { display: none; }
+    .round { grid-template-columns: 1fr; gap: 32px; }
+    .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .step:nth-child(2) { border-right: 0; }
+    .step:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    .maps { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; }
+    .map:first-child { grid-row: span 1; }
+    .map:first-child h3 { font-size: 26px; }
+    .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .os.wide { grid-template-columns: 1fr; }
+    .os.wide ol { margin: 8px 0 12px; }
+    .os.wide .btn { width: 100%; }
+    .review-list { grid-template-columns: 1fr; }
+    section { padding-top: 80px; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .bar .pill .long { display: none; }
+    .bar .btn { display: none; }
+    .cta .btn { width: 100%; }
+    .steps, .modes, .extras, .buy-cols, .downloads, .maps { grid-template-columns: 1fr; }
+    .step, .buy-col { border-right: 0; border-bottom: 1px solid var(--line); }
+    .step:last-child, .buy-col:last-child { border-bottom: 0; }
+    .map:first-child { grid-column: auto; }
+    .shots { grid-template-columns: 1fr; }
+    .shots .wide { grid-column: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Low Strike, to the top">LOW <span>STRIKE</span></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#round">Gameplay</a>
+      <a href="#maps">Maps</a>
+      <a href="#modes">Modes</a>
+      <a href="#arsenal">Arsenal</a>
+      <a href="#download">Download</a>
+      <a href="#reviews">Reviews</a>
+    </nav>
+    <div class="bar-right">
+      <span class="pill" data-server="checking" role="status"><span class="dot"></span><span id="bar-status">Checking<span class="long"> the server</span>…</span></span>
+      <a class="btn btn-play" href="play/">Play now</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="hero-bg" role="img" aria-label="A Terrorist on bomb site B of de_dune"></div>
+    <div class="crosshair" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="killfeed" id="killfeed" aria-hidden="true"></div>
+    <div class="wrap">
+      <div>
+        <p class="eyebrow"><b>Free</b> · Terrorists vs SWAT · 5 maps · bots and online</p>
+        <h1>LOW<span>STRIKE</span></h1>
+        <p class="lead">Plant the bomb, defuse it or take out the other team. Two-minute rounds against bots or real players, right here in your browser or on Windows, macOS, Linux and Android.</p>
+        <div class="cta">
+          <a class="btn btn-play" href="play/">
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z"/></svg>
+            <span>Play in the browser<small>No download · about 27 MB to load</small></span>
+          </a>
+          <a class="btn btn-ghost" id="hero-dl" href="#download">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>
+            <span><span id="hero-dl-text">Download the game</span><small id="hero-dl-small">Windows · macOS · Linux · Android</small></span>
+          </a>
+        </div>
+        <p class="hero-note">Version <span data-version>1.21.1</span> · <a href="#download">all platforms</a> · <a href="https://github.com/HappzGirafe/DesertStrike" target="_blank" rel="noopener">source code</a></p>
+      </div>
+      <aside class="intel" aria-label="Live server status">
+        <div class="intel-head" data-server="checking"><span class="dot"></span>LIVE INTEL</div>
+        <dl>
+          <div><dt>Online server</dt><dd id="i-server">Checking…</dd></div>
+          <div><dt>Players online</dt><dd id="i-players">–</dd></div>
+          <div><dt>Free rooms</dt><dd id="i-rooms">–</dd></div>
+          <div><dt>Latest version</dt><dd data-version>1.21.1</dd></div>
+          <div><dt>Downloads</dt><dd id="i-downloads">–</dd></div>
+        </dl>
+      </aside>
+    </div>
+  </div>
+
+  <section id="round">
+    <div class="wrap">
+      <div class="round">
+        <div>
+          <p class="kicker">01 / The round</p>
+          <h2>Buy. Fight. Plant. Defuse.</h2>
+          <p class="intro">Terrorists have to blow up bomb site A or B. SWAT have to stop them. Every round is a fresh plan, and the money you earn decides what you carry into the next one.</p>
+        </div>
+        <figure class="monitor">
+          <img src="media/dune-planted.jpg" alt="The bomb has been planted on site B of de_dune, with 39 seconds left" width="1600" height="900" loading="lazy">
+          <figcaption>de_dune · "Bomb has been planted on B"</figcaption>
+        </figure>
+      </div>
+      <ol class="steps">
+        <li class="step" style="--c: var(--ok)">
+          <span class="n">01</span>
+          <h3>Buy</h3>
+          <div class="time">0:25</div>
+          <p>Press B in your own spawn. $800 to start, more for every win and kill. Sell guns back in the first 30 seconds.</p>
+        </li>
+        <li class="step" style="--c: var(--text)">
+          <span class="n">02</span>
+          <h3>Fight</h3>
+          <div class="time">1:55</div>
+          <p>Under two minutes on the clock. Terrorists push a site, SWAT hold the map. One life per round.</p>
+        </li>
+        <li class="step" style="--c: var(--t)">
+          <span class="n">03</span>
+          <h3>Plant</h3>
+          <div class="time">3 s</div>
+          <p>Hold E on site A or B to plant the C4. Once it is down, it explodes after 40 seconds.</p>
+        </li>
+        <li class="step" style="--c: var(--swat)">
+          <span class="n">04</span>
+          <h3>Defuse</h3>
+          <div class="time">10 s <small style="font-size:15px;color:var(--muted)">/ 5 s with kit</small></div>
+          <p>SWAT have to get to the bomb in time. A $400 defuse kit halves the wait.</p>
+        </li>
+      </ol>
+      <p class="win-line"><b>First to 8 rounds</b> wins the match. You can set anything from 1 to 16 in the menu, with or without friendly fire.</p>
+    </div>
+  </section>
+
+  <section id="maps">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">02 / Maps</p>
+        <h2>Five maps</h2>
+        <p class="intro">From the desert to a bone yard at night. Every map has two bomb sites and room for 5 against 5.</p>
+      </div>
+      <div class="maps">
+        <figure class="map">
+          <img src="media/dune.jpg" alt="Crates and sand walls on de_dune" width="1600" height="900" loading="lazy">
+          <figcaption><span class="tag">Desert · the original</span><h3>de_dune</h3><p>Long sandy lanes, crates to hide behind and two bomb sites. Where Low Strike started.</p></figcaption>
+        </figure>
+        <figure class="map">
+          <img src="media/village.jpg" alt="Houses and a fence on the Village map" width="1600" height="900" loading="lazy">
+          <figcaption><span class="tag">Houses</span><h3>Village</h3><p>Houses, fences and backyards: close fights around every corner.</p></figcaption>
+        </figure>
+        <figure class="map">
+          <img src="media/halloween.jpg" alt="A ghost and street lamps on the Halloween map at night" width="1600" height="900" loading="lazy">
+          <figcaption><span class="tag">Night</span><h3>Halloween</h3><p>A haunted village at night, with pumpkins, ghosts and lit windows.</p></figcaption>
+        </figure>
+        <figure class="map">
+          <img src="media/industrial.jpg" alt="Terrorists at their spawn on the Industrial map, with a crane and silos" width="1600" height="900" loading="lazy">
+          <figcaption><span class="tag">Warehouse</span><h3>Industrial</h3><p>A warehouse, containers, a crane and a three-room B site.</p></figcaption>
+        </figure>
+        <figure class="map">
+          <img src="media/bone.jpg" alt="The bomb site under a giant ribcage on the Bone map" width="1600" height="900" loading="lazy">
+          <figcaption><span class="tag">Bone yard</span><h3>Bone</h3><p>Giant pumpkins, and a bomb site under a ribcage.</p></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="watch">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">03 / Watch</p>
+        <h2>A real match</h2>
+        <p class="intro">Almost two minutes on the Village map, recorded in the game. No sound.</p>
+      </div>
+      <figure class="film">
+        <video controls playsinline muted preload="none" poster="media/video-poster.jpg" width="1280" height="628">
+          <source src="media/gameplay.mp4" type="video/mp4">
+        </video>
+      </figure>
+    </div>
+  </section>
+
+  <section id="modes">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">04 / Modes</p>
+        <h2>Ways to play</h2>
+      </div>
+      <div class="modes">
+        <article class="mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 12h.01M15 12h.01M9.5 16h5M2 12v3M22 12v3"/></svg>
+          <h3>Against bots</h3>
+          <p>From 1v1 up to 5v5 on Easy, Normal, Hard or Extreme. Bots buy weapons, plant the bomb and defuse it.</p>
+          <span class="meta">Offline · always works</span>
+        </article>
+        <article class="mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z"/></svg>
+          <h3>Online rooms</h3>
+          <p>Sign up with a nickname and a password, then create a room or join one. Up to 5v5 with no IP addresses or router settings; bots take the free places.</p>
+          <span class="meta" id="mode-online">Accounts · friends · invites</span>
+        </article>
+        <article class="mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>
+          <h3>LAN party</h3>
+          <p>Host a game on your WiFi and friends on the same network join in. Hold V to talk with voice chat.</p>
+          <span class="meta">Downloaded game · WiFi · voice</span>
+        </article>
+        <article class="mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M6.5 6.5h.01M9 6.5h.01M10 13l4 2-4 2v-4Z"/></svg>
+          <h3>In the browser</h3>
+          <p>Nothing to install: bots on every map and online rooms with everyone. Log in for your skins and Tokens.</p>
+          <span class="meta">Chrome · Edge · Firefox · Safari</span>
+        </article>
+      </div>
+      <div class="extras">
+        <div><h3>Skins &amp; Tokens</h3><p>Skins for every weapon: Gold, Arctic, Desert Camo, Urban Digital, glowing neon wraps and the karambit. Earn Tokens online and spend them in the shop.</p></div>
+        <div><h3>Friends</h3><p>One account on every computer and phone. See when friends are online and invite them to your room.</p></div>
+        <div><h3>Your crosshair</h3><p>Set it up like in CS2: color, length, thickness, gap, dot, outline and T shape.</p></div>
+        <div><h3>Runs on anything</h3><p>Low, Medium or High graphics, a 30/60/120 FPS limit and 3D resolution. Intel and Apple Silicon Macs, and touch controls on phones.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="arsenal">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">05 / Arsenal</p>
+        <h2>The buy menu</h2>
+        <p class="intro">14 weapons from the Glock-18 to the RPG, and the gear to go with them. Some are for one side only.</p>
+      </div>
+      <div class="buy-menu">
+        <div class="buy-top"><span>BUY MENU</span><span>open with <kbd>B</kbd></span></div>
+        <div class="buy-cols">
+          <div class="buy-col">
+            <h3>Pistols</h3>
+            <ul>
+              <li><span>Glock-18</span><span class="side t">T</span><span class="cost">$200</span></li>
+              <li><span>USP</span><span class="side s">SWAT</span><span class="cost">$200</span></li>
+              <li><span>TEC-DC9</span><span class="side t">T</span><span class="cost">$500</span></li>
+              <li><span>M1911</span><span class="side s">SWAT</span><span class="cost">$500</span></li>
+              <li><span>Desert Eagle</span><span></span><span class="cost">$700</span></li>
+            </ul>
+          </div>
+          <div class="buy-col">
+            <h3>SMG &amp; shotgun</h3>
+            <ul>
+              <li><span>Uzi</span><span></span><span class="cost">$1200</span></li>
+              <li><span>MP5</span><span></span><span class="cost">$1500</span></li>
+              <li><span>Pump Shotgun</span><span></span><span class="cost">$1700</span></li>
+            </ul>
+          </div>
+          <div class="buy-col">
+            <h3>Rifles &amp; heavy</h3>
+            <ul>
+              <li><span>AK-47</span><span class="side t">T</span><span class="cost">$2500</span></li>
+              <li><span>M4A1</span><span class="side s">SWAT</span><span class="cost">$3100</span></li>
+              <li><span>AWP</span><span></span><span class="cost">$4750</span></li>
+              <li><span>RPG</span><span></span><span class="cost">$10000</span></li>
+            </ul>
+          </div>
+          <div class="buy-col">
+            <h3>Equipment</h3>
+            <ul>
+              <li><span>Kevlar</span><span></span><span class="cost">$650</span></li>
+              <li><span>Kevlar + Helmet</span><span></span><span class="cost">$1000</span></li>
+              <li><span>Defuse Kit</span><span class="side s">SWAT</span><span class="cost">$400</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="money" aria-label="Money">
+        <span class="chip">Start <b>$800</b></span>
+        <span class="chip">Round win <b>+$3250</b></span>
+        <span class="chip">Kill <b>+$300</b></span>
+        <span class="chip">Knife kill <b>+$1500</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">06 / Screenshots</p>
+        <h2>In the game</h2>
+        <p class="intro">Click a picture to see it bigger.</p>
+      </div>
+      <div class="shots">
+        <figure class="wide"><button type="button" class="shot"><img src="media/team.jpg" alt="Teammates at the start of a round" width="1280" height="720" loading="lazy"></button><figcaption>Teammates at the start of a round</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/bombsite.jpg" alt="A Terrorist with the bomb on site A" width="1280" height="720" loading="lazy"></button><figcaption>A Terrorist with the bomb on site A</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/swat.jpg" alt="SWAT in a firefight in the tunnel" width="1280" height="720" loading="lazy"></button><figcaption>SWAT in a firefight in the tunnel</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/halloween.jpg" alt="A ghost on the Halloween map" width="1600" height="900" loading="lazy"></button><figcaption>A ghost on the Halloween map</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/industrial.jpg" alt="Terrorists at their spawn on Industrial" width="1600" height="900" loading="lazy"></button><figcaption>Terrorists at their spawn on Industrial</figcaption></figure>
+        <figure class="wide"><button type="button" class="shot"><img src="media/village.jpg" alt="The Village map: watching a Terrorist in a match" width="1600" height="900" loading="lazy"></button><figcaption>The Village map: watching a Terrorist in a match</figcaption></figure>
+        <figure class="wide"><button type="button" class="shot"><img src="media/menu.jpg" alt="Main menu: team, map, players, bots, rounds and friendly fire" width="1600" height="900" loading="lazy"></button><figcaption>Main menu: team, map, players, bots, rounds and friendly fire</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/inventory.jpg" alt="Inventory with the RPG's Web skin equipped" width="1600" height="900" loading="lazy"></button><figcaption>Inventory with the RPG's Web skin</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/settings.png" alt="Settings: display, graphics, frame limit, 3D resolution and voice chat" width="1911" height="949" loading="lazy"></button><figcaption>Settings: graphics, frame limit and voice chat</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/login.jpg" alt="Log in, sign up or play as a guest" width="1600" height="900" loading="lazy"></button><figcaption>Log in, sign up or play as a guest</figcaption></figure>
+        <figure><button type="button" class="shot"><img src="media/lan.jpg" alt="LAN game: host or join on your network" width="1600" height="900" loading="lazy"></button><figcaption>LAN game: host or join on your network</figcaption></figure>
+        <figure class="wide"><button type="button" class="shot"><img src="media/bone.jpg" alt="The Bone map: the bomb site under the ribcage, between giant pumpkins" width="1600" height="900" loading="lazy"></button><figcaption>Bone: the bomb site under the ribcage</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="controls">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">07 / Controls</p>
+        <h2>Keyboard and mouse</h2>
+        <p class="intro">The classic layout. On phones you get touch controls you can move around.</p>
+      </div>
+      <ul class="keys">
+        <li><kbd class="key">WASD</kbd>Move</li>
+        <li><kbd class="key">Mouse</kbd>Aim and shoot</li>
+        <li><kbd class="key">R</kbd>Reload</li>
+        <li><kbd class="key">1 2 3</kbd>Switch weapons</li>
+        <li><kbd class="key">Space</kbd>Jump</li>
+        <li><kbd class="key">Ctrl</kbd>Crouch</li>
+        <li><kbd class="key">Shift</kbd>Walk quietly</li>
+        <li><kbd class="key">B</kbd>Buy menu</li>
+        <li><kbd class="key">E</kbd>Plant or defuse (hold)</li>
+        <li><kbd class="key">G</kbd>Drop the bomb</li>
+        <li><kbd class="key">Tab</kbd>Scoreboard</li>
+        <li><kbd class="key">Esc</kbd>Menu and settings</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">08 / Download</p>
+        <h2>Get Low Strike</h2>
+        <p class="intro">Free on every platform. Version <span data-version>1.21.1</span>; the buttons always give you the newest one.</p>
+      </div>
+      <div class="downloads">
+        <article class="os wide" data-os="browser">
+          <div><h3>Browser</h3><p class="file">No download · about 27 MB to load</p></div>
+          <ol>
+            <li>Opens right here, on a computer or a phone.</li>
+            <li>Log in with your online account for your skins and Tokens.</li>
+            <li>LAN games and voice chat need the downloaded game.</li>
+          </ol>
+          <a class="btn btn-play" href="play/">Play in the browser</a>
+        </article>
+        <article class="os" data-os="windows">
+          <h3>Windows</h3>
+          <p class="file">LowStrike-Windows.exe · <span data-size="windows">53 MB</span></p>
+          <ol>
+            <li>Download the file and double-click it.</li>
+            <li>The first start unpacks the game in a few seconds.</li>
+            <li>If SmartScreen appears: More info, then Run anyway.</li>
+          </ol>
+          <a class="btn btn-play" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Windows.exe">Download</a>
+        </article>
+        <article class="os" data-os="macos">
+          <h3>macOS</h3>
+          <p class="file">LowStrike-macOS.zip · Intel and Apple Silicon · <span data-size="macos">61 MB</span></p>
+          <ol>
+            <li>Unzip it and double-click Low Strike.</li>
+            <li>The first time macOS blocks it: close the message.</li>
+            <li>System Settings &gt; Privacy &amp; Security: Open Anyway, then Open.</li>
+          </ol>
+          <a class="btn btn-play" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-macOS.zip">Download</a>
+        </article>
+        <article class="os" data-os="android">
+          <h3>Android</h3>
+          <p class="file">LowStrike-Android.apk · phones and tablets · <span data-size="android">56 MB</span></p>
+          <ol>
+            <li>Download the file on the phone and open it.</li>
+            <li>Allow installing apps from your browser when asked.</li>
+            <li>Tap Install. If Play Protect warns, choose Install anyway.</li>
+          </ol>
+          <a class="btn btn-play" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Android.apk">Download</a>
+        </article>
+        <article class="os" data-os="linux">
+          <h3>Linux</h3>
+          <p class="file">LowStrike-Linux.tar.gz · 64-bit · <span data-size="linux">50 MB</span></p>
+          <ol>
+            <li>Unpack it: <code>tar -xzf LowStrike-Linux.tar.gz</code></li>
+            <li>Start <code>LowStrike.x86_64</code> in the LowStrike-Linux folder.</li>
+            <li>If it does not start: <code>chmod +x LowStrike.x86_64</code></li>
+          </ol>
+          <a class="btn btn-play" href="https://github.com/HappzGirafe/DesertStrike/releases/latest/download/LowStrike-Linux.tar.gz">Download</a>
+        </article>
+      </div>
+      <div class="dl-foot">
+        <div class="counter" id="dl-counter" hidden><span class="num" id="dl-total">0</span><span class="lbl">downloads so far, all versions, counted by GitHub</span></div>
+        <p>iPhone and iPad: no app yet (Apple only allows games through the App Store). Play in the browser instead.</p>
+        <div class="dl-links">
+          <a id="release-notes" href="https://github.com/HappzGirafe/DesertStrike/releases/latest" target="_blank" rel="noopener">What's new in <span data-version>1.21.1</span></a>
+          <a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener">All versions</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="reviews">
+    <div class="wrap">
+      <div class="head">
+        <p class="kicker">09 / Reviews</p>
+        <h2>What players say</h2>
+      </div>
+      <div class="reviews">
+        <div>
+          <div class="score" id="score" hidden><span class="big" id="score-avg">0.0</span><div><div class="stars" id="score-stars"></div><div class="count" id="score-count"></div></div></div>
+          <div class="review-list" id="review-list"><p class="reviews-empty">Loading reviews…</p></div>
+          <button type="button" class="btn btn-ghost more" id="reviews-more" hidden>Show more</button>
+        </div>
+        <form class="form" id="review-form" novalidate>
+          <h3>Write a review</h3>
+          <p class="note">Use the online account you play with. The password is only checked, never kept. One review per account: writing again replaces yours.</p>
+          <label class="field">Nickname<input name="nick" autocomplete="username" maxlength="16" required></label>
+          <label class="field">Password<input name="password" type="password" autocomplete="current-password" maxlength="128" required></label>
+          <fieldset class="rating">
+            <legend>Your rating</legend>
+            <label><input type="radio" name="rating" value="1" aria-label="1 of 5"><span>★</span></label>
+            <label><input type="radio" name="rating" value="2" aria-label="2 of 5"><span>★</span></label>
+            <label><input type="radio" name="rating" value="3" aria-label="3 of 5"><span>★</span></label>
+            <label><input type="radio" name="rating" value="4" aria-label="4 of 5"><span>★</span></label>
+            <label><input type="radio" name="rating" value="5" aria-label="5 of 5"><span>★</span></label>
+          </fieldset>
+          <label class="field">Your review<textarea name="text" rows="4" minlength="10" maxlength="600" required></textarea></label>
+          <button type="submit" class="btn btn-play">Post review</button>
+          <p class="form-status" id="review-status" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="#top">LOW <span>STRIKE</span></a>
+    <span>A free game made with Unity and Blender.</span>
+    <div class="links">
+      <a href="play/">Play in the browser</a>
+      <a href="https://github.com/HappzGirafe/DesertStrike/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/HappzGirafe/DesertStrike" target="_blank" rel="noopener">Source code</a>
+    </div>
+    <p class="langs"><span>Also in other languages:</span>
+      <a href="https://lowstrike.lokvetia.com/ua/" hreflang="uk">Українська</a>
+      <a href="https://lowstrike.lokvetia.com/de/" hreflang="de">Deutsch</a>
+      <a href="https://lowstrike.lokvetia.com/fr/" hreflang="fr">Français</a>
+      <a href="https://lowstrike.lokvetia.com/it/" hreflang="it">Italiano</a>
+      <a href="https://lowstrike.lokvetia.com/es/" hreflang="es">Español</a></p>
+  </div>
+</footer>
+
+<dialog class="lightbox" id="lightbox" aria-label="Screenshot">
+  <img id="lb-img" src="media/dune.jpg" alt="">
+  <div class="lb-bar">
+    <span class="lb-cap" id="lb-cap"></span>
+    <button type="button" id="lb-prev">Previous</button>
+    <button type="button" id="lb-next">Next</button>
+    <button type="button" id="lb-close">Close</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+  const REPO = "HappzGirafe/DesertStrike";
+  const FILES = { windows: "LowStrike-Windows.exe", macos: "LowStrike-macOS.zip", android: "LowStrike-Android.apk", linux: "LowStrike-Linux.tar.gz" };
+  const NAMES = { windows: "Windows", macos: "macOS", android: "Android", linux: "Linux" };
+  // Shown until GitHub answers (and if it does not): the newest release when this page was written.
+  const FALLBACK = { version: "1.21.1", url: "https://github.com/HappzGirafe/DesertStrike/releases/tag/v1.21.1",
+                     sizes: { windows: 55225856, macos: 63464319, android: 58789286, linux: 52674561 }, total: null };
+  const $ = id => document.getElementById(id);
+  const mb = bytes => Math.round(bytes / 1048576) + " MB";
+  const fmt = n => Number(n).toLocaleString("en");
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Which download suits this visitor: decides the hero's second button and the highlighted card.
+  function detectOS() {
+    const ua = navigator.userAgent || "";
+    const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+    if (/android/i.test(ua)) return "android";
+    if (/iphone|ipad|ipod/i.test(ua) || (/mac/i.test(platform) && navigator.maxTouchPoints > 1)) return "ios";
+    if (/cros/i.test(ua)) return "browser";
+    if (/win/i.test(platform) || /windows/i.test(ua)) return "windows";
+    if (/mac/i.test(platform) || /mac os x/i.test(ua)) return "macos";
+    if (/linux|x11/i.test(platform + " " + ua)) return "linux";
+    return "browser";
+  }
+  const os = detectOS();
+  const best = document.querySelector('.os[data-os="' + (FILES[os] ? os : "browser") + '"]');
+  if (best) {
+    best.classList.add("best");
+    const tag = document.createElement("span");
+    tag.className = "best-tag";
+    tag.textContent = "For your device";
+    best.prepend(tag);
+  }
+
+  function showRelease(r) {
+    document.querySelectorAll("[data-version]").forEach(el => { el.textContent = r.version; });
+    document.querySelectorAll("[data-size]").forEach(el => {
+      const key = el.dataset.size;
+      el.textContent = mb(r.sizes[key] || FALLBACK.sizes[key]);
+    });
+    $("release-notes").href = r.url;
+    if (r.total != null) {
+      $("i-downloads").textContent = fmt(r.total);
+      $("dl-total").textContent = fmt(r.total);
+      $("dl-counter").hidden = false;
+    }
+    if (FILES[os]) {
+      const dl = $("hero-dl");
+      dl.href = "https://github.com/" + REPO + "/releases/latest/download/" + FILES[os];
+      $("hero-dl-text").textContent = "Download for " + NAMES[os];
+      $("hero-dl-small").textContent = "Version " + r.version + " · " + mb(r.sizes[os] || FALLBACK.sizes[os]);
+    } else if (os === "ios") {
+      $("hero-dl-small").textContent = "No iPhone app yet: the browser works";
+    }
+  }
+
+  // The newest release and every download so far, from GitHub (kept 10 minutes so reloads do not ask again).
+  (function loadRelease() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem("lowstrike.release") || "null");
+      if (cached && Date.now() - cached.at < 10 * 60 * 1000) { showRelease(cached); return; }
+    } catch (e) {}
+    showRelease(FALLBACK);
+    fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=100")
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(list => {
+        const latest = list.find(r => !r.draft && !r.prerelease);
+        if (!latest) return;
+        const release = { version: latest.tag_name.replace(/^v/i, ""), url: latest.html_url, sizes: {}, total: 0, at: Date.now() };
+        for (const asset of latest.assets || [])
+          for (const key in FILES) if (asset.name === FILES[key]) release.sizes[key] = asset.size;
+        for (const r of list)
+          for (const asset of r.assets || [])
+            if (/^LowStrike-/i.test(asset.name) && !/server/i.test(asset.name)) release.total += asset.download_count;
+        try { sessionStorage.setItem("lowstrike.release", JSON.stringify(release)); } catch (e) {}
+        showRelease(release);
+      })
+      .catch(() => {});
+  })();
+
+  // The online server's address is in online.json; /health says whether it runs, how many play and how many rooms are free.
+  const api = fetch("online.json", { cache: "no-store" })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(config => {
+      if (!config.api || !/^https:\/\//.test(config.api)) return Promise.reject("no api");
+      return config.api.replace(/\/+$/, "");
+    });
+
+  (function loadServer() {
+    const say = (state, bar, server, players, rooms) => {
+      document.querySelectorAll("[data-server]").forEach(el => { el.dataset.server = state; });
+      $("bar-status").textContent = bar;
+      const s = $("i-server");
+      s.textContent = server;
+      s.className = state === "online" ? "ok" : "bad";
+      $("i-players").textContent = players;
+      $("i-rooms").textContent = rooms;
+    };
+    api.then(base => fetch(base + "/health", { cache: "no-store" }))
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(h => {
+        if (!(h.servers > 0)) { say("offline", "Rooms offline", "Rooms offline", fmt(h.players_online || 0), "0"); return; }
+        const n = h.players_online || 0;
+        say("online", n > 0 ? n + " online now" : "Server online", "Online", fmt(n), h.rooms_free + " of " + h.servers);
+        $("mode-online").textContent = h.servers + " rooms · accounts · friends";
+      })
+      .catch(() => say("offline", "Server offline", "Offline", "–", "–"));
+  })();
+
+  // Reviews: anyone can read them; writing one takes an online account's nickname and password (the server checks
+  // them like a login and keeps only the nickname). Reviews are shown as text, never as HTML.
+  (function reviews() {
+    const list = $("review-list"), form = $("review-form"), status = $("review-status"), more = $("reviews-more");
+    const labels = Array.from(form.querySelectorAll(".rating label"));
+    const stars = n => "★".repeat(n) + "☆".repeat(5 - n);
+    const say = (kind, text) => { status.dataset.kind = kind; status.textContent = text; };
+    const OFFLINE = "Could not reach the server. Try again later.";
+    let base = null, before = null;
+    function empty(text) {
+      list.textContent = "";
+      const p = document.createElement("p");
+      p.className = "reviews-empty";
+      p.textContent = text;
+      list.append(p);
+    }
+    function add(r) {
+      const card = document.createElement("article");
+      card.className = "review";
+      const head = document.createElement("div");
+      head.className = "review-head";
+      const nick = document.createElement("span");
+      nick.className = "review-nick";
+      nick.textContent = r.nick;
+      const st = document.createElement("span");
+      st.className = "stars";
+      st.textContent = stars(r.rating);
+      st.setAttribute("aria-label", r.rating + " of 5");
+      const date = document.createElement("span");
+      date.className = "review-date";
+      date.textContent = r.date;
+      head.append(nick, st, date);
+      const text = document.createElement("p");
+      text.textContent = r.text;
+      card.append(head, text);
+      list.append(card);
+    }
+    function load(fresh) {
+      if (!base) return;
+      fetch(base + "/reviews?limit=10" + (!fresh && before ? "&before=" + before : ""), { cache: "no-store" })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => {
+          if (fresh) list.textContent = "";
+          if (data.count > 0 && data.average != null) {
+            $("score-avg").textContent = data.average.toFixed(1);
+            $("score-stars").textContent = stars(Math.round(data.average));
+            $("score-count").textContent = data.count + (data.count === 1 ? " review" : " reviews");
+            $("score").hidden = false;
+          }
+          if (fresh && data.reviews.length === 0) empty("No reviews yet. Be the first!");
+          data.reviews.forEach(add);
+          if (data.reviews.length) before = data.reviews[data.reviews.length - 1].at;
+          more.hidden = data.reviews.length < 10;
+        })
+        .catch(() => { if (fresh) empty(OFFLINE); });
+    }
+    more.addEventListener("click", () => load(false));
+    form.querySelectorAll(".rating input").forEach(input => input.addEventListener("change", () =>
+      labels.forEach((label, i) => label.classList.toggle("on", i < Number(input.value)))));
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      if (!base) { say("error", OFFLINE); return; }
+      const data = new FormData(form);
+      const rating = Number(data.get("rating") || 0);
+      if (!String(data.get("nick")).trim() || !data.get("password")) { say("error", "Enter your nickname and password."); return; }
+      if (!rating) { say("error", "Choose 1 to 5 stars."); return; }
+      if (String(data.get("text")).trim().length < 10) { say("error", "Write at least 10 characters."); return; }
+      say("", "Sending…");
+      fetch(base + "/reviews", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nick: data.get("nick"), password: data.get("password"), rating: rating, text: data.get("text"), lang: "en" }),
+      })
+        .then(r => r.json().catch(() => ({})).then(body => ({ status: r.status, ok: r.ok, body: body })))
+        .then(answer => {
+          if (!answer.ok) { say("error", answer.status === 401 ? "Wrong nickname or password." : answer.body.detail || OFFLINE); return; }
+          form.reset();
+          labels.forEach(label => label.classList.remove("on"));
+          say("ok", "Thanks! Your review is on the site.");
+          load(true);
+        })
+        .catch(() => say("error", OFFLINE));
+    });
+    api.then(b => { base = b; load(true); }).catch(() => empty(OFFLINE));
+  })();
+
+  // Screenshots open bigger in a dialog; arrow keys go through them.
+  (function lightbox() {
+    const shots = Array.from(document.querySelectorAll(".shot"));
+    const box = $("lightbox"), img = $("lb-img"), cap = $("lb-cap");
+    let current = 0;
+    function show(i) {
+      current = (i + shots.length) % shots.length;
+      const small = shots[current].querySelector("img");
+      img.src = small.getAttribute("src");
+      img.alt = small.alt;
+      cap.textContent = shots[current].closest("figure").querySelector("figcaption").textContent;
+    }
+    shots.forEach((s, i) => s.addEventListener("click", () => {
+      show(i);
+      if (typeof box.showModal === "function") box.showModal(); else box.setAttribute("open", "");
+    }));
+    $("lb-prev").addEventListener("click", () => show(current - 1));
+    $("lb-next").addEventListener("click", () => show(current + 1));
+    $("lb-close").addEventListener("click", () => box.close());
+    box.addEventListener("click", e => { if (e.target === box) box.close(); });
+    box.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft") show(current - 1);
+      if (e.key === "ArrowRight") show(current + 1);
+    });
+  })();
+
+  // The hero's kill feed, like the one in the top right corner of the game (just decoration).
+  (function killfeed() {
+    const feed = $("killfeed");
+    const T = ["Shadow", "Viper", "Fang", "Raven", "Mamba", "Cobra"], S = ["Ranger", "Hawk", "Echo", "Titan", "Sentinel", "Dagger"];
+    const GUNS = { t: ["AK-47", "Glock-18", "AWP", "Desert Eagle", "MP5", "TEC-DC9", "Knife"], s: ["M4A1", "USP", "AWP", "M1911", "Pump Shotgun", "MP5", "Knife"] };
+    const pick = a => a[Math.floor(Math.random() * a.length)];
+    function name(cls, text) { const b = document.createElement("b"); b.className = cls; b.textContent = text; return b; }
+    function add() {
+      const terrorist = Math.random() < 0.5;
+      const row = document.createElement("div");
+      row.className = "kf";
+      const gun = document.createElement("span");
+      gun.className = "gun";
+      gun.textContent = "[" + pick(GUNS[terrorist ? "t" : "s"]);
+      if (Math.random() < 0.35) { const hs = document.createElement("span"); hs.className = "hs"; hs.textContent = " + HEADSHOT"; gun.append(hs); }
+      gun.append("]");
+      row.append(name(terrorist ? "t" : "s", pick(terrorist ? T : S)), gun, name(terrorist ? "s" : "t", pick(terrorist ? S : T)));
+      feed.prepend(row);
+      while (feed.children.length > 4) feed.lastChild.remove();
+    }
+    for (let i = 0; i < 3; i++) add();
+    if (!calm) setInterval(() => { if (!document.hidden) add(); }, 2800);
+  })();
+
+  // The top bar marks the section on screen.
+  (function activeNav() {
+    if (!("IntersectionObserver" in window)) return;
+    const links = Array.from(document.querySelectorAll(".nav a"));
+    const seen = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + entry.target.id));
+    }), { rootMargin: "-45% 0px -50% 0px" });
+    links.forEach(a => { const s = document.querySelector(a.getAttribute("href")); if (s) seen.observe(s); });
+  })();
+})();
+</script>
+</body>
+</html>
