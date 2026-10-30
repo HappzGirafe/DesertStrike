@@ -41,7 +41,7 @@ public partial class GameUI
         float ty = previewRect.yMax + 16f;
         Label(new Rect(x, ty, w, 36f), $"{price} Tokens", 30, Pumpkin, TextAnchor.MiddleCenter);
         Label(new Rect(x, ty + 40f, w, 30f), $"You have {Mathf.Max(0, online.Tokens)}", 21, Color.white, TextAnchor.MiddleCenter);
-        string note = buyProblem ?? (enough ? null : $"Earn more in matches: 1 for every kill and 5 for every match won (up to {online.TokenDayLimit} a day against bots).");
+        string note = buyProblem ?? (enough ? null : $"Earn more in matches: 1 for every kill and 5 for every win, times the bots' difficulty (Easy x0, Normal x1, Hard x1.5, Extreme x2; up to {online.TokenDayLimit} a day against bots).");
         if (note != null) WrapLabel(new Rect(x + 50f, ty + 74f, w - 100f, 54f), note, 18, buyProblem != null ? Danger : Dim);
         float by = y + h - 86f, bw = (w - 120f) / 2f;
         if (Button(new Rect(x + 40f, by, bw, 62f), online.Busy ? "BUYING..." : "BUY", true, enough && !online.Busy, 26))

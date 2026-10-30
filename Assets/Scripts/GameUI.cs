@@ -89,6 +89,12 @@ public partial class GameUI : MonoBehaviour
         touchLayoutOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-touch-layout") >= 0;   // screenshots
         languagesOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-languages") >= 0;   // screenshots
         controlsOpen = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-controls") >= 0;   // screenshots
+        int casesArg = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-cases");   // [case id]: the cases screen, and open that one (tests)
+        if (casesArg >= 0)
+        {
+            inventoryOpen = casesOpen = true;
+            if (casesArg + 1 < Environment.GetCommandLineArgs().Length) testCase = Environment.GetCommandLineArgs()[casesArg + 1];
+        }
         if (languagesOpen) settingsOpen = true;
         int demo = Array.IndexOf(Environment.GetCommandLineArgs(), "-ds-keyboard-demo");
         if (demo >= 0 && demo + 2 < Environment.GetCommandLineArgs().Length)
@@ -886,6 +892,11 @@ public partial class GameUI : MonoBehaviour
 
     void DrawInventory()
     {
+        if (casesOpen)
+        {
+            DrawCases();
+            return;
+        }
         if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
         {
             CloseInventory();
@@ -901,6 +912,7 @@ public partial class GameUI : MonoBehaviour
         float w = 1240f, h = 820f, x = (width - w) / 2f, y = (RefHeight - h) / 2f;
         Panel(new Rect(x, y, w, h));
         Label(new Rect(x, y + 15f, w, 60f), "INVENTORY", 48, Gold, TextAnchor.MiddleCenter);
+        if (Button(new Rect(x + 30f, y + 22f, 180f, 50f), "CASES", true, true, 22)) OpenCases();
         if (Accounts.IsOnline && Online.Tokens >= 0)
             Label(new Rect(x + w - 330f, y + 26f, 300f, 34f), $"Tokens: {Online.Tokens}", 22, Pumpkin, TextAnchor.MiddleRight);
         Label(new Rect(x, y + 68f, w, 30f), "Pick a skin for each weapon. Hover to preview, click to equip. Your choice is saved.", 20, Dim, TextAnchor.MiddleCenter);
@@ -1996,42 +2008,73 @@ public partial class GameUI : MonoBehaviour
         Fill(new Rect(0f, 0f, width, RefHeight), new Color(0.8f, 0f, 0f, 0.3f * (1f - age / 0.4f)));
     }
 
+    float shownHealth = 100f;   // the HP bar's white part: what was lost, draining away a moment after a hit
+
+    // Health and armor: a picture, the number and a bar each (health goes from green to red; helmet: a small helmet).
     void DrawVitals(Combatant me)
     {
-        float y = RefHeight - 90f;
-        Panel(new Rect(20f, y, 420f, 70f));
-        Label(new Rect(35f, y, 60f, 70f), "HP", 22, Dim);
-        Label(new Rect(80f, y, 120f, 70f), me.Health.ToString(), 44, me.Health <= 25 ? Danger : Color.white);
-        Label(new Rect(200f, y, 110f, 70f), me.Helmet ? "ARMOR+H" : "ARMOR", 18, Dim);
-        Label(new Rect(310f, y, 120f, 70f), me.Armor.ToString(), 44, Color.white);
+        float x = 20f, y = RefHeight - 108f, w = 470f;
+        Panel(new Rect(x, y, w, 88f), 14f);
+        float hp = Mathf.Clamp01(me.Health / 100f);
+        shownHealth = me.Health >= shownHealth ? me.Health : Mathf.MoveTowards(shownHealth, me.Health, Time.deltaTime * 45f);
+        Color hpColor = hp > 0.5f ? Color.Lerp(new Color(1f, 0.82f, 0.25f), new Color(0.38f, 0.92f, 0.45f), (hp - 0.5f) * 2f)
+                                  : Color.Lerp(new Color(1f, 0.28f, 0.24f), new Color(1f, 0.82f, 0.25f), hp * 2f);
+        Icons.Draw(new Rect(x + 16f, y + 13f, 36f, 36f), "health", hpColor);
+        Text(new Rect(x + 60f, y + 4f, 150f, 54f), me.Health.ToString(), 42, me.Health <= 25 ? Danger : Color.white, TextAnchor.MiddleLeft);
+        Bar(new Rect(x + 16f, y + 63f, 200f, 10f), hp, shownHealth / 100f, hpColor);
+
+        var armorColor = new Color(0.42f, 0.72f, 1f);
+        Icons.Draw(new Rect(x + 246f, y + 13f, 36f, 36f), "armor", armorColor);
+        Text(new Rect(x + 290f, y + 4f, 110f, 54f), me.Armor.ToString(), 42, Color.white, TextAnchor.MiddleLeft);
+        if (me.Helmet) Icons.Draw(new Rect(x + w - 54f, y + 14f, 34f, 34f), "helmet", armorColor);
+        Bar(new Rect(x + 246f, y + 63f, 206f, 10f), Mathf.Clamp01(me.Armor / 100f), 0f, armorColor);
     }
 
+    // A rounded bar filled to `value` (0..1); `ghost` above it shows in white what was just lost.
+    static void Bar(Rect r, float value, float ghost, Color color)
+    {
+        Round(r, new Color(0f, 0f, 0f, 0.5f), r.height / 2f);
+        if (ghost > value) Round(new Rect(r.x, r.y, r.width * Mathf.Clamp01(ghost), r.height), new Color(1f, 1f, 1f, 0.55f), r.height / 2f);
+        if (value > 0f) Round(new Rect(r.x, r.y, Mathf.Max(r.height, r.width * value), r.height), color, r.height / 2f);
+    }
+
+    // The gun in hand, the bullets in it (a picture, the number and a bar) and those left.
     void DrawAmmo(Combatant me)
     {
         var weapon = me.Current;
-        float x = width - 420f, y = RefHeight - 90f;
-        Panel(new Rect(x, y, 400f, 70f));
+        float w = 420f, x = width - w - 20f, y = RefHeight - 108f;
+        Panel(new Rect(x, y, w, 88f), 14f);
+        Label(new Rect(x + 18f, y + 8f, 190f, 30f), weapon.Data.Name, 21, Dim);
         if (weapon.Data.SelectFire)
-        {
-            Label(new Rect(x + 15f, y + 2f, 200f, 40f), weapon.Data.Name, 22, Dim);
-            Label(new Rect(x + 15f, y + 38f, 200f, 26f), weapon.AutoMode ? "AUTO  (right click)" : "SEMI  (right click)", 15, Gold);
-        }
+            Label(new Rect(x + 18f, y + 40f, 190f, 26f), weapon.AutoMode ? "AUTO  (right click)" : "SEMI  (right click)", 15, Gold);
+        if (weapon.Data.IsMelee)
+            Text(new Rect(x + 200f, y, w - 218f, 88f), "-", 40, Color.white, TextAnchor.MiddleRight);
         else
         {
-            Label(new Rect(x + 15f, y, 200f, 70f), weapon.Data.Name, 22, Dim);
+            bool empty = weapon.Mag == 0;
+            Color color = empty ? Danger : Color.white;
+            string reserve = "/ " + weapon.Reserve, mag = weapon.Mag.ToString();
+            float rw = Style(24, TextAnchor.MiddleRight).CalcSize(new GUIContent(reserve)).x;
+            float mw = Style(42, TextAnchor.MiddleRight).CalcSize(new GUIContent(mag)).x;
+            float right = x + w - 18f;
+            Text(new Rect(right - rw, y + 14f, rw, 44f), reserve, 24, Dim, TextAnchor.MiddleRight);
+            Text(new Rect(right - rw - 8f - mw, y + 4f, mw, 54f), mag, 42, color, TextAnchor.MiddleRight);
+            Icons.Draw(new Rect(right - rw - 8f - mw - 36f, y + 12f, 30f, 40f), "ammo", empty ? Danger : Gold);
+            Bar(new Rect(x + 210f, y + 64f, w - 228f, 8f), Mathf.Clamp01(weapon.Mag / (float)Mathf.Max(1, weapon.Data.MagSize)), 0f, empty ? Danger : Gold);
         }
-        string ammo = weapon.Data.IsMelee ? "-" : $"{weapon.Mag} / {weapon.Reserve}";
-        Label(new Rect(x + 150f, y, 235f, 70f), ammo, 40, !weapon.Data.IsMelee && weapon.Mag == 0 ? Danger : Color.white, TextAnchor.MiddleRight);
         if (me.IsReloading)
         {
-            Fill(new Rect(x, y - 6f, 400f * me.ReloadProgress, 5f), Gold);
-            Label(new Rect(x, y - 40f, 400f, 30f), "RELOADING", 18, Gold, TextAnchor.MiddleCenter);
+            Round(new Rect(x, y - 8f, w * me.ReloadProgress, 5f), Gold, 2.5f);
+            Label(new Rect(x, y - 42f, w, 30f), "RELOADING", 18, Gold, TextAnchor.MiddleCenter);
         }
     }
 
     void DrawMoney(Combatant me)
     {
-        Label(new Rect(20f, RefHeight - 140f, 300f, 44f), $"$ {me.Money}", 34, MoneyGreen);
+        string money = $"$ {me.Money}";
+        var pill = new Rect(20f, RefHeight - 160f, Style(30, TextAnchor.MiddleCenter).CalcSize(new GUIContent(money)).x + 40f, 44f);
+        Round(pill, new Color(0f, 0f, 0f, 0.5f), 22f);
+        Text(pill, money, 30, MoneyGreen, TextAnchor.MiddleCenter);
         if (gm.ShopsAnywhere(me) || gm.BuyMenuOpen) return;   // the shop is always there (cheats): no reminder
         if (gm.CanBuy(me))
             Label(new Rect(0f, RefHeight - 60f, width, 30f), $"{(GameInput.Touch ? "Tap" : "Press")} {GameInput.BuyName} to buy  ({gm.BuyTimeLeft:0}s)", 20, Gold, TextAnchor.MiddleCenter);

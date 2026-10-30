@@ -124,6 +124,7 @@ public partial class GameUI
                 friendsLan = false;
             }),
             ("INVENTORY", null, Color.clear, () => inventoryOpen = true),
+            ("CASES", null, Color.clear, OpenCases),
             ("SETTINGS", null, Color.clear, () => settingsOpen = true),
             ("CONTROLS", null, Color.clear, () => controlsOpen = true),
         };
@@ -269,6 +270,8 @@ public partial class GameUI
             if (gm.Side != PlayerSide.Spectate) gm.Net.PreferredTeam = gm.Side == PlayerSide.Terrorists ? Team.Terrorists : Team.Swat;
         }
         SettingTitle(right, ry, col, "Bot difficulty");
+        if (Accounts.IsOnline)   // the Tokens a match pays, times this
+            Label(new Rect(right, ry, col - 4f, 28f), $"Tokens ×{TokenRate(gm.Difficulty)}", 17, Pumpkin, TextAnchor.MiddleRight);
         int level = Segmented(new Rect(right, ry + 32f, col, 54f), new[] { "Easy", "Normal", "Hard", "Extreme" }, (int)gm.Difficulty,
                               i => (BotDifficulty)i == BotDifficulty.Extreme && !Accounts.LoggedIn, DifficultyColor);
         if (level >= 0) gm.Difficulty = (BotDifficulty)level;
@@ -308,6 +311,10 @@ public partial class GameUI
         }
         return panel.yMax;
     }
+
+    /// <summary>What the bots' difficulty multiplies a match's Tokens by (online-server/tokens.py).</summary>
+    static string TokenRate(BotDifficulty level) =>
+        level == BotDifficulty.Easy ? "0" : level == BotDifficulty.Normal ? "1" : level == BotDifficulty.Hard ? "1.5" : "2";
 
     static Color DifficultyColor(int level) =>
         level == 0 ? new Color(0.3f, 0.72f, 0.42f) : level == 1 ? new Color(0.22f, 0.62f, 0.72f)

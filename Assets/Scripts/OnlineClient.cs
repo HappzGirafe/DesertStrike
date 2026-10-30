@@ -49,6 +49,8 @@ public class RoomInfo
 [Serializable] public class InviteInfo { public string id, room_id, room_name, map, from, status; }
 [Serializable] public class PlayerInfo { public string id, nick; public bool friend, request_sent, request_received; }
 [Serializable] public class ShopItem { public string weapon, skin; public int price; }
+/// <summary>A case of skins bought with Tokens (online-server/tokens.py): its skins as "weapon/skin".</summary>
+[Serializable] public class CaseInfo { public string id, name; public int price; public List<string> items = new List<string>(); }
 
 /// <summary>The admin panel's view of a player's account (online-server/admin.py).</summary>
 [Serializable]
@@ -120,8 +122,17 @@ public class OnlineClient : MonoBehaviour
     [Serializable] class ProfileBody { public OnlineProfile profile; }
     [Serializable] class LinkBody { public bool linked_local = true; public OnlineProfile profile; }
     [Serializable] class HideBody { public bool hide_status; }
-    [Serializable] class TokensAnswer { public int tokens, today, day_limit, earned; public List<string> owned = new List<string>(); public List<ShopItem> shop = new List<ShopItem>(); }
-    [Serializable] class MatchBody { public int kills, rounds; public bool won; public float seconds; }
+    [Serializable]
+    class TokensAnswer
+    {
+        public int tokens, today, day_limit, earned;
+        public string won;
+        public List<string> owned = new List<string>();
+        public List<ShopItem> shop = new List<ShopItem>();
+        public List<CaseInfo> cases = new List<CaseInfo>();
+    }
+    [Serializable] class MatchBody { public int kills, rounds; public bool won; public float seconds; public string difficulty; }
+    [Serializable] class CaseBody { public string @case; }
     [Serializable] class BuyBody { public string weapon, skin; }
     [Serializable] class AdminTokensBody { public string nick; public int amount; }
     [Serializable] class AdminSkinBody { public string nick, weapon, skin; public bool owned; }
@@ -181,6 +192,8 @@ public class OnlineClient : MonoBehaviour
     public float LastEarnedAt { get; private set; } = -100f;
     readonly HashSet<string> ownedSkins = new HashSet<string>();
     readonly Dictionary<string, int> skinPrices = new Dictionary<string, int>();
+    /// <summary>The cases on sale (the server's list; empty until the Tokens are known).</summary>
+    public List<CaseInfo> Cases { get; private set; } = new List<CaseInfo>();
     int tokensBeforeRoomMatch = -1;
     float roomMatchTokensAt = -1f;
     bool wasInRoomMatch;
@@ -201,6 +214,7 @@ public class OnlineClient : MonoBehaviour
         foreach (var owned in answer.owned) ownedSkins.Add(owned);
         skinPrices.Clear();
         foreach (var item in answer.shop) skinPrices[item.weapon + "/" + item.skin] = item.price;
+        if (answer.cases != null) Cases = answer.cases;
     }
 
     void Earned(int amount)
@@ -217,14 +231,35 @@ public class OnlineClient : MonoBehaviour
     }
 
     /// <summary>A match this game ran (against bots, or a LAN game) is over: the API pays for it (capped a day).</summary>
-    public void ReportMatch(int kills, bool won, int rounds, float seconds)
+    public void ReportMatch(int kills, bool won, int rounds, float seconds, string difficulty)
     {
         if (!LoggedIn) return;
-        Debug.Log($"[Online] Match over ({kills} kills, {(won ? "won" : "lost")}): asking for Tokens");
-        Ask(null, "POST", "/tokens/match", new MatchBody { kills = kills, won = won, rounds = rounds, seconds = seconds }, text =>
+        Debug.Log($"[Online] Match over ({kills} kills, {(won ? "won" : "lost")}, {difficulty} bots): asking for Tokens");
+        Ask(null, "POST", "/tokens/match", new MatchBody { kills = kills, won = won, rounds = rounds, seconds = seconds, difficulty = difficulty }, text =>
         {
             UseTokens(text);
             Earned(JsonUtility.FromJson<TokensAnswer>(text).earned);
+        });
+    }
+
+    /// <summary>
+    /// Opens a case for Tokens: the server picks one of its skins the account has not got (the dearer, the rarer) and
+    /// keeps it as bought. <paramref name="done"/> gets the skin ("weapon/skin") and null, or null and what went wrong.
+    /// </summary>
+    public void OpenCase(string id, Action<string, string> done)
+    {
+        busy++;
+        Ask(null, "POST", "/tokens/open", new CaseBody { @case = id }, text =>
+        {
+            busy--;
+            UseTokens(text);
+            string won = JsonUtility.FromJson<TokensAnswer>(text).won;
+            Debug.Log($"[Online] Opened the {id} case: {won}");
+            done?.Invoke(won, null);
+        }, (code, message) =>
+        {
+            busy--;
+            done?.Invoke(null, message);
         });
     }
 

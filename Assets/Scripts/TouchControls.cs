@@ -94,9 +94,9 @@ public class TouchControls : MonoBehaviour
     /// <summary>The buttons the layout editor shows (the spectator arrows keep their place).</summary>
     static readonly (TouchButton Button, string Label)[] EditorButtons =
     {
-        (TouchButton.Fire, "FIRE"), (TouchButton.Jump, "JUMP"), (TouchButton.Crouch, "CROUCH"), (TouchButton.Reload, "R"),
-        (TouchButton.Switch, "GUN"), (TouchButton.Scope, "SCOPE"), (TouchButton.Use, "PLANT"), (TouchButton.Drop, "DROP"),
-        (TouchButton.Buy, "BUY"), (TouchButton.Talk, "MIC"), (TouchButton.Scores, "TAB"), (TouchButton.Pause, "II"),
+        (TouchButton.Fire, "fire"), (TouchButton.Jump, "jump"), (TouchButton.Crouch, "crouch"), (TouchButton.Reload, "reload"),
+        (TouchButton.Switch, "gun"), (TouchButton.Scope, "scope"), (TouchButton.Use, "plant"), (TouchButton.Drop, "drop"),
+        (TouchButton.Buy, "buy"), (TouchButton.Talk, "mic"), (TouchButton.Scores, "scores"), (TouchButton.Pause, "pause"),
     };
 
     // Where each button sits until moved, and its size (1080p units; l and r: the safe area's left and right edge).
@@ -294,29 +294,29 @@ public class TouchControls : MonoBehaviour
             pads.Add(new Pad { Button = button, Center = center, Radius = radius, Label = label, Lit = lit });
         }
 
-        Add(TouchButton.Pause, "II");
-        Add(TouchButton.Scores, "TAB");
+        Add(TouchButton.Pause, "pause");
+        Add(TouchButton.Scores, "scores");
 
         if (me == null || !me.IsAlive)
         {
-            Add(TouchButton.Previous, "<");
-            Add(TouchButton.Next, ">");
+            Add(TouchButton.Previous, "prev");
+            Add(TouchButton.Next, "next");
             return;
         }
         if (gm.BuyMenuOpen)
         {
-            Add(TouchButton.Buy, "CLOSE", true);
+            Add(TouchButton.Buy, "close", true);
             return;
         }
 
-        Add(TouchButton.Fire, "FIRE");
-        Add(TouchButton.Jump, "JUMP");
-        Add(TouchButton.Crouch, "CROUCH", Crouched);
-        Add(TouchButton.Reload, "R");
-        Add(TouchButton.Switch, "GUN");
+        Add(TouchButton.Fire, "fire");
+        Add(TouchButton.Jump, "jump");
+        Add(TouchButton.Crouch, "crouch", Crouched);
+        Add(TouchButton.Reload, "reload");
+        Add(TouchButton.Switch, "gun");
         var weapon = me.Current?.Data;
         if (weapon != null && (weapon.ZoomFov > 0f || weapon.SelectFire))
-            Add(TouchButton.Scope, weapon.ZoomFov > 0f ? "SCOPE" : "AUTO");
+            Add(TouchButton.Scope, weapon.ZoomFov > 0f ? "scope" : "auto");
 
         var bomb = gm.Bomb;
         bool carrier = bomb.State == BombState.Carried && bomb.Carrier == me;
@@ -324,17 +324,17 @@ public class TouchControls : MonoBehaviour
         bool nearBomb = bomb.State == BombState.Planted && me.Team == Team.Swat
                         && Vector3.Distance(me.transform.position, bomb.Position) < BombManager.DefuseRadius;
         bool nearGun = gm.Drops.Nearest(me, WeaponDrops.SwapRadius) != null;
-        if (onSite || (carrier && !nearGun)) Add(TouchButton.Use, "PLANT", onSite);
-        else if (nearBomb || (bomb.State == BombState.Planted && me.Team == Team.Swat && !nearGun)) Add(TouchButton.Use, "DEFUSE", nearBomb);
-        else if (nearGun) Add(TouchButton.Use, "TAKE", true);
+        if (onSite || (carrier && !nearGun)) Add(TouchButton.Use, "plant", onSite);
+        else if (nearBomb || (bomb.State == BombState.Planted && me.Team == Team.Swat && !nearGun)) Add(TouchButton.Use, "defuse", nearBomb);
+        else if (nearGun) Add(TouchButton.Use, "take", true);
         // DROP: the gun in hand, or the bomb with the knife in hand.
         bool knife = me.Current == null || me.Current.Data.Slot == WeaponSlot.Knife;
-        if (!knife || carrier) Add(TouchButton.Drop, "DROP");
+        if (!knife || carrier) Add(TouchButton.Drop, "drop");
 
-        if (gm.CanShop(me)) Add(TouchButton.Buy, "BUY", true);
+        if (gm.CanShop(me)) Add(TouchButton.Buy, "buy", true);
         var voice = VoiceChat.Instance;
         if (voice != null && voice.InSession && GameSettings.VoiceChat && GameSettings.Voice == VoiceMode.HoldV)
-            Add(TouchButton.Talk, "MIC");
+            Add(TouchButton.Talk, "mic");
     }
 
     // ----------------------------------------------------------------- drawing (called by GameUI with its 1080p matrix)
@@ -346,8 +346,15 @@ public class TouchControls : MonoBehaviour
             labelStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
     }
 
+    // A button's picture (Icons), a bit smaller than the button; a word only for a name with no picture.
     void PadLabel(Vector2 center, float radius, string label)
     {
+        if (Icons.Get(label) != null)
+        {
+            float size = radius * 1.12f;
+            Icons.Draw(new Rect(center.x - size / 2f, center.y - size / 2f, size, size), label, new Color(1f, 1f, 1f, 0.92f));
+            return;
+        }
         label = Loc.T(label);
         labelStyle.fontSize = Mathf.RoundToInt(Mathf.Clamp(radius * 0.36f, 14f, 30f));
         // A longer word in another language: smaller, to stay inside the button.
@@ -382,6 +389,8 @@ public class TouchControls : MonoBehaviour
                        : pad.Lit ? new Color(0.85f, 0.55f, 0.15f, pressed ? 0.85f : 0.6f)
                        : new Color(0f, 0f, 0f, pressed ? 0.6f : 0.35f);
             Disc(pad.Center, pad.Radius, fill);
+            Icons.Draw(new Rect(pad.Center.x - pad.Radius, pad.Center.y - pad.Radius, pad.Radius * 2f, pad.Radius * 2f), "ring",
+                       new Color(1f, 1f, 1f, pressed ? 0.6f : 0.3f));
             PadLabel(pad.Center, pad.Radius, pad.Label);
         }
     }
@@ -404,7 +413,7 @@ public class TouchControls : MonoBehaviour
         PrepareDrawing();
         var hint = new Vector2(safeLeft + 260f, RefHeight - 330f);
         Disc(hint, StickRadius, new Color(1f, 1f, 1f, 0.08f));
-        PadLabel(hint, StickRadius, "STICK");
+        PadLabel(hint, StickRadius * 0.6f, "stick");
 
         foreach (var (button, label) in EditorButtons)
         {

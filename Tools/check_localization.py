@@ -15,7 +15,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FILES = ["GameUI.cs", "GameUI.MainMenu.cs", "GameUI.ClassicMenu.cs", "GameUI.Online.cs", "GameUI.Recovery.cs", "GameUI.Admin.cs", "TouchControls.cs", "GameManager.cs", "BombManager.cs", "OnlineClient.cs",
+FILES = ["GameUI.cs", "GameUI.MainMenu.cs", "GameUI.ClassicMenu.cs", "GameUI.Cases.cs", "GameUI.Halloween.cs", "GameUI.Online.cs", "GameUI.Recovery.cs", "GameUI.Admin.cs", "TouchControls.cs", "GameManager.cs", "BombManager.cs", "OnlineClient.cs",
          "NetSession.cs", "Accounts.cs", "Friends.cs", "VoiceChat.cs", "GameSettings.cs"]
 LANGUAGES = ["ua", "de", "fr", "it", "es"]
 SKIP_LINE = re.compile(r"Debug\.Log|PlayerPrefs\.|case \"|args\[|== \"-ds|StartsWith\(\"-|GetString\(|Resources\.Load|"
@@ -34,7 +34,7 @@ IGNORE = {
 }
 # Joined with the next line in the code, or only a piece of what is shown (the translation files hold the whole text,
 # or a template for it), or text for tests and logs.
-JOINED = re.compile(r"^(Add your own|with main\.png|Play with people anywhere|phone, keeps your|Rooms run on the Low Strike|"
+JOINED = re.compile(r"^(Add your own|Learn to play in a short practice round|minutes\. \(Settings > TUTORIAL|with main\.png|Play with people anywhere|phone, keeps your|Rooms run on the Low Strike|"
                     r"Voice chat: hold \{0\}, in the room|Use \{0\}, and this computer|with it and come along|"
                     r"On (a Mac|Windows|Android|iPhone)|Could not (start hosting|open the network|search the network):$|"
                     r": speak, the bar|\{0\} sensitivity|\{0\} \{1\} to (buy|sell|take)|"

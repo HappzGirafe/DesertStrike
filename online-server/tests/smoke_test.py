@@ -421,19 +421,23 @@ def run(join_secret):
 
     print("tokens")
     status, mine = call("GET", "/tokens", token=a)
-    check("a room's match pays its players once: Alice's 7 kills and the win", status == 200 and mine["tokens"] == 12
-          and mine["owned"] == [] and len(mine["shop"]) == 64, mine)
-    check("bob_2 lost: his 2 kills", call("GET", "/tokens", token=b)[1]["tokens"] == 2)
+    check("a room's match pays its players once, times its Hard bots (x1.5): Alice's 7 kills and the win",
+          status == 200 and mine["tokens"] == 18 and mine["owned"] == [] and len(mine["shop"]) == 64, mine)
+    check("bob_2 lost: his 2 kills x1.5", call("GET", "/tokens", token=b)[1]["tokens"] == 3)
     match = {"kills": 10, "won": True, "rounds": 8, "seconds": 600}
     check("a match too short to be real is refused", call("POST", "/tokens/match", dict(match, seconds=30), a)[0] == 422)
+    status, paid = call("POST", "/tokens/match", dict(match, difficulty="Easy"), a)
+    check("Easy bots pay nothing (x0)", status == 200 and paid["earned"] == 0 and paid["tokens"] == 18 and paid["today"] == 0, paid)
     status, paid = call("POST", "/tokens/match", match, a)
-    check("own match against bots: 10 kills and the win", status == 200 and paid["earned"] == 15 and paid["tokens"] == 27
-          and paid["today"] == 15, paid)
-    status, paid = call("POST", "/tokens/match", dict(match, kills=40), a)
-    check("own matches stop at the day's limit", paid["earned"] == 25 and paid["tokens"] == 52 and paid["today"] == 40, paid)
+    check("own match, no difficulty said (an older game): as Normal, 10 kills and the win", status == 200
+          and paid["earned"] == 15 and paid["tokens"] == 33 and paid["today"] == 15, paid)
+    status, paid = call("POST", "/tokens/match", dict(match, kills=3, won=False, difficulty="Extreme"), a)
+    check("Extreme bots pay double", paid["earned"] == 6 and paid["tokens"] == 39, paid)
+    status, paid = call("POST", "/tokens/match", dict(match, kills=40, difficulty="Hard"), a)
+    check("own matches stop at the day's limit", paid["earned"] == 19 and paid["tokens"] == 58 and paid["today"] == 40, paid)
     check("nothing more today", call("POST", "/tokens/match", match, a)[1]["earned"] == 0)
     check("a skin that is not for sale", call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Gold"}, a)[0] == 404)
-    check("52 tokens are not enough for the Halloween AK-47 (100)",
+    check("58 tokens are not enough for the Halloween AK-47 (150)",
           call("POST", "/tokens/buy", {"weapon": "ak47", "skin": "Halloween"}, a)[0] == 409)
 
 
@@ -506,11 +510,35 @@ def run_admin():
     check("and the digle Desert Eagle for 750", status == 200 and bought["tokens"] == 100, bought)
     check("100 are not enough for nogektestskin (1000)", call("POST", "/tokens/buy", {"weapon": "knife", "skin": "nogektestskin"}, c)[0] == 409)
     prices = {(i["weapon"], i["skin"]): i["price"] for i in bought["shop"]}
-    neon = {(w, f"Neon {c}"): 100 for w in ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47",
-                                             "m4a1", "awp", "rpg", "svd") for c in ("Cyan", "Pink", "Green", "Yellow")}
+    neon = {(w, f"Neon {c}"): 100 if w == "knife" else 75 if c == "Pink" else 90
+            for w in ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47",
+                      "m4a1", "awp", "rpg", "svd") for c in ("Cyan", "Pink", "Green", "Yellow")}
     check("the shop's prices", prices == {("ak47", "Halloween"): 150, ("m4a1", "Halloween"): 150, ("knife", "Classic Halloween"): 500,
                                           ("knife", "karambit"): 400, ("knife", "nogektestskin"): 1000, ("deagle", "digle"): 750,
                                           ("rpg", "Web"): 400, ("awp", "AWPOLD"): 750, **neon}, prices)
+
+    print("cases")
+    cases = {k["id"]: k for k in bought["cases"]}
+    check("three cases: neon 85, old 800, Halloween 350", {k: (v["price"], len(v["items"])) for k, v in cases.items()}
+          == {"neon": (85, 56), "old": (800, 4), "halloween": (350, 4)}, cases)
+    check("no such case", call("POST", "/tokens/open", {"case": "gold"}, c)[0] == 404)
+    check("100 tokens are not enough for the old case", call("POST", "/tokens/open", {"case": "old"}, c)[0] == 409)
+    call("POST", "/admin/tokens", {"nick": "carol", "amount": 2000}, a)
+    halloween = set(cases["halloween"]["items"])
+    status, opened = call("POST", "/tokens/open", {"case": "halloween"}, c)
+    won = opened.get("won")
+    check("carol opens the Halloween case: one she has not got", status == 200 and opened["tokens"] == 1750 and won in halloween
+          and won != "ak47/Halloween" and won in opened["owned"], opened)
+    for _ in range(2):
+        status, opened = call("POST", "/tokens/open", {"case": "halloween"}, c)
+    check("two more: she has the whole case", status == 200 and halloween <= set(opened["owned"]) and opened["tokens"] == 1050, opened)
+    status, again = call("POST", "/tokens/open", {"case": "halloween"}, c)
+    check("then it does not open (and costs nothing)", status == 409 and call("GET", "/tokens", token=c)[1]["tokens"] == 1050, again)
+    status, opened = call("POST", "/tokens/open", {"case": "neon"}, c)
+    check("a neon case gives a neon skin for 85", status == 200 and opened["won"] in cases["neon"]["items"] and opened["tokens"] == 965, opened)
+    status, opened = call("POST", "/tokens/open", {"case": "old"}, c)
+    check("the old case gives an old skin carol has not got (not the digle she bought)", status == 200
+          and opened["won"] in cases["old"]["items"] and opened["won"] != "deagle/digle" and opened["tokens"] == 165, opened)
 
 
     print("password recovery by email")

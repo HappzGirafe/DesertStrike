@@ -498,7 +498,7 @@ public class BotController : MonoBehaviour, ICombatantController
         else
         {
             target = null;
-            if (!PlayBomb() && !FetchWeapon()) FollowRoute();
+            if (!PlayBomb() && !FetchWeapon() && !FetchBetterWeapon()) FollowRoute();
         }
 
         ManageAmmo();
@@ -564,6 +564,63 @@ public class BotController : MonoBehaviour, ICombatantController
                 return true;
         }
         return false;
+    }
+
+    // No enemy seen for UpgradeAfter seconds of the round: walk to the nearest gun on the ground that is better than
+    // the one carried (dearer), and swap for it. Seeing an enemy on the way calls it off (Scan).
+    const float UpgradeAfter = 15f;
+    WeaponDrops.Dropped upgrade;
+    float nextUpgradeLook;
+
+    bool FetchBetterWeapon()
+    {
+        var gm = GameManager.Instance;
+        if (gm.State != MatchState.Live || gm.Warmup || Time.time - Mathf.Max(lastSeenTime, gm.RoundLiveAt) < UpgradeAfter)
+        {
+            upgrade = null;
+            return false;
+        }
+        if (upgrade != null && !gm.Drops.Items.Contains(upgrade)) upgrade = null;   // someone took it first
+        if (upgrade == null && Time.time >= nextUpgradeLook)
+        {
+            nextUpgradeLook = Time.time + 1.5f;
+            upgrade = BetterWeaponOnGround();
+            if (upgrade != null) Debug.Log($"[Bots] {Self.DisplayName} saw no enemy for {UpgradeAfter:0} s: going for the {upgrade.Data.Name}");
+        }
+        if (upgrade == null) return false;
+        agent.updateRotation = true;
+        if (FlatDistance(transform.position, upgrade.Position) < WeaponDrops.SwapRadius - 0.6f)
+        {
+            var gun = upgrade;
+            upgrade = null;
+            if (gm.Drops.PickUp(Self, gun.Id)) Self.Equip(Self.BestSlot());
+            return true;
+        }
+        MoveTo(upgrade.Position);
+        return true;
+    }
+
+    // The nearest gun on the ground (that can be walked to) better than what is carried: a dearer main gun, or with no
+    // main gun a dearer pistol too.
+    WeaponDrops.Dropped BetterWeaponOnGround()
+    {
+        int primary = Self.Primary != null ? Self.Primary.Data.Price : 0, secondary = Self.Secondary != null ? Self.Secondary.Data.Price : 0;
+        var candidates = new List<WeaponDrops.Dropped>();
+        foreach (var d in GameManager.Instance.Drops.Items)
+        {
+            if (d.Data.IsMelee || d.Mag + d.Reserve <= 0 || (d.DroppedBy == Self && Time.time < d.NoPickupUntil)) continue;
+            bool better = d.Data.Slot == WeaponSlot.Primary ? d.Data.Price > primary : Self.Primary == null && d.Data.Price > secondary;
+            if (better) candidates.Add(d);
+        }
+        candidates.Sort((a, b) => FlatDistance(transform.position, a.Position).CompareTo(FlatDistance(transform.position, b.Position)));
+        var path = new NavMeshPath();
+        for (int i = 0; i < candidates.Count && i < 3; i++)
+        {
+            if (!NavMesh.SamplePosition(candidates[i].Position, out var hit, 2f, NavMesh.AllAreas)) continue;
+            if (NavMesh.CalculatePath(transform.position, hit.position, NavMesh.AllAreas, path) && path.status == NavMeshPathStatus.PathComplete)
+                return candidates[i];
+        }
+        return null;
     }
 
     // No main gun: go for one lying near (a fallen player's), when in sight and not far.
@@ -665,6 +722,7 @@ public class BotController : MonoBehaviour, ICombatantController
             toTarget.y = 0f;
             preAimedSighting = preAim.HasValue && Vector3.Angle(transform.forward, toTarget) < 15f;
         }
+        upgrade = null;   // an enemy in sight: no time for a better gun now
         target = best;
         headVisible = bestHead;
         chestVisible = bestChest;

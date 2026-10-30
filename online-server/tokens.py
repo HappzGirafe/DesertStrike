@@ -1,13 +1,19 @@
 """Tokens: the game's money, kept on the online account, for buying the skins in SHOP below.
 
-    GET  /tokens          {tokens, owned: ["ak47/Halloween", ...], shop: [{weapon, skin, price}], today, day_limit}
-    POST /tokens/match    a match the player's own game ran (against bots, or a LAN game): {kills, won, rounds, seconds}
-                          pays PER_KILL a kill and PER_WIN for a win, at most DAY_LIMIT a day from such matches
-                          (the game reports them itself, so they are capped)
+    GET  /tokens          {tokens, owned: ["ak47/Halloween", ...], shop: [{weapon, skin, price}], cases: [{id, name, price,
+                          items}], today, day_limit}
+    POST /tokens/match    a match the player's own game ran (against bots, or a LAN game): {kills, won, rounds, seconds,
+                          difficulty}; pays PER_KILL a kill and PER_WIN for a win, times the bots' difficulty (Easy x0,
+                          Normal x1, Hard x1.5, Extreme x2), at most DAY_LIMIT a day from such matches (the game reports
+                          them itself, so they are capped)
     POST /tokens/buy      {weapon, skin}: buys a skin of the shop, once
+    POST /tokens/open     {case}: opens a case: one of its skins the player has not got yet, at random (the dearer a skin,
+                          the rarer); the answer names it in "won"
 An online room's match is reported by its game host (the heartbeat at the end, with each player's kills): the same pay,
-without the daily cap. The prices are kept here; the game only shows them.
+times the room's bot difficulty, without the daily cap. The prices are kept here; the game only shows them.
 """
+import math
+import random
 import time
 from typing import Optional
 
@@ -43,9 +49,19 @@ SHOP = {
     ("rpg", "Web"): 400,
     ("awp", "AWPOLD"): 750,
 }
-# The neon wraps (1.21): four colours for every weapon, 100 Tokens each.
+# The neon wraps (1.21): four colours for every weapon. Since 1.22.2: 90 Tokens, pink 75, the knife's still 100.
 NEON_WEAPONS = ("knife", "glock", "usp", "tec9", "m1911", "deagle", "uzi", "mp5", "shotgun", "ak47", "m4a1", "awp", "rpg", "svd")
-SHOP.update({(weapon, f"Neon {colour}"): 100 for weapon in NEON_WEAPONS for colour in ("Cyan", "Pink", "Green", "Yellow")})
+NEON_COLOURS = ("Cyan", "Pink", "Green", "Yellow")
+SHOP.update({(weapon, f"Neon {colour}"): 100 if weapon == "knife" else 75 if colour == "Pink" else 90
+             for weapon in NEON_WEAPONS for colour in NEON_COLOURS})
+# Cases (1.22.2): each gives one of its skins the player has not got yet; the dearer the skin, the rarer.
+CASES = {
+    "neon": ("Neon case", 85, [(weapon, f"Neon {colour}") for weapon in NEON_WEAPONS for colour in NEON_COLOURS]),
+    "old": ("Old case", 800, [("awp", "AWPOLD"), ("knife", "karambit"), ("knife", "nogektestskin"), ("deagle", "digle")]),
+    "halloween": ("Halloween case", 350, [("ak47", "Halloween"), ("m4a1", "Halloween"), ("knife", "Classic Halloween"), ("rpg", "Web")]),
+}
+# A match's Tokens times the bots' difficulty (rooms keep it as "Normal", "Hard" and so on).
+DIFFICULTY_PAY = {"easy": 0.0, "normal": 1.0, "hard": 1.5, "extreme": 2.0}
 PER_KILL = 1
 PER_WIN = 5
 DAY_LIMIT = 40          # tokens a day from matches the player's own game reports
@@ -57,6 +73,7 @@ class MatchReport(BaseModel):
     won: bool = False
     rounds: int = 0
     seconds: float = 0
+    difficulty: str = "Normal"   # games before 1.22.2 do not say: as Normal
 
 
 class BuyBody(BaseModel):
@@ -64,8 +81,13 @@ class BuyBody(BaseModel):
     skin: str = ""
 
 
-def pay(kills: int, won: bool) -> int:
-    return max(0, min(kills, MAX_KILLS)) * PER_KILL + (PER_WIN if won else 0)
+class CaseBody(BaseModel):
+    case: str = ""
+
+
+def pay(kills: int, won: bool, difficulty: str = "Normal") -> int:
+    base = max(0, min(kills, MAX_KILLS)) * PER_KILL + (PER_WIN if won else 0)
+    return int(math.floor(base * DIFFICULTY_PAY.get((difficulty or "Normal").lower(), 1.0) + 0.5))
 
 
 def install(app, s):
@@ -78,7 +100,9 @@ def install(app, s):
                  con.execute("SELECT weapon, skin FROM owned_skins WHERE user_id = ? ORDER BY bought_at", (user_id,))]
         day = con.execute("SELECT earned FROM token_days WHERE user_id = ? AND day = ?", (user_id, today())).fetchone()
         return {"tokens": tokens, "owned": owned, "today": day["earned"] if day else 0, "day_limit": DAY_LIMIT,
-                "shop": [{"weapon": w, "skin": k, "price": p} for (w, k), p in SHOP.items()]}
+                "shop": [{"weapon": w, "skin": k, "price": p} for (w, k), p in SHOP.items()],
+                "cases": [{"id": key, "name": name, "price": price, "items": [f"{w}/{k}" for w, k in items]}
+                          for key, (name, price, items) in CASES.items()]}
 
     def give(con, user_id: str, amount: int, capped: bool) -> int:
         """Adds tokens (capped: no more than what is left of today's limit); returns how many."""
@@ -104,7 +128,7 @@ def install(app, s):
             raise HTTPException(422, "That match cannot have happened.")
         s.limit(request, "tokens-match", 12, 3600, key=user["id"])
         with s.Transaction() as con:
-            earned = give(con, user["id"], pay(body.kills, body.won), capped=True)
+            earned = give(con, user["id"], pay(body.kills, body.won, body.difficulty), capped=True)
             return dict(view(con, user["id"]), earned=earned)
 
     @app.post("/tokens/buy")
@@ -126,11 +150,33 @@ def install(app, s):
             print(f"[tokens] {user['nick']} bought {body.weapon}/{body.skin} for {price}")
             return view(con, user["id"])
 
-    def room_match_over(con, players, terrorist_wins: int, swat_wins: int):
+    @app.post("/tokens/open")
+    def open_case(body: CaseBody, request: Request, user=Depends(s.current_user)):
+        if body.case not in CASES:
+            raise HTTPException(404, "There is no such case.")
+        name, price, items = CASES[body.case]
+        s.limit(request, "tokens-open", 60, 3600, key=user["id"])
+        with s.Transaction() as con:
+            owned = {(r["weapon"], r["skin"]) for r in
+                     con.execute("SELECT weapon, skin FROM owned_skins WHERE user_id = ?", (user["id"],))}
+            left = [item for item in items if item not in owned]
+            if not left:
+                raise HTTPException(409, "You have every skin of this case already.")
+            tokens = con.execute("SELECT halloween_tokens FROM users WHERE id = ?", (user["id"],)).fetchone()["halloween_tokens"]
+            if tokens < price:
+                raise HTTPException(409, "Not enough Tokens.")
+            weapon, skin = random.SystemRandom().choices(left, weights=[1.0 / SHOP[item] for item in left])[0]
+            con.execute("UPDATE users SET halloween_tokens = halloween_tokens - ? WHERE id = ?", (price, user["id"]))
+            con.execute("INSERT INTO owned_skins (user_id, weapon, skin, price, bought_at) VALUES (?, ?, ?, ?, ?)",
+                        (user["id"], weapon, skin, price, s.now()))
+            print(f"[tokens] {user['nick']} opened a {name} for {price}: {weapon}/{skin}")
+            return dict(view(con, user["id"]), won=f"{weapon}/{skin}")
+
+    def room_match_over(con, players, terrorist_wins: int, swat_wins: int, difficulty: str = "Normal"):
         """An online room's match ended (reported once by its game host): every player is paid for it."""
         winner = "t" if terrorist_wins > swat_wins else "swat" if swat_wins > terrorist_wins else ""
         for p in players:
             if p.team in ("t", "swat") and con.execute("SELECT 1 FROM users WHERE id = ?", (p.user_id,)).fetchone():
-                give(con, p.user_id, pay(p.kills, p.team == winner), capped=False)
+                give(con, p.user_id, pay(p.kills, p.team == winner, difficulty), capped=False)
 
     return {"room_match_over": room_match_over, "view": view}

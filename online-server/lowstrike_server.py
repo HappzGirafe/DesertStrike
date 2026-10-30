@@ -1297,7 +1297,7 @@ def heartbeat(slot_id: str, body: Heartbeat, request: Request):
                                     (str(uuid.uuid4()), room["id"], body.match_number, body.map or room["map"], body.terrorist_wins,
                                      body.swat_wins, players, now()))
                 if saved.rowcount == 1:   # reported the first time: the players are paid in Tokens
-                    TOKENS["room_match_over"](con, body.players, body.terrorist_wins, body.swat_wins)
+                    TOKENS["room_match_over"](con, body.players, body.terrorist_wins, body.swat_wins, room["difficulty"])
             room = open_room(con, room["id"])
         members = members_of(con, room["id"])
         return {"has_room": True, "room": {

@@ -427,7 +427,8 @@ public class GameManager : MonoBehaviour
         if (Tutorial != null || Net.OnlineClient || Net.OnlineHost || Player == null || Online == null || !Online.LoggedIn) return;
         var me = Player.Self;
         Team winner = TerroristWins >= RoundsToWin ? Team.Terrorists : Team.Swat;
-        Online.ReportMatch(me.Kills, me.Team == winner, Round, Time.time - matchStartedAt);
+        // The bots' difficulty multiplies the Tokens; a LAN guest does not know the host's, so it counts as Normal.
+        Online.ReportMatch(me.Kills, me.Team == winner, Round, Time.time - matchStartedAt, Net.IsClient ? "Normal" : Difficulty.ToString());
     }
 
     /// <summary>The tutorial running now (a practice round), or null.</summary>
