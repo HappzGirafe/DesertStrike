@@ -2,17 +2,29 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-/// <summary>Sun, ambient light, fog and sky of a map (Halloween is at night, the others by day).</summary>
+/// <summary>Sun, ambient light, fog, sky and the camera's look of a map (Halloween is at night, Bone in the evening,
+/// the others by day).</summary>
 public struct MapLighting
 {
     public Color Sun;
     public float SunIntensity;
     public Vector3 SunAngles;
+    public float ShadowStrength;         // how dark the sun's shadows are (0..1)
     public Color Sky, Equator, Ground;   // trilight ambient
     public Color Fog;
     public float FogStart, FogEnd;
-    public bool Skybox;                  // false: a plain background colour instead of the daylight sky
-    public Color Background;
+
+    // The sky (MapSky): at and below the horizon it is the fog colour, so the empty land round the map reads as haze.
+    public Color Zenith, Horizon;        // overhead, and the low sky just above the haze
+    public Color SunGlow;                // the glow round the sun (or moon) in the sky; its disc is a paler colour
+    public float SunDisc;                // the disc's radius, in radians
+    public float Stars;                  // how bright the stars are (0: none)
+
+    // The camera's look (PostEffects).
+    public float BloomThreshold, Bloom;  // from which brightness things glow (0..1), and how strongly
+    public float Exposure, Contrast, Saturation, Vibrance;   // 1, 1, 1 and 0, with no bloom, tint or vignette, leave the picture as it is
+    public Color HighlightTint, ShadowTint;                  // split toning: the hue pushed into the brights and darks; alpha: how much
+    public float Vignette;               // how much darker the corners get (0..1)
 }
 
 /// <summary>
@@ -34,11 +46,16 @@ public static class MapCatalog
 
     public const string DefaultId = "dune";
 
+    // Day maps: a warm sun, a cooler sky light, crisp and warm colours.
     static readonly MapLighting Day = new MapLighting
     {
-        Sun = new Color(1f, 0.95f, 0.85f), SunIntensity = 1f, SunAngles = new Vector3(50f, -30f, 0f),
-        Sky = new Color(0.5f, 0.56f, 0.66f), Equator = new Color(0.42f, 0.45f, 0.38f), Ground = new Color(0.24f, 0.24f, 0.2f),
-        Fog = new Color(0.72f, 0.8f, 0.88f), FogStart = 70f, FogEnd = 280f, Skybox = true, Background = new Color(0.62f, 0.75f, 0.9f),
+        Sun = new Color(1f, 0.94f, 0.81f), SunIntensity = 1.03f, SunAngles = new Vector3(50f, -30f, 0f), ShadowStrength = 0.75f,
+        Sky = new Color(0.49f, 0.57f, 0.7f), Equator = new Color(0.43f, 0.45f, 0.38f), Ground = new Color(0.25f, 0.23f, 0.19f),
+        Fog = new Color(0.72f, 0.8f, 0.88f), FogStart = 70f, FogEnd = 280f,
+        Zenith = new Color(0.24f, 0.46f, 0.82f), Horizon = new Color(0.56f, 0.72f, 0.9f),
+        SunGlow = new Color(1f, 0.87f, 0.62f), SunDisc = 0.035f,
+        BloomThreshold = 0.85f, Bloom = 0.45f, Exposure = 1.03f, Contrast = 1.15f, Saturation = 1.1f, Vibrance = 0.2f,
+        HighlightTint = new Color(1f, 0.82f, 0.55f, 0.12f), ShadowTint = new Color(0.5f, 0.65f, 1f, 0.1f), Vignette = 0.18f,
     };
 
     public static readonly Entry[] All =
@@ -49,9 +66,14 @@ public static class MapCatalog
             Id = "dune", Name = "Dune", Description = "de_dune, a Dust-style desert map", Scale = 0.40038f, ClosedScale = 1f,
             Lighting = new MapLighting
             {
-                Sun = new Color(1f, 0.93f, 0.8f), SunIntensity = 0.95f, SunAngles = new Vector3(52f, -35f, 0f),
-                Sky = new Color(0.46f, 0.5f, 0.58f), Equator = new Color(0.44f, 0.4f, 0.34f), Ground = new Color(0.26f, 0.22f, 0.18f),
-                Fog = new Color(0.84f, 0.77f, 0.64f), FogStart = 60f, FogEnd = 260f, Skybox = true, Background = new Color(0.62f, 0.75f, 0.9f),
+                // A desert: sandy haze low down under a deep blue sky; bright sand only glows a little.
+                Sun = new Color(1f, 0.92f, 0.77f), SunIntensity = 0.97f, SunAngles = new Vector3(52f, -35f, 0f), ShadowStrength = 0.72f,
+                Sky = new Color(0.46f, 0.52f, 0.64f), Equator = new Color(0.45f, 0.41f, 0.34f), Ground = new Color(0.27f, 0.22f, 0.17f),
+                Fog = new Color(0.84f, 0.77f, 0.64f), FogStart = 60f, FogEnd = 260f,
+                Zenith = new Color(0.27f, 0.48f, 0.8f), Horizon = new Color(0.68f, 0.74f, 0.8f),
+                SunGlow = new Color(1f, 0.86f, 0.58f), SunDisc = 0.035f,
+                BloomThreshold = 0.88f, Bloom = 0.4f, Exposure = 1.02f, Contrast = 1.15f, Saturation = 1.08f, Vibrance = 0.22f,
+                HighlightTint = new Color(1f, 0.8f, 0.52f, 0.12f), ShadowTint = new Color(0.48f, 0.62f, 1f, 0.12f), Vignette = 0.2f,
             },
         },
         new Entry { Id = "village", Name = "Village", Description = "a village with a church, a market and a barn", Lighting = Day },
@@ -60,9 +82,14 @@ public static class MapCatalog
             Id = "halloween", Name = "Halloween", Description = "a haunted village at night, with pumpkins and graves", AccountOnly = true,
             Lighting = new MapLighting
             {
-                Sun = new Color(0.62f, 0.68f, 0.95f), SunIntensity = 0.55f, SunAngles = new Vector3(55f, 140f, 0f),
-                Sky = new Color(0.24f, 0.22f, 0.38f), Equator = new Color(0.22f, 0.19f, 0.26f), Ground = new Color(0.11f, 0.1f, 0.11f),
-                Fog = new Color(0.13f, 0.1f, 0.18f), FogStart = 25f, FogEnd = 170f, Skybox = false, Background = new Color(0.04f, 0.035f, 0.08f),
+                // Night: moonlight, a dark purple-blue sky with stars, and glow from lit windows and pumpkins.
+                Sun = new Color(0.6f, 0.68f, 1f), SunIntensity = 0.57f, SunAngles = new Vector3(55f, 140f, 0f), ShadowStrength = 0.6f,
+                Sky = new Color(0.25f, 0.23f, 0.41f), Equator = new Color(0.23f, 0.19f, 0.27f), Ground = new Color(0.12f, 0.1f, 0.12f),
+                Fog = new Color(0.13f, 0.1f, 0.18f), FogStart = 25f, FogEnd = 170f,
+                Zenith = new Color(0.025f, 0.02f, 0.07f), Horizon = new Color(0.08f, 0.06f, 0.15f),
+                SunGlow = new Color(0.26f, 0.29f, 0.52f), SunDisc = 0.04f, Stars = 0.85f,
+                BloomThreshold = 0.5f, Bloom = 1.3f, Exposure = 1.06f, Contrast = 1.1f, Saturation = 1.15f, Vibrance = 0.25f,
+                HighlightTint = new Color(1f, 0.7f, 0.35f, 0.14f), ShadowTint = new Color(0.6f, 0.45f, 1f, 0.12f), Vignette = 0.32f,
             },
         },
         new Entry
@@ -70,9 +97,14 @@ public static class MapCatalog
             Id = "industrial", Name = "Industrial", Description = "an industrial yard with a crane, containers and a warehouse",
             Lighting = new MapLighting
             {
-                Sun = new Color(1f, 0.92f, 0.78f), SunIntensity = 0.95f, SunAngles = new Vector3(48f, 30f, 0f),
-                Sky = new Color(0.5f, 0.52f, 0.58f), Equator = new Color(0.45f, 0.42f, 0.36f), Ground = new Color(0.25f, 0.22f, 0.18f),
-                Fog = new Color(0.8f, 0.76f, 0.68f), FogStart = 70f, FogEnd = 300f, Skybox = true, Background = new Color(0.62f, 0.75f, 0.9f),
+                // A hazy industrial day, with a little more contrast.
+                Sun = new Color(1f, 0.91f, 0.76f), SunIntensity = 0.97f, SunAngles = new Vector3(48f, 30f, 0f), ShadowStrength = 0.75f,
+                Sky = new Color(0.48f, 0.53f, 0.64f), Equator = new Color(0.45f, 0.42f, 0.36f), Ground = new Color(0.25f, 0.22f, 0.18f),
+                Fog = new Color(0.8f, 0.76f, 0.68f), FogStart = 70f, FogEnd = 300f,
+                Zenith = new Color(0.3f, 0.47f, 0.74f), Horizon = new Color(0.66f, 0.71f, 0.76f),
+                SunGlow = new Color(1f, 0.84f, 0.58f), SunDisc = 0.035f,
+                BloomThreshold = 0.85f, Bloom = 0.45f, Exposure = 1.02f, Contrast = 1.18f, Saturation = 1.06f, Vibrance = 0.2f,
+                HighlightTint = new Color(1f, 0.8f, 0.55f, 0.1f), ShadowTint = new Color(0.45f, 0.6f, 1f, 0.12f), Vignette = 0.2f,
             },
         },
         new Entry
@@ -81,9 +113,14 @@ public static class MapCatalog
             OneSite = true,   // remade smaller in Blender, with the ribcage in the middle
             Lighting = new MapLighting
             {
-                Sun = new Color(1f, 0.82f, 0.62f), SunIntensity = 0.85f, SunAngles = new Vector3(38f, 60f, 0f),
-                Sky = new Color(0.46f, 0.4f, 0.54f), Equator = new Color(0.42f, 0.34f, 0.36f), Ground = new Color(0.2f, 0.16f, 0.16f),
-                Fog = new Color(0.36f, 0.27f, 0.36f), FogStart = 70f, FogEnd = 300f, Skybox = false, Background = new Color(0.27f, 0.2f, 0.32f),
+                // Evening: a low orange sun, a rose band over the haze under a deep purple sky with the first stars.
+                Sun = new Color(1f, 0.79f, 0.58f), SunIntensity = 0.88f, SunAngles = new Vector3(38f, 60f, 0f), ShadowStrength = 0.7f,
+                Sky = new Color(0.46f, 0.41f, 0.58f), Equator = new Color(0.43f, 0.34f, 0.36f), Ground = new Color(0.21f, 0.16f, 0.16f),
+                Fog = new Color(0.36f, 0.27f, 0.36f), FogStart = 70f, FogEnd = 300f,
+                Zenith = new Color(0.15f, 0.12f, 0.31f), Horizon = new Color(0.6f, 0.37f, 0.4f),
+                SunGlow = new Color(1f, 0.6f, 0.32f), SunDisc = 0.04f, Stars = 0.3f,
+                BloomThreshold = 0.7f, Bloom = 0.7f, Exposure = 1.04f, Contrast = 1.12f, Saturation = 1.12f, Vibrance = 0.22f,
+                HighlightTint = new Color(1f, 0.72f, 0.45f, 0.14f), ShadowTint = new Color(0.62f, 0.48f, 1f, 0.14f), Vignette = 0.26f,
             },
         },
     };

@@ -13,7 +13,8 @@ public enum TouchButton { Fire, Jump, Crouch, Reload, Switch, Scope, Use, Drop, 
 /// DEFUSE and DROP when the bomb matters, BUY in the spawn, MIC in LAN games, the scoreboard and pause; arrows to
 /// switch players while spectating. On by itself on phones and tablets; -ds-touch shows it on a PC, where the mouse
 /// acts as one finger. Laid out for a 1080-high screen like the rest of the HUD. Every button can be moved and
-/// resized in Settings > TOUCH CONTROLS (<see cref="DrawEditor"/>); that layout is saved on the device.
+/// resized in Settings > TOUCH CONTROLS (<see cref="DrawEditor"/>), and a second FIRE (for the left thumb), JUMP,
+/// CROUCH, SCOPE or RELOAD can be added there (<see cref="AddExtra"/>); that layout is saved on the device.
 /// </summary>
 [DefaultExecutionOrder(-100)]   // read the fingers before the player moves
 public class TouchControls : MonoBehaviour
@@ -54,6 +55,7 @@ public class TouchControls : MonoBehaviour
     {
         public Role Role;
         public TouchButton Button;
+        public int Extra = -1;   // on an added button: its index in `extras`
         public Vector2 Last;
     }
 
@@ -63,7 +65,8 @@ public class TouchControls : MonoBehaviour
         public Vector2 Center;
         public float Radius;
         public string Label;
-        public bool Lit;   // drawn highlighted (crouched, a request to act)
+        public bool Lit;     // drawn highlighted (crouched, a request to act)
+        public int Extra;    // an added button: its index in `extras`; -1 for the usual ones
     }
 
     readonly Dictionary<int, Finger> fingers = new Dictionary<int, Finger>();
@@ -81,6 +84,7 @@ public class TouchControls : MonoBehaviour
         Active = TouchScreen || Array.IndexOf(args, "-ds-touch") >= 0;
         if (TouchScreen) Screen.sleepTimeout = SleepTimeout.NeverSleep;   // no dimming mid-round
         LoadLayout();
+        LookSettings.Load();   // the scope sensitivity (mouse and fingers), read with the rest of the controls
         if (Array.IndexOf(args, "-ds-touch-demo") >= 0) DemoLayout();
     }
 
@@ -98,6 +102,39 @@ public class TouchControls : MonoBehaviour
         (TouchButton.Switch, "gun"), (TouchButton.Scope, "scope"), (TouchButton.Use, "plant"), (TouchButton.Drop, "drop"),
         (TouchButton.Buy, "buy"), (TouchButton.Talk, "mic"), (TouchButton.Scores, "scores"), (TouchButton.Pause, "pause"),
     };
+
+    /// <summary>The buttons the player can add a second one of (ADD BUTTON in the editor), with their pictures.</summary>
+    public static readonly (TouchButton Button, string Label)[] ExtraActions =
+    {
+        (TouchButton.Fire, "fire"), (TouchButton.Jump, "jump"), (TouchButton.Crouch, "crouch"), (TouchButton.Scope, "scope"),
+        (TouchButton.Reload, "reload"),
+    };
+
+    public const int MaxExtras = 6;
+
+    /// <summary>A button the player added: it does what its original does, and has its own place and size.</summary>
+    class Extra
+    {
+        public TouchButton Button;
+        public Vector3 Place;   // like `custom`: centre as a share of the screen's width and height, and a size factor
+    }
+
+    // Saved one per key, "Fire;x;y;size", in the order they were added.
+    static readonly List<Extra> extras = new List<Extra>();
+    const string ExtraKey = LayoutKey + "Extra";
+
+    public static int ExtraCount => extras.Count;
+
+    /// <summary>The picture of a button that can be added, or null for one that cannot.</summary>
+    static string ExtraPicture(TouchButton button)
+    {
+        foreach (var (action, label) in ExtraActions)
+            if (action == button) return label;
+        return null;
+    }
+
+    // Where the stick is drawn while no thumb holds it.
+    Vector2 StickHint => new Vector2(safeLeft + 260f, RefHeight - 330f);
 
     // Where each button sits until moved, and its size (1080p units; l and r: the safe area's left and right edge).
     (Vector2 Center, float Radius) DefaultPlace(TouchButton button)
@@ -144,25 +181,83 @@ public class TouchControls : MonoBehaviour
                                                                   center.x / width, center.y / RefHeight, size));
     }
 
+    /// <summary>Where an added button is, and its size: its original's normal size times its own factor.</summary>
+    (Vector2 Center, float Radius) ExtraPlace(int index)
+    {
+        var extra = extras[index];
+        return (new Vector2(extra.Place.x * width, extra.Place.y * RefHeight), DefaultPlace(extra.Button).Radius * extra.Place.z);
+    }
+
+    void SetExtraPlace(int index, Vector2 center, float size)
+    {
+        extras[index].Place = new Vector3(center.x / width, center.y / RefHeight, size);
+        SaveExtra(index);
+    }
+
+    static void SaveExtra(int index)
+    {
+        var extra = extras[index];
+        PlayerPrefs.SetString(ExtraKey + index, string.Format(CultureInfo.InvariantCulture, "{0};{1:0.####};{2:0.####};{3:0.##}",
+                                                              extra.Button, extra.Place.x, extra.Place.y, extra.Place.z));
+    }
+
+    // All of them again (one was removed, so the ones after it moved up a key).
+    static void SaveExtras()
+    {
+        for (int i = 0; i < MaxExtras; i++)
+        {
+            if (i < extras.Count) SaveExtra(i);
+            else PlayerPrefs.DeleteKey(ExtraKey + i);
+        }
+    }
+
     static void LoadLayout()
     {
         custom.Clear();
         foreach (TouchButton button in Enum.GetValues(typeof(TouchButton)))
         {
             string[] parts = PlayerPrefs.GetString(LayoutKey + button, "").Split(';');
-            if (parts.Length == 3
-                && float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float x)
-                && float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float y)
-                && float.TryParse(parts[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float size))
-                custom[button] = new Vector3(Mathf.Clamp01(x), Mathf.Clamp01(y), Mathf.Clamp(size, 0.5f, 2f));
+            if (parts.Length == 3 && ReadPlace(parts, 0, out var place)) custom[button] = place;
         }
+
+        extras.Clear();
+        bool renumber = false;   // a key was empty or unreadable, so the ones after it now have lower numbers
+        for (int i = 0; i < MaxExtras; i++)
+        {
+            string[] parts = PlayerPrefs.GetString(ExtraKey + i, "").Split(';');
+            if (parts.Length == 4
+                && Enum.TryParse(parts[0], out TouchButton button) && ExtraPicture(button) != null
+                && ReadPlace(parts, 1, out var place))
+            {
+                if (extras.Count < i) renumber = true;
+                extras.Add(new Extra { Button = button, Place = place });
+            }
+            else if (PlayerPrefs.HasKey(ExtraKey + i)) renumber = true;
+        }
+        // Each button is saved under its own number, so the keys must match the list again (and lose the bad ones).
+        if (renumber) SaveExtras();
     }
 
-    /// <summary>Every button back to its default place and size.</summary>
+    /// <summary>A saved "x;y;size" from <paramref name="first"/> on: kept on the screen and in size, and false for
+    /// anything that is not a plain number (a "NaN" would put the button nowhere, and every touch would hit it).</summary>
+    static bool ReadPlace(string[] parts, int first, out Vector3 place)
+    {
+        place = default;
+        if (!float.TryParse(parts[first], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) || !float.IsFinite(x)
+            || !float.TryParse(parts[first + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float y) || !float.IsFinite(y)
+            || !float.TryParse(parts[first + 2], NumberStyles.Float, CultureInfo.InvariantCulture, out float size) || !float.IsFinite(size))
+            return false;
+        place = new Vector3(Mathf.Clamp01(x), Mathf.Clamp01(y), Mathf.Clamp(size, 0.5f, 2f));
+        return true;
+    }
+
+    /// <summary>Every button back to its default place and size, and the added ones gone.</summary>
     public static void ResetLayout()
     {
         foreach (TouchButton button in Enum.GetValues(typeof(TouchButton))) PlayerPrefs.DeleteKey(LayoutKey + button);
+        for (int i = 0; i < MaxExtras; i++) PlayerPrefs.DeleteKey(ExtraKey + i);
         custom.Clear();
+        extras.Clear();
     }
 
     // -ds-touch-demo: FIRE on the left and a big JUMP, for this run only (screenshots).
@@ -215,7 +310,7 @@ public class TouchControls : MonoBehaviour
                 case TouchPhase.Moved:
                 case TouchPhase.Stationary:
                     if (!fingers.TryGetValue(id, out var finger)) break;
-                    // Dragging to look: anywhere on the right, and on FIRE (aim while shooting).
+                    // Dragging to look: anywhere on the right, and on FIRE or an added FIRE (aim while shooting).
                     if (finger.Role == Role.Look || (finger.Role == Role.Button && finger.Button == TouchButton.Fire))
                         LookPixels += new Vector2(position.x - finger.Last.x, finger.Last.y - position.y);
                     if (finger.Role == Role.Stick) stickNow = position;
@@ -228,6 +323,7 @@ public class TouchControls : MonoBehaviour
             }
         }
 
+        // An added button counts as its original: FIRE stays held while either FIRE is.
         foreach (var finger in fingers.Values)
             if (finger.Role == Role.Button) held.Add(finger.Button);
         if (stickHeld)
@@ -240,11 +336,18 @@ public class TouchControls : MonoBehaviour
     Finger Begin(Vector2 position, GameManager gm)
     {
         var finger = new Finger { Last = position };
-        foreach (var pad in pads)
+        int hit = -1;
+        for (int i = 0; i < pads.Count; i++)
         {
-            if (Vector2.Distance(position, pad.Center) > pad.Radius * 1.15f) continue;
+            if (Vector2.Distance(position, pads[i].Center) > pads[i].Radius * 1.15f) continue;
+            if (hit < 0 || pads[i].Extra >= 0) hit = i;   // the first usual button; an added one (drawn over them) before it
+        }
+        if (hit >= 0)
+        {
+            var pad = pads[hit];
             finger.Role = Role.Button;
             finger.Button = pad.Button;
+            finger.Extra = pad.Extra;
             down.Add(pad.Button);
             if (pad.Button == TouchButton.Crouch) Crouched = !Crouched;
             return finger;
@@ -291,7 +394,7 @@ public class TouchControls : MonoBehaviour
         void Add(TouchButton button, string label, bool lit = false)
         {
             var (center, radius) = Place(button);
-            pads.Add(new Pad { Button = button, Center = center, Radius = radius, Label = label, Lit = lit });
+            pads.Add(new Pad { Button = button, Center = center, Radius = radius, Label = label, Lit = lit, Extra = -1 });
         }
 
         Add(TouchButton.Pause, "pause");
@@ -335,6 +438,19 @@ public class TouchControls : MonoBehaviour
         var voice = VoiceChat.Instance;
         if (voice != null && voice.InSession && GameSettings.VoiceChat && GameSettings.Voice == VoiceMode.HoldV)
             Add(TouchButton.Talk, "mic");
+
+        // The buttons the player added: each only while its original is shown (SCOPE with a scoped gun), with the
+        // original's picture and light. Last, so they are drawn over the usual ones.
+        int usual = pads.Count;
+        for (int i = 0; i < extras.Count; i++)
+            for (int j = 0; j < usual; j++)
+            {
+                var original = pads[j];
+                if (original.Button != extras[i].Button) continue;
+                var (center, radius) = ExtraPlace(i);
+                pads.Add(new Pad { Button = original.Button, Center = center, Radius = radius, Label = original.Label, Lit = original.Lit, Extra = i });
+                break;
+            }
     }
 
     // ----------------------------------------------------------------- drawing (called by GameUI with its 1080p matrix)
@@ -377,14 +493,13 @@ public class TouchControls : MonoBehaviour
         }
         else if (pads.Exists(p => p.Button == TouchButton.Fire))
         {
-            var hint = new Vector2(safeLeft + 260f, RefHeight - 330f);
-            Disc(hint, StickRadius, new Color(1f, 1f, 1f, 0.06f));
-            Disc(hint, 52f, new Color(1f, 1f, 1f, 0.16f));
+            Disc(StickHint, StickRadius, new Color(1f, 1f, 1f, 0.06f));
+            Disc(StickHint, 52f, new Color(1f, 1f, 1f, 0.16f));
         }
 
         foreach (var pad in pads)
         {
-            bool pressed = held.Contains(pad.Button);
+            bool pressed = Pressed(pad);
             Color fill = pad.Button == TouchButton.Fire ? new Color(0.85f, 0.25f, 0.2f, pressed ? 0.75f : 0.45f)
                        : pad.Lit ? new Color(0.85f, 0.55f, 0.15f, pressed ? 0.85f : 0.6f)
                        : new Color(0f, 0f, 0f, pressed ? 0.6f : 0.35f);
@@ -395,72 +510,183 @@ public class TouchControls : MonoBehaviour
         }
     }
 
+    // A finger is on this very button (not only on another one that does the same).
+    bool Pressed(Pad pad)
+    {
+        foreach (var finger in fingers.Values)
+            if (finger.Role == Role.Button && finger.Button == pad.Button && finger.Extra == pad.Extra) return true;
+        return false;
+    }
+
     // ----------------------------------------------------------------- the layout editor (Settings > TOUCH CONTROLS)
 
-    TouchButton? dragging;
+    // The editor's buttons by number: the usual ones (EditorButtons) first, then the added ones.
+    int dragging = -1, selected = -1;
     Vector2 dragOffset;
+    Rect editorPanel;   // GameUI's panel over the buttons: its touches are the panel's, and new buttons keep out of it
 
-    /// <summary>The button tapped last in the editor (its size can be changed).</summary>
-    public TouchButton? Selected { get; private set; }
+    int EditorCount => EditorButtons.Length + extras.Count;
+
+    // RESET can take away the added button that was selected.
+    int Chosen => selected < EditorCount ? selected : -1;
+
+    (TouchButton Button, string Label) EditorItem(int i)
+    {
+        if (i < EditorButtons.Length) return EditorButtons[i];
+        var button = extras[i - EditorButtons.Length].Button;
+        return (button, ExtraPicture(button));
+    }
+
+    (Vector2 Center, float Radius) EditorPlace(int i) => i < EditorButtons.Length ? Place(EditorButtons[i].Button) : ExtraPlace(i - EditorButtons.Length);
+
+    float EditorSize(int i) => i < EditorButtons.Length ? SizeOf(EditorButtons[i].Button) : extras[i - EditorButtons.Length].Place.z;
+
+    void SetEditorPlace(int i, Vector2 center, float size)
+    {
+        if (i < EditorButtons.Length) SetPlace(EditorButtons[i].Button, center, size);
+        else SetExtraPlace(i - EditorButtons.Length, center, size);
+    }
+
+    /// <summary>What the button tapped last in the editor does (its size can be changed), or null.</summary>
+    public TouchButton? Selected => Chosen >= 0 ? EditorItem(Chosen).Button : (TouchButton?)null;
+
+    /// <summary>The selected button is one the player added (it can be removed).</summary>
+    public bool SelectedIsExtra => Chosen >= EditorButtons.Length;
+
+    /// <summary>The selected button's picture (an <see cref="Icons"/> name).</summary>
+    public string SelectedPicture => Chosen >= 0 ? EditorItem(Chosen).Label : null;
+
+    /// <summary>The selected button's size: 1 is its normal size.</summary>
+    public float SelectedSize => Chosen >= 0 ? EditorSize(Chosen) : 1f;
 
     /// <summary>
     /// Draws every button where it is and lets the player drag them (called by GameUI with its 1080p matrix, before
-    /// its own panel so a touch on a button wins). Moving or resizing saves at once.
+    /// its own panel so a touch on a button wins, except inside <paramref name="panel"/>). Moving or resizing saves at once.
     /// </summary>
-    public void DrawEditor()
+    public void DrawEditor(Rect panel)
     {
         Measure();
         PrepareDrawing();
-        var hint = new Vector2(safeLeft + 260f, RefHeight - 330f);
-        Disc(hint, StickRadius, new Color(1f, 1f, 1f, 0.08f));
-        PadLabel(hint, StickRadius * 0.6f, "stick");
+        editorPanel = panel;
+        if (selected >= EditorCount) selected = -1;
+        if (dragging >= EditorCount) dragging = -1;
+        Disc(StickHint, StickRadius, new Color(1f, 1f, 1f, 0.08f));
+        PadLabel(StickHint, StickRadius * 0.6f, "stick");
 
-        foreach (var (button, label) in EditorButtons)
+        for (int i = 0; i < EditorCount; i++)
         {
-            var (center, radius) = Place(button);
-            bool selected = Selected == button;
-            if (selected) Disc(center, radius + 8f, new Color(1f, 0.78f, 0.35f, 0.9f));
+            var (button, label) = EditorItem(i);
+            var (center, radius) = EditorPlace(i);
+            bool chosen = selected == i;
+            if (chosen) Disc(center, radius + 8f, new Color(1f, 0.78f, 0.35f, 0.9f));
             Disc(center, radius, button == TouchButton.Fire ? new Color(0.85f, 0.25f, 0.2f, 0.7f)
-                                : selected ? new Color(0.85f, 0.55f, 0.15f, 0.85f) : new Color(0f, 0f, 0f, 0.55f));
+                                : chosen ? new Color(0.85f, 0.55f, 0.15f, 0.85f) : new Color(0f, 0f, 0f, 0.55f));
             PadLabel(center, radius, label);
+            if (i >= EditorButtons.Length) ExtraBadge(center, radius);
         }
 
         var e = Event.current;
-        if (e.type == EventType.MouseDown)
+        if (e.type == EventType.MouseDown && !panel.Contains(e.mousePosition))
         {
-            for (int i = EditorButtons.Length - 1; i >= 0; i--)   // the one drawn on top first
+            for (int i = EditorCount - 1; i >= 0; i--)   // the one drawn on top first
             {
-                var button = EditorButtons[i].Button;
-                var (center, radius) = Place(button);
+                var (center, radius) = EditorPlace(i);
                 if (Vector2.Distance(e.mousePosition, center) > radius * 1.1f) continue;
-                Selected = dragging = button;
+                selected = dragging = i;
                 dragOffset = center - e.mousePosition;
                 e.Use();
                 break;
             }
         }
-        else if (e.type == EventType.MouseDrag && dragging is TouchButton moved)
+        else if (e.type == EventType.MouseDrag && dragging >= 0)
         {
-            float radius = Place(moved).Radius;
+            float radius = EditorPlace(dragging).Radius;
             var center = e.mousePosition + dragOffset;
             center.x = Mathf.Clamp(center.x, radius, width - radius);
             center.y = Mathf.Clamp(center.y, radius, RefHeight - radius);
-            SetPlace(moved, center, SizeOf(moved));
+            SetEditorPlace(dragging, center, EditorSize(dragging));
             e.Use();
         }
-        else if (e.type == EventType.MouseUp && dragging != null)
+        else if (e.type == EventType.MouseUp && dragging >= 0)
         {
-            dragging = null;
+            dragging = -1;
             e.Use();
         }
+    }
+
+    // A small gold + on an added button in the editor, to tell it from its original.
+    void ExtraBadge(Vector2 center, float radius)
+    {
+        var at = center + new Vector2(radius * 0.72f, -radius * 0.72f);
+        Disc(at, 15f, new Color(1f, 0.78f, 0.35f, 0.95f));
+        GUI.color = new Color(0.12f, 0.09f, 0.04f);
+        GUI.DrawTexture(new Rect(at.x - 8f, at.y - 2f, 16f, 4f), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(at.x - 2f, at.y - 8f, 4f, 16f), Texture2D.whiteTexture);
+        GUI.color = Color.white;
     }
 
     /// <summary>Resizes the selected button (0.6 to 1.6 of its normal size).</summary>
     public void ResizeSelected(float size)
     {
-        if (Selected is not TouchButton button) return;
+        if (Chosen < 0) return;
         Measure();
-        SetPlace(button, Place(button).Center, Mathf.Clamp(size, 0.6f, 1.6f));
+        SetEditorPlace(Chosen, EditorPlace(Chosen).Center, Mathf.Clamp(size, 0.6f, 1.6f));
+    }
+
+    /// <summary>
+    /// Adds a second <paramref name="button"/> (one of <see cref="ExtraActions"/>) where it covers nothing, and selects
+    /// it so it can be moved and resized at once. False when there are <see cref="MaxExtras"/> already.
+    /// </summary>
+    public bool AddExtra(TouchButton button)
+    {
+        if (extras.Count >= MaxExtras || ExtraPicture(button) == null) return false;
+        Measure();
+        float size = button == TouchButton.Fire ? 0.8f : 1f;   // the main FIRE is big; a second one sits among other buttons
+        var center = FreeSpot(DefaultPlace(button).Radius * size);
+        extras.Add(new Extra { Button = button, Place = new Vector3(center.x / width, center.y / RefHeight, size) });
+        SaveExtra(extras.Count - 1);
+        selected = EditorCount - 1;
+        dragging = -1;
+        return true;
+    }
+
+    /// <summary>Removes the selected button if the player added it (the usual ones stay).</summary>
+    public void RemoveSelected()
+    {
+        if (!SelectedIsExtra) return;
+        extras.RemoveAt(Chosen - EditorButtons.Length);
+        SaveExtras();
+        selected = dragging = -1;
+    }
+
+    // The free place nearest the left thumb, above the stick (where a second FIRE is wanted most): clear of every
+    // button, the stick and the editor's panel. On a full screen, that place anyway (the player moves it).
+    Vector2 FreeSpot(float radius)
+    {
+        var taken = new List<(Vector2 Center, float Radius)> { (StickHint, StickRadius) };
+        for (int i = 0; i < EditorCount; i++) taken.Add(EditorPlace(i));
+        var anchor = new Vector2(safeLeft + 300f, 470f);
+        var best = anchor;
+        float bestDistance = float.MaxValue;
+        for (float y = radius + 90f; y <= RefHeight - radius - 10f; y += 20f)   // below PAUSE and the scores
+            for (float x = safeLeft + radius + 10f; x <= safeRight - radius - 10f; x += 20f)
+            {
+                var spot = new Vector2(x, y);
+                float distance = (spot - anchor).sqrMagnitude;
+                if (distance >= bestDistance || !Free(spot, radius + 14f, taken)) continue;
+                best = spot;
+                bestDistance = distance;
+            }
+        return best;
+    }
+
+    bool Free(Vector2 spot, float radius, List<(Vector2 Center, float Radius)> taken)
+    {
+        var nearest = new Vector2(Mathf.Clamp(spot.x, editorPanel.xMin, editorPanel.xMax), Mathf.Clamp(spot.y, editorPanel.yMin, editorPanel.yMax));
+        if (editorPanel.width > 0f && Vector2.Distance(spot, nearest) < radius) return false;
+        foreach (var (center, other) in taken)
+            if (Vector2.Distance(spot, center) < radius + other) return false;
+        return true;
     }
 
     void Disc(Vector2 center, float radius, Color color)

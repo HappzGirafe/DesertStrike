@@ -1199,21 +1199,13 @@ public partial class GameUI : MonoBehaviour
         Fill(new Rect(x + 2.5f, y, 11f, 2.5f), color);
     }
 
-    float SensitivitySlider(float x, float y, float w)
-    {
-        Label(new Rect(x, y, w, 34f), $"{(GameInput.Touch ? "Touch" : "Mouse")} sensitivity   {PlayerController.MouseSensitivity:0.0}", 22, Color.white);
-        float sensitivity = GUI.HorizontalSlider(new Rect(x, y + 42f, w, 24f), PlayerController.MouseSensitivity, 0.3f, 8f);
-        if (!Mathf.Approximately(sensitivity, PlayerController.MouseSensitivity)) GameSettings.SetSensitivity(sensitivity);
-        return y + 85f;
-    }
-
     // ----------------------------------------------------------------- settings
 
     static readonly string[] QualityHelp =
     {
         "Low: no shadows, no lights, half-size textures. Coolest and quietest for laptops.",
-        "Medium: simple shadows close by, no extra lights. Recommended for MacBook Air.",
-        "High: soft shadows far away, gun-flash lights, smoothed edges.",
+        "Medium: soft shadows close by, glow and smoothed edges. Recommended for MacBook Air.",
+        "High: soft shadows far away, glow, gun-flash lights, smoothed edges.",
     };
 
     static readonly string[] VoiceModeHelp =
@@ -1287,7 +1279,8 @@ public partial class GameUI : MonoBehaviour
         bx += bw + 20f;
         if (GameInput.Touch)
         {
-            if (Button(new Rect(bx, by, bw, 56f), "TOUCH CONTROLS")) touchLayoutOpen = true;
+            // The panel shows again, even if the page was left folded (Back in a match closes it without DONE).
+            if (Button(new Rect(bx, by, bw, 56f), "TOUCH CONTROLS")) { touchLayoutOpen = true; touchPanelHidden = false; }
             bx += bw + 20f;
         }
         if (Button(new Rect(bx, by, bw, 56f), "BACK")) settingsOpen = false;
@@ -1315,39 +1308,6 @@ public partial class GameUI : MonoBehaviour
             if (Button(rect, name, code == Loc.Language, true, 28)) Loc.Set(code);
         }
         if (Button(new Rect(x + w / 2f - 150f, y + h - 84f, 300f, 56f), "BACK")) languagesOpen = false;
-    }
-
-    // ----------------------------------------------------------------- moving the phone's buttons (Settings > TOUCH CONTROLS)
-
-    /// <summary>Every on-screen button where it is: drag one to move it, tap one and change its size, RESET puts them
-    /// all back. Saved on the device at once.</summary>
-    void DrawTouchLayout()
-    {
-        if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Escape)
-        {
-            touchLayoutOpen = false;
-            Event.current.Use();
-            return;
-        }
-        Fill(new Rect(0f, 0f, width, RefHeight), new Color(0f, 0f, 0f, 0.35f));
-        if (touch == null) return;
-        touch.DrawEditor();   // first, so a touch on a button is the button's
-
-        float w = 600f, x = (width - w) / 2f, y = 100f, h = touch.Selected != null ? 300f : 210f;
-        Panel(new Rect(x, y, w, h));
-        Label(new Rect(x, y + 12f, w, 44f), "TOUCH CONTROLS", 34, Gold, TextAnchor.MiddleCenter);
-        Label(new Rect(x + 20f, y + 58f, w - 40f, 28f), "Drag a button to move it. Tap one to change its size.", 18, Dim, TextAnchor.MiddleCenter);
-        float cy = y + 96f;
-        if (touch.Selected is TouchButton selected)
-        {
-            float size = TouchControls.SizeOf(selected);
-            Label(new Rect(x + 30f, cy, w - 60f, 30f), $"Size of {selected.ToString().ToUpperInvariant()}   {Mathf.RoundToInt(size * 100f)}%", 20, Color.white);
-            float changed = GUI.HorizontalSlider(new Rect(x + 30f, cy + 38f, w - 60f, 30f), size, 0.6f, 1.6f);
-            if (Mathf.Abs(changed - size) > 0.005f) touch.ResizeSelected(Mathf.Round(changed * 20f) / 20f);
-            cy += 90f;
-        }
-        if (Button(new Rect(x + 30f, cy, w / 2f - 40f, 56f), "RESET")) TouchControls.ResetLayout();
-        if (Button(new Rect(x + w / 2f + 10f, cy, w / 2f - 40f, 56f), "DONE", true)) touchLayoutOpen = false;
     }
 
     // ----------------------------------------------------------------- crosshair page (Settings > CROSSHAIR)

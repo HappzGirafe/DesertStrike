@@ -259,6 +259,9 @@ public static class GameSettings
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = FrameLimit > 0 ? FrameLimit : -1;
 
+        // The post effects follow the quality too: none on Low (the camera draws straight to the screen, with no
+        // extra buffer), bloom, grading and FXAA on Medium, a wider bloom on High.
+        PostEffects.FollowQuality();
         switch (Quality)
         {
             case GraphicsQuality.Low:
@@ -269,12 +272,15 @@ public static class GameSettings
                 QualitySettings.globalTextureMipmapLimit = 1;   // half-size textures
                 break;
             case GraphicsQuality.Medium:
-                QualitySettings.shadows = ShadowQuality.HardOnly;
+                // Soft shadows close by, at the same distance and size as the hard ones before; the near cascade is
+                // kept small so shadows at your feet stay sharp.
+                QualitySettings.shadows = ShadowQuality.All;
                 QualitySettings.shadowDistance = 55f;
                 QualitySettings.shadowCascades = 2;
+                QualitySettings.shadowCascade2Split = 0.25f;
                 QualitySettings.shadowResolution = ShadowResolution.Medium;
                 QualitySettings.pixelLightCount = 1;
-                QualitySettings.antiAliasing = 0;
+                QualitySettings.antiAliasing = 0;   // FXAA in PostEffects smooths the edges instead
                 QualitySettings.anisotropicFiltering = AnisotropicFiltering.Enable;
                 QualitySettings.globalTextureMipmapLimit = 0;
                 break;
@@ -282,10 +288,14 @@ public static class GameSettings
                 QualitySettings.shadows = ShadowQuality.All;
                 QualitySettings.shadowDistance = 120f;
                 QualitySettings.shadowCascades = 4;
-                QualitySettings.shadowResolution = ShadowResolution.High;
+                // Sharper soft shadows; one size smaller in the browser and on phones and tablets, whose graphics
+                // memory and bandwidth are tighter.
+                QualitySettings.shadowResolution = Application.platform == RuntimePlatform.WebGLPlayer || Application.isMobilePlatform
+                    ? ShadowResolution.High : ShadowResolution.VeryHigh;
                 QualitySettings.pixelLightCount = 4;
                 QualitySettings.antiAliasing = 2;
-                QualitySettings.anisotropicFiltering = AnisotropicFiltering.Enable;
+                // Floors and walls seen at a slant stay sharp (the textures themselves are unchanged).
+                QualitySettings.anisotropicFiltering = AnisotropicFiltering.ForceEnable;
                 QualitySettings.globalTextureMipmapLimit = 0;
                 break;
         }

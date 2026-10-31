@@ -546,6 +546,7 @@ public class GameManager : MonoBehaviour
         sun.transform.rotation = Quaternion.Euler(lighting.SunAngles);
         sun.color = lighting.Sun;
         sun.intensity = lighting.SunIntensity;
+        sun.shadowStrength = lighting.ShadowStrength;
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
         RenderSettings.ambientSkyColor = lighting.Sky;
         RenderSettings.ambientEquatorColor = lighting.Equator;
@@ -555,8 +556,11 @@ public class GameManager : MonoBehaviour
         RenderSettings.fogColor = lighting.Fog;
         RenderSettings.fogStartDistance = lighting.FogStart;
         RenderSettings.fogEndDistance = lighting.FogEnd;
-        MainCamera.clearFlags = lighting.Skybox && RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
-        MainCamera.backgroundColor = lighting.Background;
+        // Every map has its own sky; where the graphics chip cannot draw it, the fog colour (the sky's at the horizon).
+        RenderSettings.skybox = MapSky.For(lighting);
+        MainCamera.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
+        MainCamera.backgroundColor = lighting.Fog;
+        if (MainCamera.TryGetComponent(out PostEffects post)) post.SetLook(lighting);
     }
 
     /// <summary>A LAN game ended (the host quit, or the connection was lost).</summary>
@@ -1265,10 +1269,13 @@ public class GameManager : MonoBehaviour
         }
         cam.nearClipPlane = 0.03f;
         cam.farClipPlane = 300f;   // the fog is solid from 260 m
-        // No HDR: the camera then draws straight to the screen instead of to an extra buffer that is copied over.
+        // No HDR: the picture stays 8 bits a colour (half the memory and bandwidth of a float one), and on Low, where
+        // PostEffects is off, the camera draws straight to the screen instead of to an extra buffer that is copied over.
         cam.allowHDR = false;
         cam.fieldOfView = 75f;
-        return cam;   // sky or background colour: set with each map's lighting
+        // Bloom, colour grading, vignette and FXAA on Medium and High (off on Low and on servers without graphics).
+        if (!cam.TryGetComponent(out PostEffects _)) cam.gameObject.AddComponent<PostEffects>();
+        return cam;   // sky, background colour and the post effects' look: set with each map's lighting
     }
 
     void OrbitMenuCamera()
@@ -1337,7 +1344,7 @@ public class GameManager : MonoBehaviour
 
     // ----------------------------------------------------------------- setup helpers
 
-    /// <summary>The scene's sun (each map sets its colour, strength and direction).</summary>
+    /// <summary>The scene's sun (each map sets its colour, strength, direction and how dark its shadows are).</summary>
     static void CreateSun()
     {
         Light sun = null;
@@ -1348,6 +1355,7 @@ public class GameManager : MonoBehaviour
             sun = new GameObject("Sun").AddComponent<Light>();
             sun.type = LightType.Directional;
         }
+        // Soft wherever the graphics quality has shadows at all (GameSettings).
         sun.shadows = LightShadows.Soft;
         sun.shadowStrength = 0.7f;
         RenderSettings.sun = sun;

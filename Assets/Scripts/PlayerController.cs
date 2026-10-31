@@ -163,7 +163,7 @@ public class PlayerController : MonoBehaviour, ICombatantController
 
     void Look()
     {
-        float sensitivity = MouseSensitivity * (IsScoped ? 0.35f : 1f);
+        float sensitivity = MouseSensitivity * (IsScoped ? LookSettings.ScopeShare : 1f);   // Settings: scope sensitivity
         Vector2 look = GameInput.Look(sensitivity);
         yaw += look.x;
         pitch = Mathf.Clamp(pitch - look.y, -85f, 85f);
