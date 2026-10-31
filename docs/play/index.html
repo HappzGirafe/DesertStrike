@@ -58,6 +58,21 @@
           } catch (e) {}
         };
         document.addEventListener("touchend", wholeScreen);
+        // The screen stays on while the game is open, as in the Android app: otherwise the phone dims and goes black
+        // between taps (dead, watching, waiting for the round). The browser drops the lock when the tab is hidden, so
+        // it is asked for again on coming back, and at a tap for browsers that only give it then.
+        var awake = null, asking = false;
+        var keepAwake = function () {
+          if (awake || asking || !navigator.wakeLock || document.visibilityState !== "visible") return;
+          asking = true;
+          navigator.wakeLock.request("screen").then(function (lock) {
+            awake = lock;
+            lock.addEventListener("release", function () { awake = null; });
+          }).catch(function () {}).then(function () { asking = false; });
+        };
+        keepAwake();
+        document.addEventListener("visibilitychange", keepAwake);
+        document.addEventListener("touchend", keepAwake);
       }
       createUnityInstance(canvas, {
         arguments: [],
